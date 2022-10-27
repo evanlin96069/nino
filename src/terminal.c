@@ -8,6 +8,7 @@
 
 #include "defines.h"
 #include "editor.h"
+#include "output.h"
 
 void die(char* file, int line, const char* s) {
     write(STDOUT_FILENO, "\x1b[2J", 4);
@@ -45,6 +46,18 @@ int editorReadKey() {
     while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
         if (nread == -1 && errno != EAGAIN)
             DIE("read");
+
+        // Auto resize
+        int rows, cols;
+        if (getWindowSize(&rows, &cols) == -1)
+            DIE("getWindowSize");
+        rows -= 3;
+        cols -= E.num_rows_digits + 1;
+        if (E.rows != rows || E.cols != cols) {
+            E.rows = rows;
+            E.cols = cols;
+            editorRefreshScreen();
+        }
     }
     if (c == ESC) {
         char seq[5];

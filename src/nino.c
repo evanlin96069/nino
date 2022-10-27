@@ -20,10 +20,6 @@ int main(int argc, char* argv[]) {
     while (1) {
         editorRefreshScreen();
         editorProcessKeypress();
-        if (getWindowSize(&E.rows, &E.cols) == -1)
-            DIE("getWindowSize");
-        E.rows -= 3;
-        E.cols -= E.num_rows_digits + 1;
     }
     return 0;
 }
