@@ -2,7 +2,17 @@
 #define ROW_H
 
 #include <stddef.h>
-#include "editor.h"
+
+typedef struct EditorRow {
+    int idx;
+    int size;
+    int rsize;
+    char* data;
+    char* render;
+    unsigned char* hl;
+    unsigned char* selected;
+    int hl_open_comment;
+} EditorRow;
 
 void editorUpdateRow(EditorRow* row);
 void editorInsertRow(int at, char* s, size_t len);

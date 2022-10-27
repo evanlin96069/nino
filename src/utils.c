@@ -21,7 +21,7 @@ int editorRowCxToRx(EditorRow* row, int cx) {
     int rx = 0;
     for (int i = 0; i < cx; i++) {
         if (row->data[i] == '\t') {
-            rx += (TAB_SIZE - 1) - (rx % TAB_SIZE);
+            rx += (E.cfg->tab_size - 1) - (rx % E.cfg->tab_size);
         }
         rx++;
     }
@@ -33,7 +33,7 @@ int editorRowRxToCx(EditorRow* row, int rx) {
     int cx;
     for (cx = 0; cx < row->size; cx++) {
         if (row->data[cx] == '\t')
-            cur_rx += (TAB_SIZE - 1) - (cur_rx % TAB_SIZE);
+            cur_rx += (E.cfg->tab_size - 1) - (cur_rx % E.cfg->tab_size);
         cur_rx++;
         if (cur_rx > rx)
             return cx;
@@ -50,7 +50,7 @@ int editorRowSxToCx(EditorRow* row, int sx) {
     while (cx < row->size && rx < sx) {
         rx2 = rx;
         if (row->data[cx] == '\t') {
-            rx += (TAB_SIZE - 1) - (rx % TAB_SIZE);
+            rx += (E.cfg->tab_size - 1) - (rx % E.cfg->tab_size);
         }
         rx++;
         cx++;

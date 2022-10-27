@@ -8,6 +8,7 @@
 #include "select.h"
 #include "find.h"
 #include "goto_line.h"
+#include "config.h"
 #include "terminal.h"
 #include "status.h"
 #include "utils.h"
@@ -213,6 +214,12 @@ void editorProcessKeypress() {
         E.is_selected = 0;
         E.bracket_autocomplete = 0;
         editorGotoLine();
+        break;
+
+    case CTRL_KEY('p'):
+        E.is_selected = 0;
+        E.bracket_autocomplete = 0;
+        editorSetting();
         break;
 
     case CTRL_KEY('a'):

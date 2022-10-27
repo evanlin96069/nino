@@ -1,14 +1,15 @@
-/*** includes ***/
 #include "editor.h"
 #include "terminal.h"
 #include "file_io.h"
 #include "row.h"
 #include "input.h"
 #include "output.h"
+#include "config.h"
 
 int main(int argc, char* argv[]) {
     enableRawMode();
-    initEditor();
+    editorLoadConfig("~/.ninorc");
+    editorInit();
     if (argc >= 2) {
         editorOpen(argv[1]);
     }

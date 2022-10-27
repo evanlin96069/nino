@@ -4,9 +4,9 @@
 #include "defines.h"
 #include "utils.h"
 
-EditorConfig E;
+Editor E;
 
-void initEditor() {
+void editorInit() {
     E.cx = 0;
     E.cy = 0;
     E.rx = 0;

@@ -46,6 +46,7 @@ void editorDrawStatusBar(abuf* ab) {
         " ^Q: Quit  ^S: Save  ^F: Find ^G: Goto",
         " ^Q: Cancel",
         " ^Q: Cancel  ◀: back  ▶: Next",
+        " ^Q: Cancel",
         " ^Q: Cancel"
     };
     int len = strlen(help_info[E.state]);

@@ -2,20 +2,11 @@
 #define EDITOR_H
 
 #include <termios.h>
+#include "row.h"
+#include "config.h"
 #include "file_types.h"
 
-typedef struct EditorRow {
-    int idx;
-    int size;
-    int rsize;
-    char* data;
-    char* render;
-    unsigned char* hl;
-    unsigned char* selected;
-    int hl_open_comment;
-} EditorRow;
-
-typedef struct EditorConfig {
+typedef struct Editor {
     int cx, cy;
     int rx;
     int sx;
@@ -34,13 +25,14 @@ typedef struct EditorConfig {
     int bracket_autocomplete;
     char* filename;
     char status_msg[80];
-    EditorSyntax* syntax;
     struct termios orig_termios;
-} EditorConfig;
+    EditorSyntax* syntax;
+    EditorConfig* cfg;
+} Editor;
 
-extern EditorConfig E;
+extern Editor E;
 
-void initEditor();
+void editorInit();
 void editorInsertChar(int c);
 void editorInsertNewline();
 void editorDelChar();

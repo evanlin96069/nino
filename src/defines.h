@@ -6,8 +6,6 @@
 
 #define EDITOR_VERSION "0.0.1"
 
-#define TAB_SIZE 4
-
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 #define HL_HIGHLIGHT_NUMBERS (1<<0)
@@ -47,7 +45,8 @@ enum EditorState {
     EDIT_MODE = 0,
     SAVE_AS_MODE,
     FIND_MODE,
-    GOTO_LINE_MODE
+    GOTO_LINE_MODE,
+    SETTING_MODE
 };
 
 enum EditorHighlight {

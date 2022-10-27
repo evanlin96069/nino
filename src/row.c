@@ -12,13 +12,13 @@ void editorUpdateRow(EditorRow* row) {
     }
 
     free(row->render);
-    row->render = malloc(row->size + tabs * (TAB_SIZE - 1) + 1);
+    row->render = malloc(row->size + tabs * (E.cfg->tab_size - 1) + 1);
 
     int idx = 0;
     for (int i = 0; i < row->size; i++) {
         if (row->data[i] == '\t') {
             row->render[idx++] = ' ';
-            while (idx % TAB_SIZE != 0)
+            while (idx % E.cfg->tab_size != 0)
                 row->render[idx++] = ' ';
         }
         else {
