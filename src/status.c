@@ -1,10 +1,12 @@
+#include "status.h"
+
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include "status.h"
-#include "editor.h"
+
 #include "defines.h"
+#include "editor.h"
 
 void editorSetStatusMsg(const char* fmt, ...) {
     va_list ap;
@@ -17,12 +19,11 @@ void editorDrawTopStatusBar(abuf* ab) {
     int cols = E.cols + E.num_rows_digits + 1;
     abufAppend(ab, "\x1b[48;5;234m", 11);
     char status[80];
-    int len = snprintf(status, sizeof(status),
-        "  Nino Editor v" EDITOR_VERSION);
+    int len =
+        snprintf(status, sizeof(status), "  Nino Editor v" EDITOR_VERSION);
     char rstatus[80];
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%s%.20s",
-        E.dirty ? "*" : "",
-        E.filename ? E.filename : "Untitled");
+    int rlen = snprintf(rstatus, sizeof(rstatus), "%s%.20s", E.dirty ? "*" : "",
+                        E.filename ? E.filename : "Untitled");
     if (len > cols)
         len = cols;
     abufAppend(ab, status, len);
@@ -42,17 +43,13 @@ void editorDrawStatusBar(abuf* ab) {
     int cols = E.cols + E.num_rows_digits + 1;
     abufAppend(ab, "\x1b[48;5;53m", 10);
     char rstatus[80];
-    const char* help_info[] = {
-        " ^Q: Quit  ^S: Save  ^F: Find ^G: Goto",
-        " ^Q: Cancel",
-        " ^Q: Cancel  ◀: back  ▶: Next",
-        " ^Q: Cancel",
-        " ^Q: Cancel"
-    };
+    const char* help_info[] = {" ^Q: Quit  ^S: Save  ^F: Find ^G: Goto",
+                               " ^Q: Cancel", " ^Q: Cancel  ◀: back  ▶: Next",
+                               " ^Q: Cancel", " ^Q: Cancel"};
     int len = strlen(help_info[E.state]);
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s | Ln: %d, Col: %d  ",
-        E.syntax ? E.syntax->file_type : "Plain Text",
-        E.cy + 1, E.rx + 1);
+                        E.syntax ? E.syntax->file_type : "Plain Text", E.cy + 1,
+                        E.rx + 1);
     if (len > cols)
         len = cols;
 
@@ -62,8 +59,7 @@ void editorDrawStatusBar(abuf* ab) {
         if (cols - len == rlen) {
             abufAppend(ab, rstatus, rlen);
             break;
-        }
-        else {
+        } else {
             abufAppend(ab, " ", 1);
             len++;
         }

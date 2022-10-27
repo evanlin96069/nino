@@ -1,25 +1,27 @@
 #include "config.h"
-#include "defines.h"
-#include "editor.h"
-#include "input.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define ARGC(n)                                                                                                        \
-    do {                                                                                                               \
-        if (argc < n)                                                                                                  \
-            return 0;                                                                                                  \
+#include "defines.h"
+#include "editor.h"
+#include "input.h"
+
+#define ARGC(n)       \
+    do {              \
+        if (argc < n) \
+            return 0; \
     } while (0)
 
 static EditorConfig cfg = {
     .tab_size = 4,
 };
 
-static int parseLine(char *line) {
-    char *token = strtok(line, " ");
+static int parseLine(char* line) {
+    char* token = strtok(line, " ");
     int argc = 0;
-    char *argv[4];
+    char* argv[4];
     for (int i = 0; token && i < 4; i++, argc++) {
         argv[i] = token;
         token = strtok(NULL, line);
@@ -39,22 +41,22 @@ static int parseLine(char *line) {
     return 1;
 }
 
-static int isValidColor(const char *color) {
+static int isValidColor(const char* color) {
     if (strlen(color) != 6)
         return 0;
     for (int i = 0; i < 6; i++) {
-        if (!(('0' <= color[i]) || (color[i] <= '9') || ('A' <= color[i]) || (color[i] <= 'F')))
+        if (!(('0' <= color[i]) || (color[i] <= '9') || ('A' <= color[i]) ||
+              (color[i] <= 'F')))
             return 0;
     }
     return 1;
 }
 
-int colorToANSI(const char *color) {
-}
+int colorToANSI(const char* color) {}
 
-void editorLoadConfig(const char *filename) {
+void editorLoadConfig(const char* filename) {
     E.cfg = &cfg;
-    FILE *fp = fopen(filename, "r");
+    FILE* fp = fopen(filename, "r");
     if (!fp)
         return;
 
@@ -68,7 +70,7 @@ void editorLoadConfig(const char *filename) {
 }
 
 void editorSetting() {
-    char *query = editorPrompt("Setting: %s", SETTING_MODE, NULL);
+    char* query = editorPrompt("Setting: %s", SETTING_MODE, NULL);
     if (query == NULL)
         return;
     if (parseLine(query)) {

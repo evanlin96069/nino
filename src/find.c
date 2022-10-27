@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
+
+#include "defines.h"
 #include "editor.h"
 #include "input.h"
-#include "defines.h"
 #include "utils.h"
 
 static void editorFindCallback(char* query, int key) {
@@ -29,11 +30,9 @@ static void editorFindCallback(char* query, int key) {
     }
     if (key == ARROW_RIGHT || key == ARROW_DOWN || key == '\r') {
         direction = 1;
-    }
-    else if (key == ARROW_LEFT || key == ARROW_UP) {
+    } else if (key == ARROW_LEFT || key == ARROW_UP) {
         direction = -1;
-    }
-    else {
+    } else {
         last_match = -1;
     }
 

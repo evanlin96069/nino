@@ -1,6 +1,8 @@
+#include "select.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include "select.h"
+
 #include "editor.h"
 #include "row.h"
 #include "utils.h"
@@ -11,14 +13,12 @@ void getSelectStartEnd(int* start_x, int* start_y, int* end_x, int* end_y) {
         *start_y = E.cy;
         *end_x = E.select_x;
         *end_y = E.select_y;
-    }
-    else if (E.select_y < E.cy) {
+    } else if (E.select_y < E.cy) {
         *start_x = E.select_x;
         *start_y = E.select_y;
         *end_x = E.cx;
         *end_y = E.cy;
-    }
-    else {
+    } else {
         // same row
         *start_y = *end_y = E.cy;
         *start_x = E.select_x > E.cx ? E.cx : E.select_x;
@@ -45,15 +45,12 @@ void editorSelectText() {
     for (int i = start_y; i <= end_y; i++) {
         if (i == start_y) {
             memset(&(E.row[i].selected[start_x]), 1, E.row[i].rsize - start_x);
-        }
-        else if (i == end_y) {
+        } else if (i == end_y) {
             memset(E.row[i].selected, 1, end_x);
-        }
-        else {
+        } else {
             memset(E.row[i].selected, 1, E.row[i].rsize);
         }
     }
-
 }
 
 void editorDeleteSelectText() {
@@ -66,7 +63,8 @@ void editorDeleteSelectText() {
             editorFreeRow(&(E.row[i]));
         }
         int removed_rows = end_y - start_y - 1;
-        memmove(&(E.row[start_y + 1]), &(E.row[end_y]), sizeof(EditorRow) * (E.num_rows - end_y));
+        memmove(&(E.row[start_y + 1]), &(E.row[end_y]),
+                sizeof(EditorRow) * (E.num_rows - end_y));
         for (int i = start_y + 1; i < E.num_rows - removed_rows; i++) {
             E.row[i].idx -= removed_rows;
         }

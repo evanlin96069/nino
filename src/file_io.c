@@ -1,16 +1,19 @@
+#include "file_io.h"
+
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
 #include <sys/types.h>
-#include "editor.h"
-#include "input.h"
-#include "status.h"
-#include "row.h"
-#include "highlight.h"
+#include <unistd.h>
+
 #include "defines.h"
+#include "editor.h"
+#include "highlight.h"
+#include "input.h"
+#include "row.h"
+#include "status.h"
 
 static char* editroRowsToString(int* len) {
     int total_len = 0;
@@ -47,15 +50,13 @@ void editorOpen(char* filename) {
         size_t cap = 0;
         ssize_t len;
         while ((len = getline(&line, &cap, f)) != -1) {
-            while (len > 0 && (line[len - 1] == '\n' ||
-                line[len - 1] == '\r'))
+            while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r'))
                 len--;
             editorInsertRow(E.num_rows, line, len);
         }
         free(line);
         fclose(f);
-    }
-    else {
+    } else {
         editorInsertRow(E.cy, "", 0);
     }
     E.dirty = 0;

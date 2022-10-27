@@ -3,7 +3,8 @@
 
 #include "editor.h"
 
-#define ABUF_INIT {NULL, 0}
+#define ABUF_INIT \
+    { NULL, 0 }
 
 typedef struct {
     char* buf;

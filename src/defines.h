@@ -2,14 +2,15 @@
 #define DEFINES_H
 
 #include <stddef.h>
+
 #include "file_types.h"
 
 #define EDITOR_VERSION "0.0.1"
 
-#define CTRL_KEY(k) ((k) & 0x1f)
+#define CTRL_KEY(k) ((k)&0x1f)
 
-#define HL_HIGHLIGHT_NUMBERS (1<<0)
-#define HL_HIGHLIGHT_STRINGS (1<<1)
+#define HL_HIGHLIGHT_NUMBERS (1 << 0)
+#define HL_HIGHLIGHT_STRINGS (1 << 1)
 
 enum EditorKey {
     ESC = 27,

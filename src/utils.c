@@ -1,6 +1,8 @@
+#include "utils.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include "utils.h"
+
 #include "defines.h"
 
 void abufAppend(abuf* ab, const char* s, int len) {
@@ -13,9 +15,7 @@ void abufAppend(abuf* ab, const char* s, int len) {
     ab->len += len;
 }
 
-void abufFree(abuf* ab) {
-    free(ab->buf);
-}
+void abufFree(abuf* ab) { free(ab->buf); }
 
 int editorRowCxToRx(EditorRow* row, int cx) {
     int rx = 0;

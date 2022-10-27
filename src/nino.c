@@ -1,10 +1,10 @@
+#include "config.h"
 #include "editor.h"
-#include "terminal.h"
 #include "file_io.h"
-#include "row.h"
 #include "input.h"
 #include "output.h"
-#include "config.h"
+#include "row.h"
+#include "terminal.h"
 
 int main(int argc, char* argv[]) {
     enableRawMode();
@@ -12,8 +12,7 @@ int main(int argc, char* argv[]) {
     editorInit();
     if (argc >= 2) {
         editorOpen(argv[1]);
-    }
-    else {
+    } else {
         editorInsertRow(E.cy, "", 0);
         E.dirty = 0;
     }

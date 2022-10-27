@@ -2,9 +2,10 @@
 #define EDITOR_H
 
 #include <termios.h>
-#include "row.h"
+
 #include "config.h"
 #include "file_types.h"
+#include "row.h"
 
 typedef struct Editor {
     int cx, cy;

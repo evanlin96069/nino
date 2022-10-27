@@ -1,9 +1,11 @@
+#include "terminal.h"
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 #include <sys/ioctl.h>
-#include "terminal.h"
+#include <unistd.h>
+
 #include "defines.h"
 #include "editor.h"
 
@@ -56,16 +58,22 @@ int editorReadKey() {
                     return ESC;
                 if (seq[2] == '~') {
                     switch (seq[1]) {
-                    case '1': return HOME_KEY;
-                    case '3': return DEL_KEY;
-                    case '4': return END_KEY;
-                    case '5': return PAGE_UP;
-                    case '6': return PAGE_DOWN;
-                    case '7': return HOME_KEY;
-                    case '8': return END_KEY;
+                        case '1':
+                            return HOME_KEY;
+                        case '3':
+                            return DEL_KEY;
+                        case '4':
+                            return END_KEY;
+                        case '5':
+                            return PAGE_UP;
+                        case '6':
+                            return PAGE_DOWN;
+                        case '7':
+                            return HOME_KEY;
+                        case '8':
+                            return END_KEY;
                     }
-                }
-                else if (seq[2] == ';') {
+                } else if (seq[2] == ';') {
                     if (read(STDIN_FILENO, &seq[3], 1) != 1)
                         return ESC;
                     if (read(STDIN_FILENO, &seq[4], 1) != 1)
@@ -74,53 +82,72 @@ int editorReadKey() {
                         if (seq[3] == '2') {
                             // Shift
                             switch (seq[4]) {
-                            case 'A': return SHIFT_UP;
-                            case 'B': return SHIFT_DOWN;
-                            case 'C': return SHIFT_RIGHT;
-                            case 'D': return SHIFT_LEFT;
-                            case 'H': return SHIFT_HOME;
-                            case 'F': return SHIFT_END;
+                                case 'A':
+                                    return SHIFT_UP;
+                                case 'B':
+                                    return SHIFT_DOWN;
+                                case 'C':
+                                    return SHIFT_RIGHT;
+                                case 'D':
+                                    return SHIFT_LEFT;
+                                case 'H':
+                                    return SHIFT_HOME;
+                                case 'F':
+                                    return SHIFT_END;
                             }
-                        }
-                        else if (seq[3] == '5') {
+                        } else if (seq[3] == '5') {
                             // Ctrl
                             switch (seq[4]) {
-                            case 'A': return CTRL_UP;
-                            case 'B': return CTRL_DOWN;
-                            case 'C': return CTRL_RIGHT;
-                            case 'D': return CTRL_LEFT;
-                            case 'H': return CTRL_HOME;
-                            case 'F': return CTRL_END;
+                                case 'A':
+                                    return CTRL_UP;
+                                case 'B':
+                                    return CTRL_DOWN;
+                                case 'C':
+                                    return CTRL_RIGHT;
+                                case 'D':
+                                    return CTRL_LEFT;
+                                case 'H':
+                                    return CTRL_HOME;
+                                case 'F':
+                                    return CTRL_END;
                             }
-                        }
-                        else if (seq[3] == '6') {
+                        } else if (seq[3] == '6') {
                             // Shift + Ctrl
                             switch (seq[4]) {
-                            case 'A': return SHIFT_CTRL_UP;
-                            case 'B': return SHIFT_CTRL_DOWN;
-                            case 'C': return SHIFT_CTRL_RIGHT;
-                            case 'D': return SHIFT_CTRL_LEFT;
+                                case 'A':
+                                    return SHIFT_CTRL_UP;
+                                case 'B':
+                                    return SHIFT_CTRL_DOWN;
+                                case 'C':
+                                    return SHIFT_CTRL_RIGHT;
+                                case 'D':
+                                    return SHIFT_CTRL_LEFT;
                             }
                         }
                     }
-
                 }
-            }
-            else {
+            } else {
                 switch (seq[1]) {
-                case 'A': return ARROW_UP;
-                case 'B': return ARROW_DOWN;
-                case 'C': return ARROW_RIGHT;
-                case 'D': return ARROW_LEFT;
-                case 'H': return HOME_KEY;
-                case 'F': return END_KEY;
+                    case 'A':
+                        return ARROW_UP;
+                    case 'B':
+                        return ARROW_DOWN;
+                    case 'C':
+                        return ARROW_RIGHT;
+                    case 'D':
+                        return ARROW_LEFT;
+                    case 'H':
+                        return HOME_KEY;
+                    case 'F':
+                        return END_KEY;
                 }
             }
-        }
-        else if (seq[0] == 'O') {
+        } else if (seq[0] == 'O') {
             switch (seq[1]) {
-            case 'H': return HOME_KEY;
-            case 'F': return END_KEY;
+                case 'H':
+                    return HOME_KEY;
+                case 'F':
+                    return END_KEY;
             }
         }
     }
@@ -156,8 +183,7 @@ int getWindowSize(int* rows, int* cols) {
         if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
             return -1;
         return getCursorPos(rows, cols);
-    }
-    else {
+    } else {
         *cols = ws.ws_col;
         *rows = ws.ws_row;
         return 0;

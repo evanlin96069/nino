@@ -1,8 +1,10 @@
+#include "row.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include "row.h"
-#include "highlight.h"
+
 #include "defines.h"
+#include "highlight.h"
 
 void editorUpdateRow(EditorRow* row) {
     int tabs = 0;
@@ -20,8 +22,7 @@ void editorUpdateRow(EditorRow* row) {
             row->render[idx++] = ' ';
             while (idx % E.cfg->tab_size != 0)
                 row->render[idx++] = ' ';
-        }
-        else {
+        } else {
             row->render[idx++] = row->data[i];
         }
     }
@@ -36,7 +37,8 @@ void editorInsertRow(int at, char* s, size_t len) {
         return;
 
     E.row = realloc(E.row, sizeof(EditorRow) * (E.num_rows + 1));
-    memmove(&(E.row[at + 1]), &(E.row[at]), sizeof(EditorRow) * (E.num_rows - at));
+    memmove(&(E.row[at + 1]), &(E.row[at]),
+            sizeof(EditorRow) * (E.num_rows - at));
     for (int i = at + 1; i <= E.num_rows; i++) {
         E.row[i].idx++;
     }
@@ -77,7 +79,8 @@ void editorDelRow(int at) {
     if (at < 0 || at >= E.num_rows)
         return;
     editorFreeRow(&(E.row[at]));
-    memmove(&(E.row[at]), &(E.row[at + 1]), sizeof(EditorRow) * (E.num_rows - at - 1));
+    memmove(&(E.row[at]), &(E.row[at + 1]),
+            sizeof(EditorRow) * (E.num_rows - at - 1));
     for (int i = at; i < E.num_rows - 1; i++) {
         E.row[i].idx--;
     }

@@ -1,7 +1,8 @@
 #include "editor.h"
+
+#include "defines.h"
 #include "row.h"
 #include "terminal.h"
-#include "defines.h"
 #include "utils.h"
 
 Editor E;
@@ -45,13 +46,13 @@ void editorInsertNewline() {
 
     if (E.cx == 0) {
         editorInsertRow(E.cy, "", 0);
-    }
-    else {
+    } else {
         editorInsertRow(E.cy + 1, "", 0);
         EditorRow* curr_row = &(E.row[E.cy]);
         EditorRow* new_row = &(E.row[E.cy + 1]);
 
-        while (i < E.cx && (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
+        while (i < E.cx &&
+               (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
             i++;
         if (i != 0)
             editorRowAppendString(new_row, curr_row->data, i);
@@ -60,7 +61,8 @@ void editorInsertNewline() {
             editorRowAppendString(new_row, "\t", 1);
             i++;
         }
-        editorRowAppendString(new_row, &(curr_row->data[E.cx]), curr_row->size - E.cx);
+        editorRowAppendString(new_row, &(curr_row->data[E.cx]),
+                              curr_row->size - E.cx);
         curr_row->size = E.cx;
         curr_row->data[curr_row->size] = '\0';
         editorUpdateRow(curr_row);
@@ -79,8 +81,7 @@ void editorDelChar() {
     if (E.cx > 0) {
         editorRowDelChar(row, E.cx - 1);
         E.cx--;
-    }
-    else {
+    } else {
         E.cx = E.row[E.cy - 1].size;
         editorRowAppendString(&(E.row[E.cy - 1]), row->data, row->size);
         editorDelRow(E.cy);

@@ -1,11 +1,14 @@
+#include "highlight.h"
+
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include "highlight.h"
+
 #include "defines.h"
 
 static inline int is_separator(int c) {
-    return isspace(c) || c == '\0' || strchr(",.()+-/*~!^&|=~%<>[]{};?:", c) != NULL;
+    return isspace(c) || c == '\0' ||
+           strchr(",.()+-/*~!^&|=~%<>[]{};?:", c) != NULL;
 }
 
 void editorUpdateSyntax(EditorRow* row) {
@@ -54,8 +57,7 @@ void editorUpdateSyntax(EditorRow* row) {
                 }
                 i++;
                 continue;
-            }
-            else if (!strncmp(&(row->render[i]), mcs, mcs_len)) {
+            } else if (!strncmp(&(row->render[i]), mcs, mcs_len)) {
                 memset(&(row->hl[i]), HL_MLCOMMENT, mcs_len);
                 i += mcs_len;
                 in_comment = 1;
@@ -76,8 +78,7 @@ void editorUpdateSyntax(EditorRow* row) {
                 i++;
                 prev_sep = 1;
                 continue;
-            }
-            else if (c == '"' || c == '\'') {
+            } else if (c == '"' || c == '\'') {
                 in_string = c;
                 row->hl[i] = HL_STRING;
                 i++;
@@ -106,8 +107,7 @@ void editorUpdateSyntax(EditorRow* row) {
                 int keyword_type = HL_KEYWORD1;
                 if (kw2) {
                     keyword_type = HL_KEYWORD2;
-                }
-                else if (kw3) {
+                } else if (kw3) {
                     keyword_type = HL_KEYWORD3;
                 }
                 if (!strncmp(&(row->render[i]), keywords[j], klen) &&
@@ -134,15 +134,23 @@ void editorUpdateSyntax(EditorRow* row) {
 
 int editorSyntaxToColor(int hl) {
     switch (hl) {
-    case HL_COMMENT:
-    case HL_MLCOMMENT: return 32;
-    case HL_KEYWORD1: return 35;
-    case HL_KEYWORD2: return 36;
-    case HL_KEYWORD3: return 92;
-    case HL_STRING: return 33;
-    case HL_NUMBER: return 93;
-    case HL_MATCH: return 31;
-    default: return 37;
+        case HL_COMMENT:
+        case HL_MLCOMMENT:
+            return 32;
+        case HL_KEYWORD1:
+            return 35;
+        case HL_KEYWORD2:
+            return 36;
+        case HL_KEYWORD3:
+            return 92;
+        case HL_STRING:
+            return 33;
+        case HL_NUMBER:
+            return 93;
+        case HL_MATCH:
+            return 31;
+        default:
+            return 37;
     }
 }
 

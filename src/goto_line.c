@@ -1,7 +1,8 @@
 #include <stdlib.h>
+
+#include "defines.h"
 #include "editor.h"
 #include "input.h"
-#include "defines.h"
 
 void editorGotoLine() {
     char* query = editorPrompt("Goto line: %s", GOTO_LINE_MODE, NULL);
