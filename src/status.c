@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "defines.h"
 #include "editor.h"
 #include "utils.h"
+#include "version.h"
 
 void editorSetStatusMsg(const char* fmt, ...) {
     va_list ap;
@@ -20,8 +20,7 @@ void editorDrawTopStatusBar(abuf* ab) {
     int cols = E.cols + E.num_rows_digits + 1;
     abufAppend(ab, "\x1b[48;5;234m");
     char status[80];
-    int len =
-        snprintf(status, sizeof(status), "  Nino Editor v" EDITOR_VERSION);
+    int len = snprintf(status, sizeof(status), "  nino v" EDITOR_VERSION);
     char rstatus[80];
     int rlen = snprintf(rstatus, sizeof(rstatus), "%s%.20s", E.dirty ? "*" : "",
                         E.filename ? E.filename : "Untitled");
