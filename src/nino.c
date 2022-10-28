@@ -8,6 +8,8 @@
 
 int main(int argc, char* argv[]) {
     enableRawMode();
+    enableSwap();
+
     editorLoadConfig();
     editorInit();
     if (argc >= 2) {
@@ -17,6 +19,7 @@ int main(int argc, char* argv[]) {
         E.dirty = 0;
     }
     E.cols -= E.num_rows_digits + 1;
+
     while (1) {
         editorRefreshScreen();
         editorProcessKeypress();

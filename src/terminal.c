@@ -11,8 +11,7 @@
 #include "output.h"
 
 void die(char* file, int line, const char* s) {
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    disableSwap();
     fprintf(stderr, "Error at %s: %d: %s\r\n", file, line, s);
     exit(EXIT_FAILURE);
 }
@@ -202,3 +201,7 @@ int getWindowSize(int* rows, int* cols) {
         return 0;
     }
 }
+
+void enableSwap() { write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11); }
+
+void disableSwap() { write(STDOUT_FILENO, "\x1b[?1049l", 8); }
