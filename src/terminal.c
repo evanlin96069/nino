@@ -47,16 +47,7 @@ int editorReadKey() {
             DIE("read");
 
         // Auto resize
-        int rows, cols;
-        if (getWindowSize(&rows, &cols) == -1)
-            DIE("getWindowSize");
-        rows -= 3;
-        cols -= E.num_rows_digits + 1;
-        if (E.rows != rows || E.cols != cols) {
-            E.rows = rows;
-            E.cols = cols;
-            editorRefreshScreen();
-        }
+        resizeWindow();
     }
     if (c == ESC) {
         char seq[5];
@@ -205,3 +196,17 @@ int getWindowSize(int* rows, int* cols) {
 int enableSwap() { return write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11; }
 
 int disableSwap() { return write(STDOUT_FILENO, "\x1b[?1049l", 8) == 8; }
+
+void resizeWindow() {
+    int rows, cols;
+    if (getWindowSize(&rows, &cols) == -1)
+        DIE("getWindowSize");
+
+    if (E.screen_rows != rows || E.screen_cols != cols) {
+        E.screen_rows = rows;
+        E.screen_cols = cols;
+        E.rows = rows - 3;
+        E.cols = cols - (E.num_rows_digits + 1);
+        editorRefreshScreen();
+    }
+}

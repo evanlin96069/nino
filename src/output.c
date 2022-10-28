@@ -35,9 +35,7 @@ void editorDrawRows(abuf* ab) {
     editorSelectText();
     for (int i = 0; i < E.rows; i++) {
         int current_row = i + E.row_offset;
-        if (current_row >= E.num_rows) {
-            abufAppend(ab, "~");
-        } else {
+        if (current_row < E.num_rows) {
             char line_number[16];
             if (current_row == E.cy) {
                 abufAppend(ab, "\x1b[30;100m");

@@ -6,6 +6,20 @@
 #include "defines.h"
 #include "highlight.h"
 
+static void editorUpdateNumRowsDigits() {
+    int old_digit = E.num_rows_digits;
+    int digits = 0;
+    int num_rows = E.num_rows;
+    while (num_rows) {
+        num_rows /= 10;
+        digits++;
+    }
+    if (old_digit != digits) {
+        E.num_rows_digits = digits;
+        E.cols = E.screen_cols - (E.num_rows_digits + 1);
+    }
+}
+
 void editorUpdateRow(EditorRow* row) {
     int tabs = 0;
     for (int i = 0; i < row->size; i++) {
@@ -60,12 +74,7 @@ void editorInsertRow(int at, char* s, size_t len) {
     E.num_rows++;
     E.dirty++;
 
-    E.num_rows_digits = 0;
-    int num_rows = E.num_rows;
-    while (num_rows) {
-        num_rows /= 10;
-        E.num_rows_digits++;
-    }
+    editorUpdateNumRowsDigits();
 }
 
 void editorFreeRow(EditorRow* row) {
@@ -87,12 +96,7 @@ void editorDelRow(int at) {
     E.num_rows--;
     E.dirty++;
 
-    E.num_rows_digits = 0;
-    int num_rows = E.num_rows;
-    while (num_rows) {
-        num_rows /= 10;
-        E.num_rows_digits++;
-    }
+    editorUpdateNumRowsDigits();
 }
 
 void editorRowInsertChar(EditorRow* row, int at, int c) {

@@ -1,5 +1,6 @@
 #include "editor.h"
 
+#include "config.h"
 #include "defines.h"
 #include "row.h"
 #include "terminal.h"
@@ -8,6 +9,8 @@
 Editor E;
 
 void editorInit() {
+    enableRawMode();
+    enableSwap();
     E.cx = 0;
     E.cy = 0;
     E.rx = 0;
@@ -27,10 +30,11 @@ void editorInit() {
     E.status_msg[0] = '\0';
     E.syntax = 0;
 
-    if (getWindowSize(&E.rows, &E.cols) == -1)
-        DIE("getWindowSize");
+    editorLoadConfig();
 
-    E.rows -= 3;
+    E.screen_rows = 0;
+    E.screen_cols = 0;
+    resizeWindow();
 }
 
 void editorInsertChar(int c) {

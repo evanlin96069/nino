@@ -9,5 +9,6 @@ int editorReadKey();
 int getWindowSize(int* rows, int* cols);
 int enableSwap();
 int disableSwap();
+void resizeWindow();
 
 #endif

@@ -14,6 +14,8 @@ typedef struct Editor {
     int px;
     int row_offset;
     int col_offset;
+    int screen_rows;
+    int screen_cols;
     int rows;
     int cols;
     int num_rows;
