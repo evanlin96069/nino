@@ -202,6 +202,6 @@ int getWindowSize(int* rows, int* cols) {
     }
 }
 
-void enableSwap() { write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11); }
+int enableSwap() { return write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11; }
 
-void disableSwap() { write(STDOUT_FILENO, "\x1b[?1049l", 8); }
+int disableSwap() { return write(STDOUT_FILENO, "\x1b[?1049l", 8) == 8; }

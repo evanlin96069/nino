@@ -100,7 +100,7 @@ void editorDrawRows(abuf* ab) {
     }
 }
 
-void editorRefreshScreen() {
+int editorRefreshScreen() {
     editorScroll();
 
     abuf ab = ABUF_INIT;
@@ -125,6 +125,8 @@ void editorRefreshScreen() {
 
     abufAppend(&ab, "\x1b[?25h");
 
-    write(STDOUT_FILENO, ab.buf, ab.len);
+    int success = write(STDOUT_FILENO, ab.buf, ab.len) == ab.len;
     abufFree(&ab);
+
+    return success;
 }

@@ -7,7 +7,7 @@ void die(char* file, int line, const char* s);
 void enableRawMode();
 int editorReadKey();
 int getWindowSize(int* rows, int* cols);
-void enableSwap();
-void disableSwap();
+int enableSwap();
+int disableSwap();
 
 #endif
