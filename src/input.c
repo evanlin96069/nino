@@ -263,7 +263,23 @@ void editorProcessKeypress() {
                 editorMoveCursor(ARROW_RIGHT);
                 editorDelChar();
             }
+            char deleted_char = E.row[E.cy].data[E.cx - 1];
             editorDelChar();
+            if (deleted_char == ' ') {
+                int should_delete_tab = 1;
+                for (int i = 0; i < E.cx; i++) {
+                    if (!isspace(E.row[E.cy].data[i])) {
+                        should_delete_tab = 0;
+                    }
+                }
+                if (should_delete_tab) {
+                    int idx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
+                    while (idx % E.cfg->tab_size != 0) {
+                        editorDelChar();
+                        idx--;
+                    }
+                }
+            }
             break;
 
         case PAGE_UP:

@@ -13,6 +13,7 @@ Also, see the original text editor the tutorial based on: [kilo](https://github.
 - Auto bracket completion
 - Selected text
 - Go to line number
+- Use whitespcae
 - Configs
 
 ## Configs
@@ -20,10 +21,12 @@ Set config using `ctrl+p` or create the config file `~/.ninorc`
 
 Example:
 ```
-tabsize 8
-color status.fg 0078d7
+tabsize 2
+whitespace 1
+color status.bg 0078d7
 ```
 - `tabsize` [size]
+- `whitespace` [0|1]
 - `color` [target] [color]
     - `status.fg`
     - `status.bg`

@@ -41,8 +41,17 @@ void editorInsertChar(int c) {
     if (E.cy == E.num_rows) {
         editorInsertRow(E.num_rows, "", 0);
     }
-    editorRowInsertChar(&(E.row[E.cy]), E.cx, c);
-    E.cx++;
+    if (c == '\t' && E.cfg->whitespace) {
+        int idx = editorRowCxToRx(&(E.row[E.cy]), E.cx) + 1;
+        editorInsertChar(' ');
+        while (idx % E.cfg->tab_size != 0) {
+            editorInsertChar(' ');
+            idx++;
+        }
+    } else {
+        editorRowInsertChar(&(E.row[E.cy]), E.cx, c);
+        E.cx++;
+    }
 }
 
 void editorInsertNewline() {
@@ -62,8 +71,13 @@ void editorInsertNewline() {
             editorRowAppendString(new_row, curr_row->data, i);
         if (curr_row->data[E.cx - 1] == ':' ||
             (curr_row->data[E.cx - 1] == '{' && curr_row->data[E.cx] != '}')) {
-            editorRowAppendString(new_row, "\t", 1);
-            i++;
+            if (E.cfg->whitespace) {
+                for (int j = 0; j < E.cfg->tab_size; j++, i++)
+                    editorRowAppendString(new_row, " ", 1);
+            } else {
+                editorRowAppendString(new_row, "\t", 1);
+                i++;
+            }
         }
         editorRowAppendString(new_row, &(curr_row->data[E.cx]),
                               curr_row->size - E.cx);
