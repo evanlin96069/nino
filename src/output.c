@@ -92,7 +92,7 @@ void editorDrawRows(abuf* ab) {
                     abufAppendN(ab, &c[j], 1);
                 }
             }
-            abufAppend(ab, ANSI_DEFAULT_FG);
+            abufAppend(ab, ANSI_CLEAR);
         }
 
         abufAppend(ab, "\x1b[K");
