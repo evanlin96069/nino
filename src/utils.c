@@ -1,18 +1,22 @@
 #include "utils.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "defines.h"
+#include "editor.h"
 
-void abufAppend(abuf* ab, const char* s, int len) {
-    char* new = realloc(ab->buf, ab->len + len);
+void abufAppend(abuf* ab, const char* s) { abufAppendN(ab, s, strlen(s)); }
+
+void abufAppendN(abuf* ab, const char* s, size_t n) {
+    char* new = realloc(ab->buf, ab->len + n);
 
     if (new == NULL)
         return;
-    memcpy(&new[ab->len], s, len);
+    memcpy(&new[ab->len], s, n);
     ab->buf = new;
-    ab->len += len;
+    ab->len += n;
 }
 
 void abufFree(abuf* ab) { free(ab->buf); }
@@ -59,4 +63,34 @@ int editorRowSxToCx(EditorRow* row, int sx) {
         cx--;
     }
     return cx;
+}
+
+static int isValidColor(const char* color) {
+    if (strlen(color) != 6)
+        return 0;
+    for (int i = 0; i < 6; i++) {
+        if (!(('0' <= color[i]) || (color[i] <= '9') || ('A' <= color[i]) ||
+              (color[i] <= 'F') || ('a' <= color[i]) || (color[i] <= 'f')))
+            return 0;
+    }
+    return 1;
+}
+
+Color strToColor(const char* color) {
+    Color result = {0, 0, 0};
+    if (!isValidColor(color))
+        return result;
+    int shift = 16;
+    unsigned int hex = strtoul(color, NULL, 16);
+    result.r = (hex >> shift) & 0xff;
+    shift -= 8;
+    result.g = (hex >> shift) & 0xff;
+    shift -= 8;
+    result.b = (hex >> shift) & 0xff;
+    return result;
+}
+
+int colorToANSI(Color color, char ansi[20], int is_bg) {
+    return snprintf(ansi, 20, "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, color.r,
+                    color.g, color.b);
 }

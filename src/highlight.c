@@ -132,28 +132,6 @@ void editorUpdateSyntax(EditorRow* row) {
         editorUpdateSyntax(&(E.row[row->idx + 1]));
 }
 
-int editorSyntaxToColor(int hl) {
-    switch (hl) {
-        case HL_COMMENT:
-        case HL_MLCOMMENT:
-            return 32;
-        case HL_KEYWORD1:
-            return 35;
-        case HL_KEYWORD2:
-            return 36;
-        case HL_KEYWORD3:
-            return 92;
-        case HL_STRING:
-            return 33;
-        case HL_NUMBER:
-            return 93;
-        case HL_MATCH:
-            return 31;
-        default:
-            return 37;
-    }
-}
-
 void editorSelectSyntaxHighlight() {
     E.syntax = NULL;
     if (E.filename == NULL)

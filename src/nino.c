@@ -8,7 +8,7 @@
 
 int main(int argc, char* argv[]) {
     enableRawMode();
-    editorLoadConfig("~/.ninorc");
+    editorLoadConfig();
     editorInit();
     if (argc >= 2) {
         editorOpen(argv[1]);

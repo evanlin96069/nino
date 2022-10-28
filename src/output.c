@@ -36,18 +36,18 @@ void editorDrawRows(abuf* ab) {
     for (int i = 0; i < E.rows; i++) {
         int current_row = i + E.row_offset;
         if (current_row >= E.num_rows) {
-            abufAppend(ab, "~", 1);
+            abufAppend(ab, "~");
         } else {
             char line_number[16];
             if (current_row == E.cy) {
-                abufAppend(ab, "\x1b[30;100m", 9);
+                abufAppend(ab, "\x1b[30;100m");
             } else {
-                abufAppend(ab, "\x1b[90m", 5);
+                abufAppend(ab, "\x1b[90m");
             }
-            int nlen = snprintf(line_number, sizeof(line_number), "%*d ",
-                                E.num_rows_digits, current_row + 1);
-            abufAppend(ab, line_number, nlen);
-            abufAppend(ab, "\x1b[m", 3);
+            snprintf(line_number, sizeof(line_number), "%*d ",
+                     E.num_rows_digits, current_row + 1);
+            abufAppend(ab, line_number);
+            abufAppend(ab, ANSI_CLEAR);
             int len = E.row[current_row].rsize - E.col_offset;
             if (len < 0)
                 len = 0;
@@ -57,48 +57,46 @@ void editorDrawRows(abuf* ab) {
             unsigned char* hl = &(E.row[current_row].hl[E.col_offset]);
             unsigned char* selected =
                 &(E.row[current_row].selected[E.col_offset]);
-            int current_color = -1;
+            int current_color = 0;
             for (int j = 0; j < len; j++) {
                 if (iscntrl(c[j])) {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-                    abufAppend(ab, "\x1b[7m", 4);
-                    abufAppend(ab, &sym, 1);
-                    abufAppend(ab, "\x1b[m", 3);
-                    if (current_color != -1) {
-                        char buf[16];
-                        int clen = snprintf(buf, sizeof(buf), "\x1b[%dm",
-                                            current_color);
-                        abufAppend(ab, buf, clen);
+                    abufAppend(ab, ANSI_INVERT);
+                    abufAppendN(ab, &sym, 1);
+                    abufAppend(ab, ANSI_CLEAR);
+                    if (current_color >= 0) {
+                        char buf[20];
+                        colorToANSI(E.cfg->highlight_color[current_color], buf,
+                                    0);
+                        abufAppend(ab, buf);
                     }
                 } else if (E.is_selected && selected[j]) {
-                    current_color = -2;
-                    abufAppend(ab, "\x1b[30;47m", 8);
-                    abufAppend(ab, &c[j], 1);
-                    abufAppend(ab, "\x1b[m", 3);
-
-                } else if (hl[j] == HL_NORMAL) {
                     if (current_color != -1) {
-                        abufAppend(ab, "\x1b[39m", 5);
                         current_color = -1;
+                        abufAppend(ab, ANSI_CLEAR);
+                        char buf[20];
+                        colorToANSI(E.cfg->highlight_color[0], buf, 0);
+                        abufAppend(ab, ANSI_INVERT);
+                        abufAppend(ab, buf);
                     }
-                    abufAppend(ab, &c[j], 1);
+                    abufAppendN(ab, &c[j], 1);
                 } else {
-                    int color = editorSyntaxToColor(hl[j]);
+                    int color = hl[j];
                     if (color != current_color) {
                         current_color = color;
-                        char buf[16];
-                        int clen =
-                            snprintf(buf, sizeof(buf), "\x1b[%dm", color);
-                        abufAppend(ab, buf, clen);
+                        abufAppend(ab, ANSI_CLEAR);
+                        char buf[20];
+                        colorToANSI(E.cfg->highlight_color[color], buf, 0);
+                        abufAppend(ab, buf);
                     }
-                    abufAppend(ab, &c[j], 1);
+                    abufAppendN(ab, &c[j], 1);
                 }
             }
-            abufAppend(ab, "\x1b[39m", 5);
+            abufAppend(ab, ANSI_DEFAULT_FG);
         }
 
-        abufAppend(ab, "\x1b[K", 3);
-        abufAppend(ab, "\r\n", 2);
+        abufAppend(ab, "\x1b[K");
+        abufAppend(ab, "\r\n");
     }
 }
 
@@ -107,8 +105,8 @@ void editorRefreshScreen() {
 
     abuf ab = ABUF_INIT;
 
-    abufAppend(&ab, "\x1b[?25l", 6);
-    abufAppend(&ab, "\x1b[H", 3);
+    abufAppend(&ab, "\x1b[?25l");
+    abufAppend(&ab, "\x1b[H");
 
     editorDrawTopStatusBar(&ab);
     editorDrawRows(&ab);
@@ -123,9 +121,9 @@ void editorRefreshScreen() {
         snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.rows + 2, E.px + 1);
     }
 
-    abufAppend(&ab, buf, strlen(buf));
+    abufAppend(&ab, buf);
 
-    abufAppend(&ab, "\x1b[?25h", 6);
+    abufAppend(&ab, "\x1b[?25h");
 
     write(STDOUT_FILENO, ab.buf, ab.len);
     abufFree(&ab);

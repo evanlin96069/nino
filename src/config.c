@@ -4,76 +4,108 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "defines.h"
 #include "editor.h"
 #include "input.h"
+#include "status.h"
 
-#define ARGC(n)       \
-    do {              \
-        if (argc < n) \
-            return 0; \
-    } while (0)
+static EditorConfig cfg = {.tab_size = 4,
+                           .status_color = {{229, 229, 229}, {96, 59, 116}},
+                           .highlight_color = {{212, 212, 212},
+                                               {106, 153, 85},
+                                               {106, 153, 85},
+                                               {197, 134, 192},
+                                               {86, 156, 214},
+                                               {78, 201, 176},
+                                               {206, 145, 120},
+                                               {181, 206, 168},
+                                               {201, 79, 103}}};
 
-static EditorConfig cfg = {
-    .tab_size = 4,
-};
-
-static int parseLine(char* line) {
+static int parseLine(char* line, int verbose) {
     char* token = strtok(line, " ");
     int argc = 0;
     char* argv[4];
     for (int i = 0; token && i < 4; i++, argc++) {
         argv[i] = token;
-        token = strtok(NULL, line);
+        token = strtok(NULL, " ");
     }
 
-    ARGC(1);
+    if (argc < 1)
+        return 0;
 
     if (strcmp(argv[0], "tabsize") == 0) {
-        ARGC(2);
+        if (argc != 2) {
+            if (verbose)
+                editorSetStatusMsg("Usage: tabsize [size]");
+            return 0;
+        }
         int size = atoi(argv[1]);
         if (size < 1)
             return 0;
         E.cfg->tab_size = size;
-    } else {
-        return 0;
-    }
-    return 1;
-}
-
-static int isValidColor(const char* color) {
-    if (strlen(color) != 6)
-        return 0;
-    for (int i = 0; i < 6; i++) {
-        if (!(('0' <= color[i]) || (color[i] <= '9') || ('A' <= color[i]) ||
-              (color[i] <= 'F')))
+    } else if (strcmp(argv[0], "color") == 0) {
+        if (argc != 3) {
+            if (verbose)
+                editorSetStatusMsg("Usage: color [target] [color]");
             return 0;
+        }
+        Color color = strToColor(argv[2]);
+        if (strcmp(argv[1], "status.fg") == 0) {
+            E.cfg->status_color[0] = color;
+        } else if (strcmp(argv[1], "status.bg") == 0) {
+            E.cfg->status_color[1] = color;
+        } else if (strcmp(argv[1], "hl.normal") == 0) {
+            E.cfg->highlight_color[HL_NORMAL] = color;
+        } else if (strcmp(argv[1], "hl.comment") == 0) {
+            E.cfg->highlight_color[HL_COMMENT] = color;
+            E.cfg->highlight_color[HL_MLCOMMENT] = color;
+        } else if (strcmp(argv[1], "hl.keyword1") == 0) {
+            E.cfg->highlight_color[HL_KEYWORD1] = color;
+        } else if (strcmp(argv[1], "hl.keyword2") == 0) {
+            E.cfg->highlight_color[HL_KEYWORD2] = color;
+        } else if (strcmp(argv[1], "hl.keyword3") == 0) {
+            E.cfg->highlight_color[HL_KEYWORD3] = color;
+        } else if (strcmp(argv[1], "hl.string") == 0) {
+            E.cfg->highlight_color[HL_STRING] = color;
+        } else if (strcmp(argv[1], "hl.number") == 0) {
+            E.cfg->highlight_color[HL_NUMBER] = color;
+        } else if (strcmp(argv[1], "hl.match") == 0) {
+            E.cfg->highlight_color[HL_MATCH] = color;
+        } else {
+            if (verbose)
+                editorSetStatusMsg("Unknown target %s.", argv[1]);
+            return 0;
+        }
+    } else {
+        if (verbose)
+            editorSetStatusMsg("Unknown config %s.", argv[0]);
+        return 0;
     }
     return 1;
 }
 
-int colorToANSI(const char* color) {}
-
-void editorLoadConfig(const char* filename) {
+void editorLoadConfig() {
+    char path[255] = "";
+    strncpy(path, getenv("HOME"), sizeof(path));
+    strncat(path, "/.ninorc", sizeof(path) - 1);
     E.cfg = &cfg;
-    FILE* fp = fopen(filename, "r");
+    FILE* fp = fopen(path, "r");
     if (!fp)
         return;
 
     char buf[128];
-    int bufsize = 128;
-    while (fgets(buf, bufsize, fp)) {
-        parseLine(buf);
+    while (fgets(buf, sizeof(buf), fp)) {
+        buf[strcspn(buf, "\r\n")] = '\0';
+        parseLine(buf, 0);
     }
 
     fclose(fp);
 }
 
 void editorSetting() {
-    char* query = editorPrompt("Setting: %s", SETTING_MODE, NULL);
+    char* query = editorPrompt("Config: %s", SETTING_MODE, NULL);
     if (query == NULL)
         return;
-    if (parseLine(query)) {
+    if (parseLine(query, 1)) {
         for (int i = 0; i < E.num_rows; i++) {
             editorUpdateRow(&E.row[i]);
         }

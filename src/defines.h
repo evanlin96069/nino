@@ -59,7 +59,8 @@ enum EditorHighlight {
     HL_KEYWORD3,
     HL_STRING,
     HL_NUMBER,
-    HL_MATCH
+    HL_MATCH,
+    HL_TYPE_COUNT
 };
 
 #endif
