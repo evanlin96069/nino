@@ -49,10 +49,18 @@ void editorOpen(char* filename) {
         char* line = NULL;
         size_t cap = 0;
         ssize_t len;
+        int end_nl = 1;
         while ((len = getline(&line, &cap, f)) != -1) {
-            while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r'))
+            end_nl = 0;
+            while (len > 0 &&
+                   (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+                end_nl = 1;
                 len--;
+            }
             editorInsertRow(E.num_rows, line, len);
+        }
+        if (end_nl) {
+            editorInsertRow(E.num_rows, "", 0);
         }
         free(line);
         fclose(f);
