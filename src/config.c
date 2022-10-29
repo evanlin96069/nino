@@ -18,7 +18,8 @@ static EditorConfig cfg = {
                         {78, 201, 176},
                         {206, 145, 120},
                         {181, 206, 168},
-                        {201, 79, 103}},
+                        {218, 165, 32},
+                        {97, 176, 255}},
     .tab_size = 4,
     .whitespace = 0,
     .auto_indent = 0,
@@ -96,6 +97,8 @@ static int parseLine(char* line, int verbose) {
             E.cfg->highlight_color[HL_NUMBER] = color;
         } else if (strcmp(argv[1], "hl.match") == 0) {
             E.cfg->highlight_color[HL_MATCH] = color;
+        } else if (strcmp(argv[1], "hl.select") == 0) {
+            E.cfg->highlight_color[HL_SELECT] = color;
         } else {
             if (verbose)
                 editorSetStatusMsg("Unknown target %s.", argv[1]);

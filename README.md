@@ -40,10 +40,11 @@ color status.bg 0078d7
     - `hl.string`
     - `hl.number`
     - `hl.match`
+    - `hl.select`
 
 ## Install from source
 ```
-git clone https://github.com/evanlin96069/sdp-c.git
+git clone https://github.com/evanlin96069/nino.git
 cd nino
 ./compile.sh
 sudo ./install.sh
