@@ -8,18 +8,22 @@
 #include "input.h"
 #include "status.h"
 
-static EditorConfig cfg = {.tab_size = 4,
-                           .whitespace = 0,
-                           .status_color = {{229, 229, 229}, {96, 59, 116}},
-                           .highlight_color = {{212, 212, 212},
-                                               {106, 153, 85},
-                                               {106, 153, 85},
-                                               {197, 134, 192},
-                                               {86, 156, 214},
-                                               {78, 201, 176},
-                                               {206, 145, 120},
-                                               {181, 206, 168},
-                                               {201, 79, 103}}};
+static EditorConfig cfg = {
+    .status_color = {{229, 229, 229}, {96, 59, 116}},
+    .highlight_color = {{212, 212, 212},
+                        {106, 153, 85},
+                        {106, 153, 85},
+                        {197, 134, 192},
+                        {86, 156, 214},
+                        {78, 201, 176},
+                        {206, 145, 120},
+                        {181, 206, 168},
+                        {201, 79, 103}},
+    .tab_size = 4,
+    .whitespace = 0,
+    .auto_indent = 0,
+    .syntax = 0,
+};
 
 static int parseLine(char* line, int verbose) {
     char* token = strtok(line, " ");
@@ -50,6 +54,20 @@ static int parseLine(char* line, int verbose) {
             return 0;
         }
         E.cfg->whitespace = atoi(argv[1]);
+    } else if (strcmp(argv[0], "autoindent") == 0) {
+        if (argc != 2) {
+            if (verbose)
+                editorSetStatusMsg("Usage: autoindent [0|1]");
+            return 0;
+        }
+        E.cfg->auto_indent = atoi(argv[1]);
+    } else if (strcmp(argv[0], "syntax") == 0) {
+        if (argc != 2) {
+            if (verbose)
+                editorSetStatusMsg("Usage: syntax [0|1]");
+            return 0;
+        }
+        E.cfg->syntax = atoi(argv[1]);
     } else if (strcmp(argv[0], "color") == 0) {
         if (argc != 3) {
             if (verbose)

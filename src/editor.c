@@ -63,20 +63,22 @@ void editorInsertNewline() {
         editorInsertRow(E.cy + 1, "", 0);
         EditorRow* curr_row = &(E.row[E.cy]);
         EditorRow* new_row = &(E.row[E.cy + 1]);
-
-        while (i < E.cx &&
-               (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
-            i++;
-        if (i != 0)
-            editorRowAppendString(new_row, curr_row->data, i);
-        if (curr_row->data[E.cx - 1] == ':' ||
-            (curr_row->data[E.cx - 1] == '{' && curr_row->data[E.cx] != '}')) {
-            if (E.cfg->whitespace) {
-                for (int j = 0; j < E.cfg->tab_size; j++, i++)
-                    editorRowAppendString(new_row, " ", 1);
-            } else {
-                editorRowAppendString(new_row, "\t", 1);
+        if (E.cfg->auto_indent) {
+            while (i < E.cx &&
+                   (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
                 i++;
+            if (i != 0)
+                editorRowAppendString(new_row, curr_row->data, i);
+            if (curr_row->data[E.cx - 1] == ':' ||
+                (curr_row->data[E.cx - 1] == '{' &&
+                 curr_row->data[E.cx] != '}')) {
+                if (E.cfg->whitespace) {
+                    for (int j = 0; j < E.cfg->tab_size; j++, i++)
+                        editorRowAppendString(new_row, " ", 1);
+                } else {
+                    editorRowAppendString(new_row, "\t", 1);
+                    i++;
+                }
             }
         }
         editorRowAppendString(new_row, &(curr_row->data[E.cx]),

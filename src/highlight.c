@@ -17,6 +17,9 @@ void editorUpdateSyntax(EditorRow* row) {
     memset(row->hl, HL_NORMAL, row->rsize);
     memset(row->hl, 0, row->rsize);
 
+    if (!E.cfg->syntax)
+        return;
+
     if (E.syntax == NULL)
         return;
 

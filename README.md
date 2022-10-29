@@ -27,6 +27,8 @@ color status.bg 0078d7
 ```
 - `tabsize` [size]
 - `whitespace` [0|1]
+- `autoindent` [0|1]
+- `syntax` [0|1]
 - `color` [target] [color]
     - `status.fg`
     - `status.bg`
