@@ -17,7 +17,7 @@ void editorSetStatusMsg(const char* fmt, ...) {
 }
 
 void editorDrawTopStatusBar(abuf* ab) {
-    int cols = E.cols + E.num_rows_digits + 1;
+    int cols = E.screen_cols;
     abufAppend(ab, "\x1b[48;5;234m");
     char status[80];
     int len = snprintf(status, sizeof(status), "  nino v" EDITOR_VERSION);
@@ -48,17 +48,24 @@ void editorDrawStatusBar(abuf* ab) {
     abufAppend(ab, color);
 
     char rstatus[80];
+    const char* help_str = "";
     const char* help_info[] = {
-        " ^Q: Quit  ^S: Save  ^F: Find  ^G: Goto  ^P: Config", " ^Q: Cancel",
-        " ^Q: Cancel  ◀: back  ▶: Next", " ^Q: Cancel", " ^Q: Cancel"};
-    int len = strlen(help_info[E.state]);
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%s | Ln: %d, Col: %d  ",
+        " ^Q: Quit  ^S: Save  ^F: Find  ^G: Goto  ^P: Config",
+        " ^Q: Cancel",
+        " ^Q: Cancel  ◀: back  ▶: Next",
+        " ^Q: Cancel",
+        " ^Q: Cancel",
+    };
+    if (E.cfg->help_info)
+        help_str = help_info[E.state];
+    int len = strlen(help_str);
+    int rlen = snprintf(rstatus, sizeof(rstatus), "  %s | Ln: %d, Col: %d  ",
                         E.syntax ? E.syntax->file_type : "Plain Text", E.cy + 1,
                         E.rx + 1);
     if (len > cols)
         len = cols;
 
-    abufAppendN(ab, help_info[E.state], len);
+    abufAppendN(ab, help_str, len);
 
     while (len < cols) {
         if (cols - len == rlen) {
