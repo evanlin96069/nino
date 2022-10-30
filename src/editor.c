@@ -1,5 +1,7 @@
 #include "editor.h"
 
+#include <stdlib.h>
+
 #include "config.h"
 #include "defines.h"
 #include "row.h"
@@ -35,6 +37,14 @@ void editorInit() {
     E.screen_rows = 0;
     E.screen_cols = 0;
     resizeWindow();
+}
+
+void editorFree() {
+    for (int i = 0; i < E.num_rows; i++) {
+        editorFreeRow(&E.row[i]);
+    }
+    free(E.row);
+    free(E.filename);
 }
 
 void editorInsertChar(int c) {

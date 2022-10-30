@@ -180,6 +180,7 @@ void editorProcessKeypress() {
                 quit_protect = 0;
                 return;
             }
+            editorFree();
             disableSwap();
             exit(EXIT_SUCCESS);
             break;

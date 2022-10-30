@@ -36,6 +36,7 @@ typedef struct Editor {
 extern Editor E;
 
 void editorInit();
+void editorFree();
 void editorInsertChar(int c);
 void editorInsertNewline();
 void editorDelChar();
