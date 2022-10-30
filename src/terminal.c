@@ -1,6 +1,7 @@
 #include "terminal.h"
 
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -193,7 +194,18 @@ int getWindowSize(int* rows, int* cols) {
     }
 }
 
-int enableSwap() { return write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11; }
+static void handler(int sig) {
+    disableSwap();
+    disableRawMode();
+    write(STDOUT_FILENO, "Segmentation fault\r\n", 20) == 20;
+    _exit(EXIT_FAILURE);
+}
+
+int enableSwap() {
+    if (signal(SIGSEGV, handler) == SIG_ERR)
+        return 0;
+    return write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11;
+}
 
 int disableSwap() { return write(STDOUT_FILENO, "\x1b[?1049l", 8) == 8; }
 
