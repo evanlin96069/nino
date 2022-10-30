@@ -64,7 +64,6 @@ static void editorFindCallback(char* query, int key) {
     if (!head.next || !prev_query || strcmp(prev_query, query) != 0) {
         // Recompute find list
         match_node = NULL;
-        head.next = NULL;
         if (prev_query)
             free(prev_query);
         findListFree(head.next);
@@ -128,6 +127,13 @@ static void editorFindCallback(char* query, int key) {
     E.cx = match_node->col;
     E.cy = match_node->row;
     editorScroll();
+    if (E.cy <= E.rows / 2) {
+        E.row_offset = 0;
+    } else if (E.cy + E.rows / 2 < E.num_rows) {
+        E.row_offset = E.cy - E.rows / 2;
+    } else {
+        E.row_offset = E.num_rows - E.rows;
+    }
 
     int rx = editorRowCxToRx(&E.row[match_node->row], match_node->col);
     unsigned char* match_pos = &(E.row[match_node->row].hl[rx]);
@@ -136,10 +142,6 @@ static void editorFindCallback(char* query, int key) {
     saved_hl = malloc(len + 1);
     memcpy(saved_hl, match_pos, len);
     memset(match_pos, HL_MATCH, len);
-
-    // This fixed memory leak, but it recompute the list every time...
-    findListFree(head.next);
-    head.next = NULL;
 }
 
 void editorFind() {
