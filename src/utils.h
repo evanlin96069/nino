@@ -8,12 +8,14 @@
 #define ANSI_DEFAULT_FG "\x1b[39m"
 #define ANSI_DEFAULT_BG "\x1b[49m"
 
+#define ABUF_GROWTH_RATE 1.5f
 #define ABUF_INIT \
     { NULL, 0 }
 
 typedef struct {
     char* buf;
-    int len;
+    size_t len;
+    size_t capacity;
 } abuf;
 
 typedef struct Color {

@@ -6,16 +6,26 @@
 
 #include "defines.h"
 #include "editor.h"
+#include "terminal.h"
 
 void abufAppend(abuf* ab, const char* s) { abufAppendN(ab, s, strlen(s)); }
 
 void abufAppendN(abuf* ab, const char* s, size_t n) {
-    char* new = realloc(ab->buf, ab->len + n);
-
-    if (new == NULL)
+    if (n == 0)
         return;
-    memcpy(&new[ab->len], s, n);
-    ab->buf = new;
+
+    if (ab->len + n > ab->capacity) {
+        ab->capacity += n;
+        ab->capacity *= ABUF_GROWTH_RATE;
+        char* new = realloc(ab->buf, ab->capacity);
+
+        if (new == NULL)
+            DIE("realloc");
+
+        ab->buf = new;
+    }
+
+    memcpy(&ab->buf[ab->len], s, n);
     ab->len += n;
 }
 
