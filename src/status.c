@@ -17,24 +17,36 @@ void editorSetStatusMsg(const char* fmt, ...) {
 }
 
 void editorDrawTopStatusBar(abuf* ab) {
-    int cols = E.screen_cols;
     abufAppend(ab, "\x1b[48;5;234m");
-    char status[80];
-    int len = snprintf(status, sizeof(status), "  nino v" EDITOR_VERSION);
-    char rstatus[80];
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%s%.20s", E.dirty ? "*" : "",
-                        E.filename ? E.filename : "Untitled");
-    if (len > cols)
-        len = cols;
-    abufAppendN(ab, status, len);
 
-    for (int i = len; i < cols; i++) {
-        if (i == (cols - rlen) / 2) {
-            abufAppendN(ab, rstatus, rlen);
-            i += rlen;
+    int cols = E.screen_cols;
+
+    const char* title = "  nino v" EDITOR_VERSION " ";
+    int title_len = strlen(title);
+
+    char filename[255] = {0};
+    int filename_len =
+        snprintf(filename, sizeof(filename), "%s%s", E.dirty ? "*" : "",
+                 E.filename ? E.filename : "Untitled");
+
+    if (cols <= filename_len) {
+        abufAppendN(ab, &filename[filename_len - cols], cols);
+    } else {
+        int center = (cols - filename_len) / 2;
+        if (center > title_len) {
+            abufAppendN(ab, title, title_len);
+        } else {
+            title_len = 0;
         }
-        abufAppend(ab, " ");
+        for (int i = title_len; i < cols; i++) {
+            if (i == center) {
+                abufAppendN(ab, filename, filename_len);
+                i += filename_len;
+            }
+            abufAppend(ab, " ");
+        }
     }
+
     abufAppend(ab, ANSI_CLEAR);
     abufAppend(ab, "\r\n");
 }
@@ -47,7 +59,6 @@ void editorDrawStatusBar(abuf* ab) {
     colorToANSI(E.cfg->status_color[1], color, 1);
     abufAppend(ab, color);
 
-    char rstatus[80];
     const char* help_str = "";
     const char* help_info[] = {
         " ^Q: Quit  ^S: Save  ^F: Find  ^G: Goto  ^P: Config",
@@ -58,22 +69,28 @@ void editorDrawStatusBar(abuf* ab) {
     };
     if (E.cfg->help_info)
         help_str = help_info[E.state];
-    int len = strlen(help_str);
+    int help_len = strlen(help_str);
+
+    char rstatus[80];
     int rlen = snprintf(rstatus, sizeof(rstatus), "  %s | Ln: %d, Col: %d  ",
                         E.syntax ? E.syntax->file_type : "Plain Text", E.cy + 1,
                         E.rx + 1);
-    if (len > cols)
-        len = cols;
 
-    abufAppendN(ab, help_str, len);
+    if (rlen > cols) {
+        rlen = 0;
+    }
+    if (help_len + rlen > cols)
+        help_len = cols - rlen;
 
-    while (len < cols) {
-        if (cols - len == rlen) {
+    abufAppendN(ab, help_str, help_len);
+
+    while (help_len < cols) {
+        if (cols - help_len == rlen) {
             abufAppendN(ab, rstatus, rlen);
             break;
         } else {
             abufAppend(ab, " ");
-            len++;
+            help_len++;
         }
     }
     abufAppend(ab, ANSI_CLEAR);
