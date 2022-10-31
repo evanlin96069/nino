@@ -12,6 +12,7 @@ typedef struct EditorConfig {
     int auto_indent : 1;
     int syntax : 1;
     int help_info : 1;
+    int mouse : 1;
 } EditorConfig;
 
 void editorLoadConfig();

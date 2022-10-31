@@ -7,6 +7,7 @@
 #include "editor.h"
 #include "input.h"
 #include "status.h"
+#include "terminal.h"
 
 static EditorConfig cfg = {
     .status_color = {{229, 229, 229}, {96, 59, 116}},
@@ -25,6 +26,7 @@ static EditorConfig cfg = {
     .auto_indent = 0,
     .syntax = 0,
     .help_info = 1,
+    .mouse = 0,
 };
 
 static int parseLine(char* line, int verbose) {
@@ -55,28 +57,39 @@ static int parseLine(char* line, int verbose) {
                 editorSetStatusMsg("Usage: whitespace [0|1]");
             return 0;
         }
-        E.cfg->whitespace = atoi(argv[1]);
+        E.cfg->whitespace = !!atoi(argv[1]);
     } else if (strcmp(argv[0], "autoindent") == 0) {
         if (argc != 2) {
             if (verbose)
                 editorSetStatusMsg("Usage: autoindent [0|1]");
             return 0;
         }
-        E.cfg->auto_indent = atoi(argv[1]);
+        E.cfg->auto_indent = !!atoi(argv[1]);
     } else if (strcmp(argv[0], "syntax") == 0) {
         if (argc != 2) {
             if (verbose)
                 editorSetStatusMsg("Usage: syntax [0|1]");
             return 0;
         }
-        E.cfg->syntax = atoi(argv[1]);
+        E.cfg->syntax = !!atoi(argv[1]);
     } else if (strcmp(argv[0], "helpinfo") == 0) {
         if (argc != 2) {
             if (verbose)
                 editorSetStatusMsg("Usage: helpinfo [0|1]");
             return 0;
         }
-        E.cfg->help_info = atoi(argv[1]);
+        E.cfg->help_info = !!atoi(argv[1]);
+    } else if (strcmp(argv[0], "mouse") == 0) {
+        if (argc != 2) {
+            if (verbose)
+                editorSetStatusMsg("Usage: mouse [0|1]");
+            return 0;
+        }
+        int mouse = !!atoi(argv[1]);
+        if (mouse)
+            enableMouse();
+        else
+            disableMouse();
     } else if (strcmp(argv[0], "color") == 0) {
         if (argc != 3) {
             if (verbose)

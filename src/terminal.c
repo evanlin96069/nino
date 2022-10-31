@@ -40,9 +40,12 @@ void enableRawMode() {
         DIE("tcsetattr");
 }
 
-int editorReadKey() {
+int editorReadKey(int* x, int* y) {
     int nread;
     char c;
+
+    *x = *y = 0;
+
     while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
         if (nread == -1 && errno != EAGAIN)
             DIE("read");
@@ -130,6 +133,40 @@ int editorReadKey() {
                         }
                     }
                 }
+            } else if (seq[1] == '<' && E.cfg->mouse) {
+                // Mouse input
+                char pos[16] = {0};
+                char c;
+                int idx = 0;
+                do {
+                    if (read(STDIN_FILENO, &c, 1) != 1)
+                        return ESC;
+                    pos[idx++] = c;
+                } while (c != 'm' && c != 'M');
+                pos[15] = '\0';
+
+                int type;
+                char m;
+                sscanf(pos, "%d;%d;%d%c", &type, x, y, &m);
+                (*x)--;
+                (*y)--;
+                switch (type) {
+                    case 0:
+                        if (m == 'M')
+                            return MOUSE_PRESSED;
+                        if (m == 'm')
+                            return MOUSE_RELEASED;
+                    case 1:
+                        if (m == 'M')
+                            return SCROLL_PRESSED;
+                        if (m == 'm')
+                            return SCROLL_RELEASED;
+                        break;
+                    case 64:
+                        return WHEEL_UP;
+                    case 65:
+                        return WHEEL_DOWN;
+                }
             } else {
                 switch (seq[1]) {
                     case 'A':
@@ -195,19 +232,32 @@ int getWindowSize(int* rows, int* cols) {
 }
 
 static void handler(int sig) {
+    disableMouse();
     disableSwap();
     disableRawMode();
     write(STDOUT_FILENO, "Segmentation fault\r\n", 20) == 20;
     _exit(EXIT_FAILURE);
 }
 
-int enableSwap() {
+void enableSwap() {
     if (signal(SIGSEGV, handler) == SIG_ERR)
-        return 0;
-    return write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11;
+        return;
+    write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11;
 }
 
-int disableSwap() { return write(STDOUT_FILENO, "\x1b[?1049l", 8) == 8; }
+void disableSwap() { write(STDOUT_FILENO, "\x1b[?1049l", 8) == 8; }
+
+void enableMouse() {
+    if (!E.cfg->mouse &&
+        write(STDOUT_FILENO, "\x1b[?1002h\x1b[?1015h\x1b[?1006h", 24) == 24)
+        E.cfg->mouse = 1;
+}
+
+void disableMouse() {
+    if (E.cfg->mouse &&
+        write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
+        E.cfg->mouse = 0;
+}
 
 void resizeWindow() {
     int rows, cols;

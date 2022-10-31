@@ -5,10 +5,12 @@
 void die(char* file, int line, const char* s);
 
 void enableRawMode();
-int editorReadKey();
+int editorReadKey(int* x, int* y);
 int getWindowSize(int* rows, int* cols);
-int enableSwap();
-int disableSwap();
+void enableSwap();
+void disableSwap();
+void enableMouse();
+void disableMouse();
 void resizeWindow();
 
 #endif

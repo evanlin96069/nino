@@ -33,6 +33,9 @@ void editorInit() {
     E.syntax = 0;
 
     editorLoadConfig();
+    atexit(disableMouse);
+    if (E.cfg->mouse)
+        enableMouse();
 
     E.screen_rows = 0;
     E.screen_cols = 0;

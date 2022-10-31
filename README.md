@@ -14,6 +14,7 @@ Also, see the original text editor the tutorial based on: [kilo](https://github.
 - Selected text
 - Go to line number
 - Use whitespcae
+- Mouse mode
 - Configs
 
 ## Configs
@@ -29,6 +30,8 @@ color status.bg 0078d7
 - `whitespace` [0|1]
 - `autoindent` [0|1]
 - `syntax` [0|1]
+- `helpinfo` [0|1]
+- `mouse` [0|1]
 - `color` [target] [color]
     - `status.fg`
     - `status.bg`

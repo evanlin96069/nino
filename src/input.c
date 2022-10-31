@@ -34,8 +34,8 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     while (1) {
         editorSetStatusMsg(prompt, buf);
         editorRefreshScreen();
-
-        int c = editorReadKey();
+        int x, y;
+        int c = editorReadKey(&x, &y);
         switch (c) {
             case DEL_KEY:
             case CTRL_KEY('h'):
@@ -158,9 +158,24 @@ static char isCloseBracket(int key) {
     }
 }
 
+static int isValidMousePos(int x, int y) {
+    if (y < 1 || y >= E.screen_rows - 2)
+        return 0;
+    if (x < E.num_rows_digits + 1)
+        return 0;
+    return 1;
+}
+
 void editorProcessKeypress() {
     static int quit_protect = 1;
-    int c = editorReadKey();
+    static int prev_x = 0;
+    static int prev_y = 0;
+
+    int x, y;
+    int c = editorReadKey(&x, &y);
+
+    int should_scroll = 1;
+
     editorSetStatusMsg("");
     switch (c) {
         case '\r':
@@ -379,6 +394,43 @@ void editorProcessKeypress() {
         case ESC:
             break;
 
+        // Mouse input
+        case MOUSE_PRESSED:
+            if (!isValidMousePos(x, y))
+                break;
+            prev_x = x;
+            prev_y = y;
+            int row = E.row_offset + y - 1;
+            int col = x - E.num_rows_digits - 1 + E.col_offset;
+            E.cy = row;
+            if (col > E.row[row].rsize)
+                col = E.row[row].rsize;
+            E.cx = editorRowRxToCx(&E.row[row], col);
+            break;
+
+        case MOUSE_RELEASED:
+            break;
+
+        case WHEEL_UP:
+            should_scroll = 0;
+            if (E.row_offset - 3 > 0)
+                E.row_offset -= 3;
+            else
+                E.row_offset = 0;
+            break;
+
+        case WHEEL_DOWN:
+            should_scroll = 0;
+            if (E.row_offset + E.rows + 3 < E.num_rows)
+                E.row_offset += 3;
+            else
+                E.row_offset = E.num_rows - E.rows;
+            break;
+
+        case SCROLL_PRESSED:
+        case SCROLL_RELEASED:
+            break;
+
         default:
             if (isprint(c) || c == '\t') {
                 if (E.is_selected) {
@@ -420,9 +472,13 @@ void editorProcessKeypress() {
             E.is_selected = 0;
             break;
     }
+
     if (!E.is_selected) {
         E.select_x = E.cx;
         E.select_y = E.cy;
     }
+
+    if (should_scroll)
+        editorScroll();
     quit_protect = 1;
 }

@@ -101,8 +101,6 @@ void editorDrawRows(abuf* ab) {
 }
 
 int editorRefreshScreen() {
-    editorScroll();
-
     abuf ab = ABUF_INIT;
 
     abufAppend(&ab, "\x1b[?25l");
