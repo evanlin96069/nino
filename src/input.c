@@ -401,6 +401,8 @@ void editorProcessKeypress() {
             prev_x = x;
             prev_y = y;
             int row = E.row_offset + y - 1;
+            if (row >= E.num_rows)
+                break;
             int col = x - E.num_rows_digits - 1 + E.col_offset;
             E.cy = row;
             if (col > E.row[row].rsize)
@@ -423,6 +425,8 @@ void editorProcessKeypress() {
             should_scroll = 0;
             if (E.row_offset + E.rows + 3 < E.num_rows)
                 E.row_offset += 3;
+            else if (E.num_rows - E.rows < 0)
+                E.row_offset = 0;
             else
                 E.row_offset = E.num_rows - E.rows;
             break;
