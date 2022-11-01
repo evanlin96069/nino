@@ -42,6 +42,7 @@ enum EditorKey {
     MOUSE_RELEASED,
     SCROLL_PRESSED,
     SCROLL_RELEASED,
+    MOUSE_MOVE,
     WHEEL_UP,
     WHEEL_DOWN
 };

@@ -166,8 +166,21 @@ static int isValidMousePos(int x, int y) {
     return 1;
 }
 
+static int mousePosToEditorPos(int* x, int* y) {
+    int row = E.row_offset + *y - 1;
+    if (row >= E.num_rows)
+        return 0;
+    int col = *x - E.num_rows_digits - 1 + E.col_offset;
+    if (col > E.row[row].rsize)
+        col = E.row[row].rsize;
+    *x = col;
+    *y = row;
+    return 1;
+}
+
 void editorProcessKeypress() {
     static int quit_protect = 1;
+    static int pressed = 0;
     static int prev_x = 0;
     static int prev_y = 0;
 
@@ -398,19 +411,46 @@ void editorProcessKeypress() {
         case MOUSE_PRESSED:
             if (!isValidMousePos(x, y))
                 break;
+            pressed = 1;
             prev_x = x;
             prev_y = y;
-            int row = E.row_offset + y - 1;
-            if (row >= E.num_rows)
+
+            E.is_selected = 0;
+            E.bracket_autocomplete = 0;
+
+            if (!mousePosToEditorPos(&x, &y))
                 break;
-            int col = x - E.num_rows_digits - 1 + E.col_offset;
-            E.cy = row;
-            if (col > E.row[row].rsize)
-                col = E.row[row].rsize;
-            E.cx = editorRowRxToCx(&E.row[row], col);
+
+            E.cy = y;
+            E.cx = editorRowRxToCx(&E.row[y], x);
             break;
 
         case MOUSE_RELEASED:
+            if (!pressed)
+                break;
+            pressed = 0;
+
+            if (!isValidMousePos(x, y) || (x == prev_x && y == prev_y) ||
+                !mousePosToEditorPos(&x, &y))
+                break;
+
+            E.is_selected = 1;
+            E.select_x = x;
+            E.select_y = y;
+            break;
+
+        case MOUSE_MOVE:
+            should_scroll = 0;
+
+            if (!pressed)
+                break;
+
+            if (!isValidMousePos(x, y) || !mousePosToEditorPos(&x, &y))
+                break;
+
+            E.is_selected = 1;
+            E.select_x = x;
+            E.select_y = y;
             break;
 
         case WHEEL_UP:
