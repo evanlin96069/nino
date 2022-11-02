@@ -49,9 +49,6 @@ int editorReadKey(int* x, int* y) {
     while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
         if (nread == -1 && errno != EAGAIN)
             DIE("read");
-
-        // Auto resize
-        resizeWindow();
     }
     if (c == ESC) {
         char seq[5];
@@ -233,7 +230,7 @@ int getWindowSize(int* rows, int* cols) {
     }
 }
 
-static void handler(int sig) {
+static void SIGSEGV_handler(int sig) {
     disableMouse();
     disableSwap();
     disableRawMode();
@@ -242,7 +239,7 @@ static void handler(int sig) {
 }
 
 void enableSwap() {
-    if (signal(SIGSEGV, handler) == SIG_ERR)
+    if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR)
         return;
     write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11;
 }
@@ -260,6 +257,10 @@ void disableMouse() {
         write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
         E.cfg->mouse = 0;
 }
+
+static void SIGWINCH_handler(int sig) { resizeWindow(); }
+
+void enableAutoResize() { signal(SIGWINCH, SIGWINCH_handler); }
 
 void resizeWindow() {
     int rows, cols;

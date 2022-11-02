@@ -40,6 +40,7 @@ void editorInit() {
     E.screen_rows = 0;
     E.screen_cols = 0;
     resizeWindow();
+    enableAutoResize();
 }
 
 void editorFree() {

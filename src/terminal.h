@@ -11,6 +11,7 @@ void enableSwap();
 void disableSwap();
 void enableMouse();
 void disableMouse();
+void enableAutoResize();
 void resizeWindow();
 
 #endif
