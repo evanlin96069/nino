@@ -6,14 +6,29 @@
 #include "defines.h"
 #include "highlight.h"
 
+static inline int getDigit(int n) {
+    if (n < 10)
+        return 1;
+    if (n < 100)
+        return 2;
+    if (n < 1000)
+        return 3;
+    if (n < 10000000) {
+        if (n < 1000000) {
+            if (n < 10000)
+                return 4;
+            return 5 + (n >= 100000);
+        }
+        return 7;
+    }
+    if (n < 1000000000)
+        return 8 + (n >= 100000000);
+    return 10;
+}
+
 static void editorUpdateNumRowsDigits() {
     int old_digit = E.num_rows_digits;
-    int digits = 0;
-    int num_rows = E.num_rows;
-    while (num_rows) {
-        num_rows /= 10;
-        digits++;
-    }
+    int digits = getDigit(E.num_rows);
     if (old_digit != digits) {
         E.num_rows_digits = digits;
         E.cols = E.screen_cols - (E.num_rows_digits + 1);
