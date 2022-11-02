@@ -73,8 +73,7 @@ void editorDrawRows(abuf* ab) {
                         current_color = -1;
                         abufAppend(ab, ANSI_CLEAR);
                         char buf[20];
-                        colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 0);
-                        abufAppend(ab, ANSI_INVERT);
+                        colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 1);
                         abufAppend(ab, buf);
                     }
                     abufAppendN(ab, &c[j], 1);

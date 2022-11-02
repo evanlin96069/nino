@@ -20,7 +20,7 @@ static EditorConfig cfg = {
                         {206, 145, 120},
                         {181, 206, 168},
                         {218, 165, 32},
-                        {97, 176, 255}},
+                        {38, 79, 120}},
     .tab_size = 4,
     .whitespace = 0,
     .auto_indent = 0,
