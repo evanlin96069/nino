@@ -162,7 +162,7 @@ int editorReadKey(int* x, int* y) {
                         if (m == 'm')
                             return SCROLL_RELEASED;
                         break;
-                    case 35:
+                    case 32:
                         return MOUSE_MOVE;
                     case 64:
                         return WHEEL_UP;
@@ -251,13 +251,13 @@ void disableSwap() { write(STDOUT_FILENO, "\x1b[?1049l", 8) == 8; }
 
 void enableMouse() {
     if (!E.cfg->mouse &&
-        write(STDOUT_FILENO, "\x1b[?1003h\x1b[?1015h\x1b[?1006h", 24) == 24)
+        write(STDOUT_FILENO, "\x1b[?1002h\x1b[?1015h\x1b[?1006h", 24) == 24)
         E.cfg->mouse = 1;
 }
 
 void disableMouse() {
     if (E.cfg->mouse &&
-        write(STDOUT_FILENO, "\x1b[?1003l\x1b[?1015l\x1b[?1006l", 24) == 24)
+        write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
         E.cfg->mouse = 0;
 }
 

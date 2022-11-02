@@ -406,7 +406,7 @@ void editorProcessKeypress() {
         case CTRL_KEY('l'):
         case ESC:
             break;
-
+ 
         // Mouse input
         case MOUSE_PRESSED:
             if (!isValidMousePos(x, y))
@@ -435,8 +435,10 @@ void editorProcessKeypress() {
                 break;
 
             E.is_selected = 1;
-            E.select_x = x;
-            E.select_y = y;
+            E.select_x = E.cx;
+            E.select_y = E.cy;
+            E.cx = editorRowRxToCx(&E.row[y], x);
+            E.cy = y;
             break;
 
         case MOUSE_MOVE:
