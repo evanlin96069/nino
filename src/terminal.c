@@ -253,8 +253,7 @@ void enableMouse() {
 }
 
 void disableMouse() {
-    if (E.cfg->mouse &&
-        write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
+    if (E.cfg->mouse && write(STDOUT_FILENO, "\x1b[?1002l", 8) == 8)
         E.cfg->mouse = 0;
 }
 

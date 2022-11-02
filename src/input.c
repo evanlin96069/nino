@@ -406,7 +406,7 @@ void editorProcessKeypress() {
         case CTRL_KEY('l'):
         case ESC:
             break;
- 
+
         // Mouse input
         case MOUSE_PRESSED:
             if (!isValidMousePos(x, y))
@@ -426,33 +426,22 @@ void editorProcessKeypress() {
             break;
 
         case MOUSE_RELEASED:
-            if (!pressed)
-                break;
-            pressed = 0;
-
-            if (!isValidMousePos(x, y) || (x == prev_x && y == prev_y) ||
-                !mousePosToEditorPos(&x, &y))
-                break;
-
-            E.is_selected = 1;
-            E.select_x = E.cx;
-            E.select_y = E.cy;
-            E.cx = editorRowRxToCx(&E.row[y], x);
-            E.cy = y;
-            break;
-
         case MOUSE_MOVE:
-            should_scroll = 0;
-
             if (!pressed)
                 break;
+
+            if (c == MOUSE_RELEASED) {
+                pressed = 0;
+                if (x == prev_x && y == prev_y)
+                    break;
+            }
 
             if (!isValidMousePos(x, y) || !mousePosToEditorPos(&x, &y))
                 break;
 
             E.is_selected = 1;
-            E.select_x = x;
-            E.select_y = y;
+            E.cx = editorRowRxToCx(&E.row[y], x);
+            E.cy = y;
             break;
 
         case WHEEL_UP:
