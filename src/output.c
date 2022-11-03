@@ -137,16 +137,21 @@ int editorRefreshScreen() {
     editorDrawStatusBar(&ab);
 
     char buf[32];
+    int should_show_cursor = 1;
     if (E.state == EDIT_MODE) {
-        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.row_offset) + 2,
-                 (E.rx - E.col_offset) + 1 + E.num_rows_digits + 1);
+        int row = (E.cy - E.row_offset) + 2;
+        int col = (E.rx - E.col_offset) + 1 + E.num_rows_digits + 1;
+        if (row <= 1 || row > E.screen_rows - 2)
+            should_show_cursor = 0;
+        else
+            snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row, col);
     } else {
         snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.rows + 2, E.px + 1);
     }
-
     abufAppend(&ab, buf);
 
-    abufAppend(&ab, "\x1b[?25h");
+    if (should_show_cursor)
+        abufAppend(&ab, "\x1b[?25h");
 
     int success = write(STDOUT_FILENO, ab.buf, ab.len) == ab.len;
     abufFree(&ab);
