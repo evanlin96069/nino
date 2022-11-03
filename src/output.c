@@ -100,6 +100,24 @@ void editorDrawRows(abuf* ab) {
                     abufAppendN(ab, &c[j], 1);
                 }
             }
+            // Add newline character when selected
+            if (E.is_selected) {
+                int select_start, select_end;
+                if (E.cy > E.select_y) {
+                    select_start = E.select_y;
+                    select_end = E.cy;
+                } else {
+                    select_start = E.cy;
+                    select_end = E.select_y;
+                }
+                if (select_end > current_row && current_row >= select_start) {
+                    if (len == 0) {
+                        colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 1);
+                        abufAppend(ab, buf);
+                    }
+                    abufAppend(ab, " ");
+                }
+            }
             abufAppend(ab, ANSI_CLEAR);
         }
         abufAppend(ab, "\x1b[K");
