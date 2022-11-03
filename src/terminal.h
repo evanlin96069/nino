@@ -13,5 +13,6 @@ void enableMouse();
 void disableMouse();
 void enableAutoResize();
 void resizeWindow();
+void terminalExit();
 
 #endif

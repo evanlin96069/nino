@@ -12,7 +12,7 @@
 #include "output.h"
 
 void die(char* file, int line, const char* s) {
-    disableSwap();
+    terminalExit();
     fprintf(stderr, "Error at %s: %d: %s\r\n", file, line, s);
     exit(EXIT_FAILURE);
 }
@@ -25,7 +25,6 @@ static void disableRawMode() {
 void enableRawMode() {
     if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1)
         DIE("tcgetattr");
-    atexit(disableRawMode);
 
     struct termios raw = E.orig_termios;
 
@@ -231,10 +230,8 @@ int getWindowSize(int* rows, int* cols) {
 }
 
 static void SIGSEGV_handler(int sig) {
-    disableMouse();
-    disableSwap();
-    disableRawMode();
-    write(STDOUT_FILENO, "Segmentation fault\r\n", 20) == 20;
+    terminalExit();
+    write(STDOUT_FILENO, "Exit from SIGSEGV_handler\r\n", 20) == 20;
     _exit(EXIT_FAILURE);
 }
 
@@ -273,4 +270,12 @@ void resizeWindow() {
         E.cols = cols - (E.num_rows_digits + 1);
         editorRefreshScreen();
     }
+}
+
+void terminalExit() {
+    disableRawMode();
+    disableSwap();
+    disableMouse();
+    // Show cursor
+    write(STDOUT_FILENO, "\x1b[?25h", 6) == 6;
 }

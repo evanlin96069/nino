@@ -33,7 +33,6 @@ void editorInit() {
     E.syntax = 0;
 
     editorLoadConfig();
-    atexit(disableMouse);
     if (E.cfg->mouse)
         enableMouse();
 
@@ -41,6 +40,8 @@ void editorInit() {
     E.screen_cols = 0;
     resizeWindow();
     enableAutoResize();
+
+    atexit(terminalExit);
 }
 
 void editorFree() {

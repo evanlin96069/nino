@@ -209,7 +209,6 @@ void editorProcessKeypress() {
                 return;
             }
             editorFree();
-            disableSwap();
             exit(EXIT_SUCCESS);
             break;
 
