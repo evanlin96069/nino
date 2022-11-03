@@ -10,8 +10,8 @@
 #include "terminal.h"
 
 static EditorConfig cfg = {
-    .status_color = {{229, 229, 229}, {96, 59, 116}},
-    .highlight_color = {{212, 212, 212},
+    .status_color = {{225, 219, 239}, {87, 80, 104}},
+    .highlight_color = {{229, 229, 229},
                         {106, 153, 85},
                         {106, 153, 85},
                         {197, 134, 192},
@@ -19,7 +19,7 @@ static EditorConfig cfg = {
                         {78, 201, 176},
                         {206, 145, 120},
                         {181, 206, 168},
-                        {218, 165, 32},
+                        {89, 46, 20},
                         {38, 79, 120}},
     .tab_size = 4,
     .whitespace = 0,
