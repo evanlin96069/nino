@@ -55,7 +55,12 @@ void editorDrawRows(abuf* ab) {
             unsigned char* hl = &(E.row[current_row].hl[E.col_offset]);
             unsigned char* selected =
                 &(E.row[current_row].selected[E.col_offset]);
-            int current_color = 0;
+
+            unsigned char current_color = HL_NORMAL;
+            int has_bg = 0;
+            char buf[32];
+            colorToANSI(E.cfg->highlight_color[current_color], buf, 0);
+            abufAppend(ab, buf);
             for (int j = 0; j < len; j++) {
                 if (iscntrl(c[j])) {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
@@ -63,37 +68,40 @@ void editorDrawRows(abuf* ab) {
                     abufAppendN(ab, &sym, 1);
                     abufAppend(ab, ANSI_CLEAR);
                     if (current_color >= 0) {
-                        char buf[20];
                         colorToANSI(E.cfg->highlight_color[current_color], buf,
                                     0);
                         abufAppend(ab, buf);
                     }
-                } else if (E.is_selected && selected[j]) {
-                    if (current_color != -1) {
-                        current_color = -1;
-                        abufAppend(ab, ANSI_CLEAR);
-                        char buf[20];
-                        colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 1);
-                        abufAppend(ab, buf);
-                    }
-                    abufAppendN(ab, &c[j], 1);
                 } else {
-                    int color = hl[j];
+                    unsigned char color = hl[j];
+                    if (E.is_selected && selected[j]) {
+                        if (!has_bg) {
+                            has_bg = 1;
+                            colorToANSI(E.cfg->highlight_color[HL_SELECT], buf,
+                                        1);
+                            abufAppend(ab, buf);
+                        }
+                    } else if (has_bg && color != HL_MATCH) {
+                        abufAppend(ab, ANSI_DEFAULT_BG);
+                    }
                     if (color != current_color) {
                         current_color = color;
-                        abufAppend(ab, ANSI_CLEAR);
-                        char buf[20];
-                        colorToANSI(E.cfg->highlight_color[color], buf, 0);
+                        abufAppend(ab, ANSI_DEFAULT_FG);
+                        if (color == HL_MATCH) {
+                            has_bg = 1;
+                            colorToANSI(E.cfg->highlight_color[HL_NORMAL], buf,
+                                        0);
+                            colorToANSI(E.cfg->highlight_color[color], buf, 1);
+                        } else {
+                            colorToANSI(E.cfg->highlight_color[color], buf, 0);
+                        }
                         abufAppend(ab, buf);
-                        if (color == HL_MATCH)
-                            abufAppend(ab, ANSI_INVERT);
                     }
                     abufAppendN(ab, &c[j], 1);
                 }
             }
             abufAppend(ab, ANSI_CLEAR);
         }
-
         abufAppend(ab, "\x1b[K");
         abufAppend(ab, "\r\n");
     }
