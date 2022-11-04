@@ -6,6 +6,7 @@
 #include "config.h"
 #include "file_types.h"
 #include "row.h"
+#include "select.h"
 
 typedef struct Editor {
     int cx, cy;
@@ -20,15 +21,16 @@ typedef struct Editor {
     int cols;
     int num_rows;
     int num_rows_digits;
-    EditorRow* row;
     int state;
     int dirty;
-    int is_selected;
+    int is_selected : 1;
     int select_x, select_y;
     int bracket_autocomplete;
     char* filename;
     char status_msg[80];
     struct termios orig_termios;
+    EditorClipboard clipboard;
+    EditorRow* row;
     EditorSyntax* syntax;
     EditorConfig* cfg;
 } Editor;

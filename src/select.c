@@ -83,3 +83,102 @@ void editorDeleteSelectText() {
         editorDelChar();
     }
 }
+
+void editorFreeClipboard(EditorClipboard* clipboard) {
+    if (!clipboard || !clipboard->size)
+        return;
+    for (int i = 0; i < clipboard->size; i++) {
+        free(clipboard->data[i]);
+    }
+    clipboard->size = 0;
+    free(clipboard->data);
+}
+
+void editorCopySelectText() {
+    if (!E.is_selected)
+        return;
+
+    int start_x, start_y, end_x, end_y;
+    getSelectStartEnd(&start_x, &start_y, &end_x, &end_y);
+
+    editorFreeClipboard(&E.clipboard);
+
+    E.clipboard.size = end_y - start_y + 1;
+    E.clipboard.data = malloc(sizeof(char*) * E.clipboard.size);
+
+    // Only one line
+    if (start_y == end_y) {
+        E.clipboard.data[0] = malloc(end_x - start_x + 1);
+        memcpy(E.clipboard.data[0], &E.row[start_y].data[start_x],
+               end_x - start_x);
+        E.clipboard.data[0][end_x - start_x] = '\0';
+        return;
+    }
+
+    // First line
+    size_t size = E.row[start_y].size - start_x;
+    E.clipboard.data[0] = malloc(size + 1);
+    memcpy(E.clipboard.data[0], &E.row[start_y].data[start_x], size);
+    E.clipboard.data[0][size] = '\0';
+    // Middle
+    for (int i = start_y + 1; i < end_y; i++) {
+        size = E.row[i].size;
+        E.clipboard.data[i - start_y] = malloc(size + 1);
+        memcpy(E.clipboard.data[i - start_y], E.row[i].data, size);
+        E.clipboard.data[i - start_y][size] = '\0';
+    }
+    // Last line
+    size = end_x;
+    E.clipboard.data[end_y - start_y] = malloc(size + 1);
+    memcpy(E.clipboard.data[end_y - start_y], E.row[end_y].data, size);
+    E.clipboard.data[end_y - start_y][size] = '\0';
+}
+
+void editorPasteText() {
+    if (!E.clipboard.size)
+        return;
+    int x = E.cx;
+    int y = E.cy;
+    if (E.clipboard.size == 1) {
+        EditorRow* row = &E.row[y];
+        char* paste = E.clipboard.data[0];
+        size_t paste_len = strlen(paste);
+
+        row->data = realloc(row->data, row->size + paste_len + 1);
+        memmove(&(row->data[x + paste_len]), &(row->data[x]), row->size - x);
+        memcpy(&(row->data[x]), paste, paste_len);
+        row->size += paste_len;
+        row->data[row->size] = '\0';
+        editorUpdateRow(row);
+        E.dirty++;
+        E.cx += paste_len;
+    } else {
+        // First line
+        int auto_indent = E.cfg->auto_indent;
+        E.cfg->auto_indent = 0;
+        editorInsertNewline();
+        E.cfg->auto_indent = auto_indent;
+        editorRowAppendString(&E.row[y], E.clipboard.data[0],
+                              strlen(E.clipboard.data[0]));
+        // Middle
+        for (int i = 1; i < E.clipboard.size - 1; i++) {
+            editorInsertRow(y + i, E.clipboard.data[i],
+                            strlen(E.clipboard.data[i]));
+        }
+        // Last line
+        EditorRow* row = &E.row[y + E.clipboard.size - 1];
+        char* paste = E.clipboard.data[E.clipboard.size - 1];
+        size_t paste_len = strlen(paste);
+
+        row->data = realloc(row->data, row->size + paste_len + 1);
+        memmove(&(row->data[paste_len]), row->data, row->size);
+        memcpy(row->data, paste, paste_len);
+        row->size += paste_len;
+        row->data[row->size] = '\0';
+        editorUpdateRow(row);
+
+        E.cy = y + E.clipboard.size - 1;
+        E.cx = paste_len;
+    }
+    E.sx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
+}

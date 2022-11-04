@@ -14,11 +14,12 @@ Also, see the original text editor the tutorial based on: [kilo](https://github.
 - Line numbers
 - Auto indent
 - Auto bracket completion
-- Selected text
+- Select text
 - Go to line number
 - Use whitespcae
-- Mouse mode
+- Mouse support
 - Configs
+- Cut, copy, and paste
 
 ## Configs
 Set config using `ctrl+p` or create the config file `~/.ninorc` 
@@ -54,6 +55,35 @@ color status.bg 007acc
     - `hl.match`
     - `hl.select`
 
+## Actions
+| Action | Keybinding |
+| - | - |
+| Quit | `Ctrl+Q` |
+| Save | `Ctrl+S` |
+| Find | `Ctrl+F` |
+| Go To Line | `Ctrl+G` |
+| Configs | `Ctrl+P` |
+| Copy | `Ctrl+C` |
+| Paste | `Ctrl+V` |
+| Cut | `Ctrl+X` |
+| Select All | `Ctrl+A` |
+| Move Up | `Up` |
+| Move Down | `Down` |
+| Move Right | `Right` |
+| Move Left | `Left` |
+| To Line Start | `Home` `Ctrl+Left` |
+| To Line End | `End` `Ctrl+Right` |
+| To File Start | `Ctrl+Up` `Ctrl+Home` |
+| To File End | `Ctrl+Down` `Ctrl+End` |
+| To Next Page | `PageUp` |
+| To Previous Page | `PageDown` |
+| Select Move Up | `Shift+Up` |
+| Select Move Down | `Shift+Down` |
+| Select Move Right | `Shift+Right` |
+| Select Move Left | `Shift+Left` |
+| Select To Line Start | `Shift+Home` `Ctrl+Shift+Left` |
+| Select To Line End | `Shift+End` `Ctrl+Shift+Right` |
+
 ## Install from source
 ### Linux
 ```
@@ -61,4 +91,9 @@ git clone https://github.com/evanlin96069/nino.git
 cd nino
 ./compile.sh
 sudo ./install.sh
+```
+
+## Usage
+```
+nino [filename]
 ```

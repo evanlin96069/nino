@@ -31,6 +31,8 @@ void editorInit() {
     E.filename = NULL;
     E.status_msg[0] = '\0';
     E.syntax = 0;
+    E.clipboard.size = 0;
+    E.clipboard.data = NULL;
 
     editorLoadConfig();
     if (E.cfg->mouse)
@@ -48,6 +50,7 @@ void editorFree() {
     for (int i = 0; i < E.num_rows; i++) {
         editorFreeRow(&E.row[i]);
     }
+    editorFreeClipboard(&E.clipboard);
     free(E.row);
     free(E.filename);
 }

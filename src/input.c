@@ -213,6 +213,7 @@ void editorProcessKeypress() {
             break;
 
         case CTRL_KEY('s'):
+            should_scroll = 0;
             if (E.dirty)
                 editorSave();
             break;
@@ -308,6 +309,30 @@ void editorProcessKeypress() {
                     }
                 }
             }
+            break;
+
+        // Cut
+        case CTRL_KEY('x'):
+            editorCopySelectText();
+            if (E.is_selected) {
+                editorDeleteSelectText();
+                E.is_selected = 0;
+            }
+            break;
+
+        // Copy
+        case CTRL_KEY('c'):
+            should_scroll = 0;
+            editorCopySelectText();
+            break;
+
+        // Paste
+        case CTRL_KEY('v'):
+            if (E.is_selected && E.clipboard.size) {
+                editorDeleteSelectText();
+                E.is_selected = 0;
+            }
+            editorPasteText();
             break;
 
         case PAGE_UP:
@@ -422,6 +447,7 @@ void editorProcessKeypress() {
 
             E.cy = y;
             E.cx = editorRowRxToCx(&E.row[y], x);
+            E.sx = x;
             break;
 
         case MOUSE_RELEASED:
@@ -441,6 +467,7 @@ void editorProcessKeypress() {
             E.is_selected = 1;
             E.cx = editorRowRxToCx(&E.row[y], x);
             E.cy = y;
+            E.sx = x;
             break;
 
         case WHEEL_UP:
