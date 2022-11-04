@@ -110,7 +110,8 @@ void editorDrawRows(abuf* ab) {
                     select_start = E.cy;
                     select_end = E.select_y;
                 }
-                if (select_end > current_row && current_row >= select_start) {
+                if (select_end > current_row && current_row >= select_start &&
+                    E.col_offset + E.cols > E.row[i].rsize) {
                     colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 1);
                     abufAppend(ab, buf);
                     abufAppend(ab, " ");
