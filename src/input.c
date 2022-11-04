@@ -415,6 +415,7 @@ void editorProcessKeypress() {
             E.cx = 0;
             E.sx = 0;
             break;
+
         case CTRL_DOWN:
         case CTRL_END:
             E.is_selected = 0;
@@ -424,8 +425,34 @@ void editorProcessKeypress() {
             E.sx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
             break;
 
-        case SHIFT_CTRL_UP:
-        case SHIFT_CTRL_DOWN:
+        case SHIFT_ALT_UP:
+        case SHIFT_ALT_DOWN:
+            E.is_selected = 0;
+            editorInsertRow(E.cy, E.row[E.cy].data, E.row[E.cy].size);
+            if (c == SHIFT_ALT_DOWN)
+                E.cy++;
+            break;
+
+        case ALT_UP:
+            if (E.cy == 0)
+                break;
+            {
+                EditorRow temp = E.row[E.cy];
+                E.row[E.cy] = E.row[E.cy - 1];
+                E.row[E.cy - 1] = temp;
+                E.cy--;
+            }
+            break;
+
+        case ALT_DOWN:
+            if (E.cy == E.num_rows - 1)
+                break;
+            {
+                EditorRow temp = E.row[E.cy];
+                E.row[E.cy] = E.row[E.cy + 1];
+                E.row[E.cy + 1] = temp;
+                E.cy++;
+            }
 
         case CTRL_KEY('l'):
         case ESC:

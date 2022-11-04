@@ -56,6 +56,8 @@ color status.bg 007acc
     - `hl.select`
 
 ## Actions
+The terminal emulator might have some key binds overlapping with nino, make sure to change them before using.
+
 | Action | Keybinding |
 | - | - |
 | Quit | `Ctrl+Q` |
@@ -67,6 +69,10 @@ color status.bg 007acc
 | Paste | `Ctrl+V` |
 | Cut | `Ctrl+X` |
 | Select All | `Ctrl+A` |
+| Copy Line Up | `Shift+Alt+Up` |
+| Copy Line Down | `Shift+Alt+Down` |
+| Move Line Up | `Alt+Up` |
+| Move Line Down | `Alt+Down` |
 | Move Up | `Up` |
 | Move Down | `Down` |
 | Move Right | `Right` |

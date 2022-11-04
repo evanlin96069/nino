@@ -82,6 +82,26 @@ int editorReadKey(int* x, int* y) {
                     if (read(STDIN_FILENO, &seq[4], 1) != 1)
                         return ESC;
                     if (seq[1] == '1') {
+                        /*
+                          Code     Modifiers
+                        ---------+---------------------------
+                           2     | Shift
+                           3     | Alt
+                           4     | Shift + Alt
+                           5     | Control
+                           6     | Shift + Control
+                           7     | Alt + Control
+                           8     | Shift + Alt + Control
+                           9     | Meta
+                           10    | Meta + Shift
+                           11    | Meta + Alt
+                           12    | Meta + Alt + Shift
+                           13    | Meta + Ctrl
+                           14    | Meta + Ctrl + Shift
+                           15    | Meta + Ctrl + Alt
+                           16    | Meta + Ctrl + Alt + Shift
+                        ---------+---------------------------
+                        */
                         if (seq[3] == '2') {
                             // Shift
                             switch (seq[4]) {
@@ -97,6 +117,22 @@ int editorReadKey(int* x, int* y) {
                                     return SHIFT_HOME;
                                 case 'F':
                                     return SHIFT_END;
+                            }
+                        } else if (seq[3] == '3') {
+                            // Alt
+                            switch (seq[4]) {
+                                case 'A':
+                                    return ALT_UP;
+                                case 'B':
+                                    return ALT_DOWN;
+                            }
+                        } else if (seq[3] == '4') {
+                            // Shift + Alt
+                            switch (seq[4]) {
+                                case 'A':
+                                    return SHIFT_ALT_UP;
+                                case 'B':
+                                    return SHIFT_ALT_DOWN;
                             }
                         } else if (seq[3] == '5') {
                             // Ctrl
