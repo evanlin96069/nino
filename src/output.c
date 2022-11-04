@@ -111,10 +111,8 @@ void editorDrawRows(abuf* ab) {
                     select_end = E.select_y;
                 }
                 if (select_end > current_row && current_row >= select_start) {
-                    if (len == 0) {
-                        colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 1);
-                        abufAppend(ab, buf);
-                    }
+                    colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 1);
+                    abufAppend(ab, buf);
                     abufAppend(ab, " ");
                 }
             }
