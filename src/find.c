@@ -127,6 +127,7 @@ static void editorFindCallback(char* query, int key) {
     E.cx = match_node->col;
     E.cy = match_node->row;
     editorScroll();
+    E.row_offset = E.cy - E.rows / 2;
     if (E.row_offset + E.rows > E.num_rows) {
         E.row_offset = E.num_rows - E.rows;
     }
