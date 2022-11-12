@@ -441,6 +441,7 @@ void editorProcessKeypress() {
                 E.row[E.cy] = E.row[E.cy - 1];
                 E.row[E.cy - 1] = temp;
                 E.cy--;
+                E.dirty++;
             }
             break;
 
@@ -452,6 +453,7 @@ void editorProcessKeypress() {
                 E.row[E.cy] = E.row[E.cy + 1];
                 E.row[E.cy + 1] = temp;
                 E.cy++;
+                E.dirty++;
             }
 
         case CTRL_KEY('l'):
