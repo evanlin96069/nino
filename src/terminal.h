@@ -1,8 +1,9 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#define DIE(s) die(__FILE__, __LINE__, s)
-void die(char* file, int line, const char* s);
+#define UNUSED(x) (void)!(x)
+#define PANIC(s) panic(__FILE__, __LINE__, s)
+void panic(char* file, int line, const char* s);
 
 void enableRawMode();
 int editorReadKey(int* x, int* y);

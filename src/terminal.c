@@ -11,7 +11,7 @@
 #include "editor.h"
 #include "output.h"
 
-void die(char* file, int line, const char* s) {
+void panic(char* file, int line, const char* s) {
     terminalExit();
     fprintf(stderr, "Error at %s: %d: %s\r\n", file, line, s);
     exit(EXIT_FAILURE);
@@ -19,12 +19,12 @@ void die(char* file, int line, const char* s) {
 
 static void disableRawMode() {
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
-        DIE("tcsetattr");
+        PANIC("tcsetattr");
 }
 
 void enableRawMode() {
     if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1)
-        DIE("tcgetattr");
+        PANIC("tcgetattr");
 
     struct termios raw = E.orig_termios;
 
@@ -36,7 +36,7 @@ void enableRawMode() {
     raw.c_cc[VTIME] = 1;
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
-        DIE("tcsetattr");
+        PANIC("tcsetattr");
 }
 
 int editorReadKey(int* x, int* y) {
@@ -47,7 +47,7 @@ int editorReadKey(int* x, int* y) {
 
     while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
         if (nread == -1 && errno != EAGAIN)
-            DIE("read");
+            PANIC("read");
     }
     if (c == ESC) {
         char seq[5];
@@ -267,17 +267,17 @@ int getWindowSize(int* rows, int* cols) {
 
 static void SIGSEGV_handler(int sig) {
     terminalExit();
-    write(STDOUT_FILENO, "Exit from SIGSEGV_handler\r\n", 20) == 20;
+    UNUSED(write(STDOUT_FILENO, "Exit from SIGSEGV_handler\r\n", 20));
     _exit(EXIT_FAILURE);
 }
 
 void enableSwap() {
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR)
         return;
-    write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11) == 11;
+    UNUSED(write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11));
 }
 
-void disableSwap() { write(STDOUT_FILENO, "\x1b[?1049l", 8) == 8; }
+void disableSwap() { UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8)); }
 
 void enableMouse() {
     if (!E.cfg->mouse &&
@@ -297,7 +297,7 @@ void enableAutoResize() { signal(SIGWINCH, SIGWINCH_handler); }
 void resizeWindow() {
     int rows, cols;
     if (getWindowSize(&rows, &cols) == -1)
-        DIE("getWindowSize");
+        PANIC("getWindowSize");
 
     if (E.screen_rows != rows || E.screen_cols != cols) {
         E.screen_rows = rows;
@@ -313,5 +313,5 @@ void terminalExit() {
     disableSwap();
     disableMouse();
     // Show cursor
-    write(STDOUT_FILENO, "\x1b[?25h", 6) == 6;
+    UNUSED(write(STDOUT_FILENO, "\x1b[?25h", 6));
 }

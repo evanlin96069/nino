@@ -71,7 +71,7 @@ static void editorFindCallback(char* query, int key) {
 
         prev_query = malloc(len + 1);
         if (!prev_query)
-            DIE("malloc");
+            PANIC("malloc");
         memcpy(prev_query, query, len + 1);
         prev_query[len] = '\0';
 
@@ -83,7 +83,7 @@ static void editorFindCallback(char* query, int key) {
                 col = match - E.row[i].data;
                 FindList* node = malloc(sizeof(FindList));
                 if (!node) {
-                    DIE("malloc");
+                    PANIC("malloc");
                 }
                 node->prev = cur;
                 node->next = NULL;

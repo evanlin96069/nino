@@ -20,7 +20,7 @@ void abufAppendN(abuf* ab, const char* s, size_t n) {
         char* new = realloc(ab->buf, ab->capacity);
 
         if (new == NULL)
-            DIE("realloc");
+            PANIC("realloc");
 
         ab->buf = new;
     }

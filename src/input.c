@@ -83,7 +83,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 break;
         }
         if (getWindowSize(&E.rows, &E.cols) == -1)
-            DIE("getWindowSize");
+            PANIC("getWindowSize");
         E.rows -= 3;
         E.cols -= E.num_rows_digits + 1;
     }
@@ -196,7 +196,7 @@ void editorProcessKeypress() {
         case '\r': {
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
-                DIE("malloc");
+                PANIC("malloc");
             getSelectStartEnd(&action->deleted_range);
             if (E.is_selected) {
                 editorCopyText(&action->deleted_text, action->deleted_range);
@@ -297,7 +297,7 @@ void editorProcessKeypress() {
         case BACKSPACE: {
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
-                DIE("malloc");
+                PANIC("malloc");
             action->added_text.size = 0;
             action->added_text.data = NULL;
             action->added_range = (EditorSelectRange){0};
@@ -360,7 +360,7 @@ void editorProcessKeypress() {
                 break;
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
-                DIE("malloc");
+                PANIC("malloc");
             action->added_text.size = 0;
             action->added_text.data = NULL;
             action->added_range = (EditorSelectRange){0};
@@ -394,7 +394,7 @@ void editorProcessKeypress() {
 
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
-                DIE("malloc");
+                PANIC("malloc");
 
             if (E.is_selected) {
                 getSelectStartEnd(&action->deleted_range);
@@ -543,7 +543,7 @@ void editorProcessKeypress() {
 
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
-                DIE("malloc");
+                PANIC("malloc");
 
             int old_cx = E.cx;
             int old_cy = E.cy;
@@ -674,7 +674,7 @@ void editorProcessKeypress() {
 
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
-                DIE("malloc");
+                PANIC("malloc");
             getSelectStartEnd(&action->deleted_range);
 
             if (E.is_selected) {

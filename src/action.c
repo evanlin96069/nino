@@ -35,7 +35,7 @@ void editorAppendAction(EditorAction* action) {
 
     EditorActionList* node = malloc(sizeof(EditorActionList));
     if (!node)
-        DIE("malloc");
+        PANIC("malloc");
     node->action = action;
     node->next = NULL;
 
