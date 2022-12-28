@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "config.h"
@@ -191,15 +192,33 @@ void editorProcessKeypress() {
 
     editorSetStatusMsg("");
     switch (c) {
-        case '\r':
+        // Action: Newline
+        case '\r': {
+            EditorAction* action = malloc(sizeof(EditorAction));
+            if (!action)
+                DIE("malloc");
+            getSelectStartEnd(&action->deleted_range);
             if (E.is_selected) {
-                editorDeleteSelectText();
+                editorCopyText(&action->deleted_text, action->deleted_range);
+                editorDeleteText(action->deleted_range);
                 E.is_selected = 0;
+            } else {
+                action->deleted_text.size = 0;
+                action->deleted_text.data = NULL;
+                action->deleted_range = (EditorSelectRange){0};
             }
+
             E.bracket_autocomplete = 0;
 
+            action->added_range.start_x = E.cx;
+            action->added_range.start_y = E.cy;
             editorInsertNewline();
-            break;
+            action->added_range.end_x = E.cx;
+            action->added_range.end_y = E.cy;
+            editorCopyText(&action->added_text, action->added_range);
+
+            editorAppendAction(action);
+        } break;
 
         case CTRL_KEY('q'):
             if (E.dirty && quit_protect) {
@@ -229,6 +248,7 @@ void editorProcessKeypress() {
             E.is_selected = (c == SHIFT_HOME || c == SHIFT_CTRL_LEFT);
             E.bracket_autocomplete = 0;
             break;
+
         case END_KEY:
         case CTRL_RIGHT:
         case SHIFT_END:
@@ -271,11 +291,22 @@ void editorProcessKeypress() {
             E.select_x = 0;
             break;
 
+        // Action: Delete
         case DEL_KEY:
         case CTRL_KEY('h'):
-        case BACKSPACE:
+        case BACKSPACE: {
+            EditorAction* action = malloc(sizeof(EditorAction));
+            if (!action)
+                DIE("malloc");
+            action->added_text.size = 0;
+            action->added_text.data = NULL;
+            action->added_range = (EditorSelectRange){0};
+
             if (E.is_selected) {
-                editorDeleteSelectText();
+                getSelectStartEnd(&action->deleted_range);
+                editorCopyText(&action->deleted_text, action->deleted_range);
+                editorAppendAction(action);
+                editorDeleteText(action->deleted_range);
                 E.is_selected = 0;
                 break;
             }
@@ -288,12 +319,18 @@ void editorProcessKeypress() {
                        E.row[E.cy].data[E.cx - 1] == '\'') ||
                       (E.row[E.cy].data[E.cx] == '"' &&
                        E.row[E.cy].data[E.cx - 1] == '"'))) {
-                E.bracket_autocomplete--;
                 editorMoveCursor(ARROW_RIGHT);
-                editorDelChar();
+            }
+
+            action->deleted_range.end_x = E.cx;
+            action->deleted_range.end_y = E.cy;
+
+            if (E.bracket_autocomplete) {
+                E.bracket_autocomplete--;
+                editorMoveCursor(ARROW_LEFT);
             }
             char deleted_char = E.row[E.cy].data[E.cx - 1];
-            editorDelChar();
+            editorMoveCursor(ARROW_LEFT);
             if (deleted_char == ' ') {
                 int should_delete_tab = 1;
                 for (int i = 0; i < E.cx; i++) {
@@ -304,35 +341,92 @@ void editorProcessKeypress() {
                 if (should_delete_tab) {
                     int idx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
                     while (idx % E.cfg->tab_size != 0) {
-                        editorDelChar();
+                        editorMoveCursor(ARROW_LEFT);
                         idx--;
                     }
                 }
             }
-            break;
+            action->deleted_range.start_x = E.cx;
+            action->deleted_range.start_y = E.cy;
+            editorCopyText(&action->deleted_text, action->deleted_range);
+            editorDeleteText(action->deleted_range);
 
-        // Cut
-        case CTRL_KEY('x'):
-            editorCopySelectText();
-            if (E.is_selected) {
-                editorDeleteSelectText();
-                E.is_selected = 0;
-            }
-            break;
+            editorAppendAction(action);
+        } break;
+
+        // Action: Cut
+        case CTRL_KEY('x'): {
+            if (!E.is_selected)
+                break;
+            EditorAction* action = malloc(sizeof(EditorAction));
+            if (!action)
+                DIE("malloc");
+            action->added_text.size = 0;
+            action->added_text.data = NULL;
+            action->added_range = (EditorSelectRange){0};
+
+            getSelectStartEnd(&action->deleted_range);
+            editorCopyText(&action->deleted_text, action->deleted_range);
+            editorAppendAction(action);
+
+            editorFreeClipboardContent(&E.clipboard);
+            editorCopyText(&E.clipboard, action->deleted_range);
+            editorDeleteText(action->deleted_range);
+            E.is_selected = 0;
+        } break;
 
         // Copy
-        case CTRL_KEY('c'):
+        case CTRL_KEY('c'): {
+            if (!E.is_selected)
+                return;
+
+            EditorSelectRange range;
+            getSelectStartEnd(&range);
+            editorFreeClipboardContent(&E.clipboard);
+            editorCopyText(&E.clipboard, range);
             should_scroll = 0;
-            editorCopySelectText();
+        } break;
+
+        // Action: Paste
+        case CTRL_KEY('v'): {
+            if (!E.clipboard.size)
+                break;
+
+            EditorAction* action = malloc(sizeof(EditorAction));
+            if (!action)
+                DIE("malloc");
+
+            if (E.is_selected) {
+                getSelectStartEnd(&action->deleted_range);
+                editorCopyText(&action->deleted_text, action->deleted_range);
+                editorDeleteText(action->deleted_range);
+                E.is_selected = 0;
+            } else {
+                action->deleted_text.size = 0;
+                action->deleted_text.data = NULL;
+            }
+
+            action->added_range.start_x = E.cx;
+            action->added_range.start_y = E.cy;
+            editorPasteText(&E.clipboard, E.cx, E.cy);
+            action->added_range.end_x = E.cx;
+            action->added_range.end_y = E.cy;
+            editorCopyText(&action->added_text, action->added_range);
+            editorAppendAction(action);
+        } break;
+
+        // Undo
+        case CTRL_KEY('z'):
+            E.is_selected = 0;
+            E.bracket_autocomplete = 0;
+            editorUndo();
             break;
 
-        // Paste
-        case CTRL_KEY('v'):
-            if (E.is_selected && E.clipboard.size) {
-                editorDeleteSelectText();
-                E.is_selected = 0;
-            }
-            editorPasteText();
+        // Redo
+        case CTRL_KEY('y'):
+            E.is_selected = 0;
+            E.bracket_autocomplete = 0;
+            editorRedo();
             break;
 
         case PAGE_UP:
@@ -372,15 +466,15 @@ void editorProcessKeypress() {
         case ARROW_LEFT:
         case ARROW_RIGHT:
             if (E.is_selected) {
-                int start_x, start_y, end_x, end_y;
-                getSelectStartEnd(&start_x, &start_y, &end_x, &end_y);
+                EditorSelectRange range;
+                getSelectStartEnd(&range);
 
                 if (c == ARROW_UP || c == ARROW_LEFT) {
-                    E.cx = start_x;
-                    E.cy = start_y;
+                    E.cx = range.start_x;
+                    E.cy = range.start_y;
                 } else {
-                    E.cx = end_x;
-                    E.cy = end_y;
+                    E.cx = range.end_x;
+                    E.cy = range.end_y;
                 }
                 E.sx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
                 if (c == ARROW_UP || c == ARROW_DOWN) {
@@ -433,28 +527,80 @@ void editorProcessKeypress() {
                 E.cy++;
             break;
 
+        // Action: Move Line Up
+        // Action: Move Line Down
         case ALT_UP:
-            if (E.cy == 0)
-                break;
-            {
-                EditorRow temp = E.row[E.cy];
-                E.row[E.cy] = E.row[E.cy - 1];
-                E.row[E.cy - 1] = temp;
-                E.cy--;
-                E.dirty++;
+        case ALT_DOWN: {
+            EditorSelectRange range;
+            getSelectStartEnd(&range);
+            if (c == ALT_UP) {
+                if (range.start_y == 0)
+                    break;
+            } else {
+                if (range.end_y == E.num_rows - 1)
+                    break;
             }
-            break;
 
-        case ALT_DOWN:
-            if (E.cy == E.num_rows - 1)
-                break;
-            {
-                EditorRow temp = E.row[E.cy];
-                E.row[E.cy] = E.row[E.cy + 1];
-                E.row[E.cy + 1] = temp;
-                E.cy++;
-                E.dirty++;
+            EditorAction* action = malloc(sizeof(EditorAction));
+            if (!action)
+                DIE("malloc");
+
+            int old_cx = E.cx;
+            int old_cy = E.cy;
+            int old_select_x = E.select_x;
+            int old_select_y = E.select_y;
+
+            range.start_x = 0;
+            int paste_x = 0;
+            if (c == ALT_UP) {
+                range.start_y--;
+                range.end_x = E.row[range.end_y].size;
+                editorCopyText(&action->added_text, range);
+                //  Move empty string at the start to the end
+                char* temp = action->added_text.data[0];
+                memmove(&action->added_text.data[0],
+                        &action->added_text.data[1],
+                        (action->added_text.size - 1) * sizeof(char*));
+                action->added_text.data[action->added_text.size - 1] = temp;
+            } else {
+                range.end_x = 0;
+                range.end_y++;
+                editorCopyText(&action->added_text, range);
+                // Move empty string at the end to the start
+                char* temp =
+                    action->added_text.data[action->added_text.size - 1];
+                memmove(&action->added_text.data[1],
+                        &action->added_text.data[0],
+                        (action->added_text.size - 1) * sizeof(char*));
+                action->added_text.data[0] = temp;
             }
+            action->deleted_range = range;
+            editorCopyText(&action->deleted_text, range);
+            editorDeleteText(range);
+
+            if (c == ALT_UP) {
+                old_cy--;
+                old_select_y--;
+            } else {
+                paste_x = E.row[E.cy].size;
+                old_cy++;
+                old_select_y++;
+            }
+
+            range.start_x = paste_x;
+            range.start_y = E.cy;
+            editorPasteText(&action->added_text, paste_x, E.cy);
+            range.end_x = E.cx;
+            range.end_y = E.cy;
+            action->added_range = range;
+
+            E.cx = old_cx;
+            E.cy = old_cy;
+            E.select_x = old_select_x;
+            E.select_y = old_select_y;
+
+            editorAppendAction(action);
+        } break;
 
         case CTRL_KEY('l'):
         case ESC:
@@ -521,46 +667,77 @@ void editorProcessKeypress() {
         case SCROLL_RELEASED:
             break;
 
-        default:
-            if (isprint(c) || c == '\t') {
-                if (E.is_selected) {
-                    editorDeleteSelectText();
-                    E.is_selected = 0;
-                }
-                int close_bracket = isOpenBracket(c);
-                int open_bracket = isCloseBracket(c);
-                if (close_bracket) {
-                    editorInsertChar(c);
-                    editorInsertChar(close_bracket);
-                    E.cx--;
-                    E.bracket_autocomplete++;
-                } else if (open_bracket) {
-                    if (E.bracket_autocomplete && E.row[E.cy].data[E.cx] == c) {
-                        E.bracket_autocomplete--;
-                        E.cx++;
-                    } else {
-                        editorInsertChar(c);
-                    }
-                } else if (c == '\'' || c == '"') {
-                    if (E.row[E.cy].data[E.cx] != c) {
-                        editorInsertChar(c);
-                        editorInsertChar(c);
-                        E.cx--;
-                        E.bracket_autocomplete++;
-                    } else if (E.bracket_autocomplete &&
-                               E.row[E.cy].data[E.cx] == c) {
-                        E.bracket_autocomplete--;
-                        E.cx++;
-                    } else {
-                        editorInsertChar(c);
-                    }
+        // Action: Input
+        default: {
+            if (!isprint(c) && c != '\t')
+                break;
+
+            EditorAction* action = malloc(sizeof(EditorAction));
+            if (!action)
+                DIE("malloc");
+            getSelectStartEnd(&action->deleted_range);
+
+            if (E.is_selected) {
+                editorCopyText(&action->deleted_text, action->deleted_range);
+                editorDeleteText(action->deleted_range);
+                E.is_selected = 0;
+            } else {
+                action->deleted_text.size = 0;
+                action->deleted_text.data = NULL;
+            }
+
+            int x_offset = 0;
+            action->added_range.start_x = E.cx;
+            action->added_range.start_y = E.cy;
+
+            int close_bracket = isOpenBracket(c);
+            int open_bracket = isCloseBracket(c);
+            if (close_bracket) {
+                editorInsertChar(c);
+                editorInsertChar(close_bracket);
+                x_offset = 1;
+                E.cx--;
+                E.bracket_autocomplete++;
+            } else if (open_bracket) {
+                if (E.bracket_autocomplete && E.row[E.cy].data[E.cx] == c) {
+                    E.bracket_autocomplete--;
+                    x_offset = -1;
+                    E.cx++;
                 } else {
                     editorInsertChar(c);
                 }
-                E.sx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
+            } else if (c == '\'' || c == '"') {
+                if (E.row[E.cy].data[E.cx] != c) {
+                    editorInsertChar(c);
+                    editorInsertChar(c);
+                    x_offset = 1;
+                    E.cx--;
+                    E.bracket_autocomplete++;
+                } else if (E.bracket_autocomplete &&
+                           E.row[E.cy].data[E.cx] == c) {
+                    E.bracket_autocomplete--;
+                    x_offset = -1;
+                    E.cx++;
+                } else {
+                    editorInsertChar(c);
+                }
+            } else {
+                editorInsertChar(c);
             }
+
+            action->added_range.end_x = E.cx + x_offset;
+            action->added_range.end_y = E.cy;
+            editorCopyText(&action->added_text, action->added_range);
+
+            if (x_offset != -1) {
+                editorAppendAction(action);
+            } else {
+                editorFreeAction(action);
+            }
+
+            E.sx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
             E.is_selected = 0;
-            break;
+        } break;
     }
 
     if (!E.is_selected) {

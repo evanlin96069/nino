@@ -1,6 +1,6 @@
 # nino
 
-![screenshot](/img/editor_screenshot.png)
+![screenshot](/images/editor_screenshot.png)
 
 A small terminal-based text editor written in C.
 
@@ -20,9 +20,10 @@ Also, see the original text editor the tutorial based on: [kilo](https://github.
 - Mouse support
 - Configs
 - Cut, copy, and paste
+- Undo and redo
 
 ## Configs
-Set config using `ctrl+p` or create the config file `~/.ninorc` 
+Set config using `Ctrl+P` or create the config file `~/.ninorc` 
 
 ### Example
 ```
@@ -69,6 +70,8 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Paste | `Ctrl+V` |
 | Cut | `Ctrl+X` |
 | Select All | `Ctrl+A` |
+| Undo | `Ctrl+Z` |
+| Redo | `Ctrl+Y` |
 | Copy Line Up | `Shift+Alt+Up` |
 | Copy Line Down | `Shift+Alt+Down` |
 | Move Line Up | `Alt+Up` |

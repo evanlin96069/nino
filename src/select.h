@@ -8,11 +8,20 @@ typedef struct EditorClipboard {
     char** data;
 } EditorClipboard;
 
-void getSelectStartEnd(int* start_x, int* start_y, int* end_x, int* end_y);
+typedef struct EditorSelectRange {
+    int start_x;
+    int start_y;
+    int end_x;
+    int end_y;
+} EditorSelectRange;
+
+void getSelectStartEnd(EditorSelectRange* range);
 void editorSelectText();
-void editorDeleteSelectText();
-void editorCopySelectText();
-void editorPasteText();
-void editorFreeClipboard(EditorClipboard* clipboard);
+
+void editorDeleteText(EditorSelectRange range);
+void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range);
+void editorPasteText(const EditorClipboard* clipboard, int x, int y);
+
+void editorFreeClipboardContent(EditorClipboard* clipboard);
 
 #endif

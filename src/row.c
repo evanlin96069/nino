@@ -61,7 +61,7 @@ void editorUpdateRow(EditorRow* row) {
     editorUpdateSyntax(row);
 }
 
-void editorInsertRow(int at, char* s, size_t len) {
+void editorInsertRow(int at, const char* s, size_t len) {
     if (at < 0 || at > E.num_rows)
         return;
 
@@ -87,7 +87,6 @@ void editorInsertRow(int at, char* s, size_t len) {
     editorUpdateRow(&(E.row[at]));
 
     E.num_rows++;
-    E.dirty++;
 
     editorUpdateNumRowsDigits();
 }
@@ -109,7 +108,6 @@ void editorDelRow(int at) {
         E.row[i].idx--;
     }
     E.num_rows--;
-    E.dirty++;
 
     editorUpdateNumRowsDigits();
 }
@@ -122,7 +120,6 @@ void editorRowInsertChar(EditorRow* row, int at, int c) {
     row->size++;
     row->data[at] = c;
     editorUpdateRow(row);
-    E.dirty++;
 }
 
 void editorRowDelChar(EditorRow* row, int at) {
@@ -131,14 +128,12 @@ void editorRowDelChar(EditorRow* row, int at) {
     memmove(&(row->data[at]), &(row->data[at + 1]), row->size - at);
     row->size--;
     editorUpdateRow(row);
-    E.dirty++;
 }
 
-void editorRowAppendString(EditorRow* row, char* s, size_t len) {
+void editorRowAppendString(EditorRow* row, const char* s, size_t len) {
     row->data = realloc(row->data, row->size + len + 1);
     memcpy(&(row->data[row->size]), s, len);
     row->size += len;
     row->data[row->size] = '\0';
     editorUpdateRow(row);
-    E.dirty++;
 }

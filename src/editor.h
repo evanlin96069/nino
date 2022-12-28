@@ -3,6 +3,7 @@
 
 #include <termios.h>
 
+#include "action.h"
 #include "config.h"
 #include "file_types.h"
 #include "row.h"
@@ -33,6 +34,8 @@ typedef struct Editor {
     EditorRow* row;
     EditorSyntax* syntax;
     EditorConfig* cfg;
+    EditorActionList action_head;
+    EditorActionList* action_current;
 } Editor;
 
 extern Editor E;
