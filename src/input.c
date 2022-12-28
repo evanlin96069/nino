@@ -197,7 +197,9 @@ void editorProcessKeypress() {
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
                 PANIC("malloc");
+
             getSelectStartEnd(&action->deleted_range);
+
             if (E.is_selected) {
                 editorCopyText(&action->deleted_text, action->deleted_range);
                 editorDeleteText(action->deleted_range);
@@ -310,6 +312,7 @@ void editorProcessKeypress() {
                 E.is_selected = 0;
                 break;
             }
+
             if (c == DEL_KEY)
                 editorMoveCursor(ARROW_RIGHT);
             else if (E.bracket_autocomplete &&
@@ -396,8 +399,9 @@ void editorProcessKeypress() {
             if (!action)
                 PANIC("malloc");
 
+            getSelectStartEnd(&action->deleted_range);
+
             if (E.is_selected) {
-                getSelectStartEnd(&action->deleted_range);
                 editorCopyText(&action->deleted_text, action->deleted_range);
                 editorDeleteText(action->deleted_range);
                 E.is_selected = 0;
