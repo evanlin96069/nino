@@ -297,6 +297,16 @@ void editorProcessKeypress() {
         case DEL_KEY:
         case CTRL_KEY('h'):
         case BACKSPACE: {
+            if (!E.is_selected) {
+                if (c == DEL_KEY) {
+                    if (E.cy == E.num_rows - 1 &&
+                        E.cx == E.row[E.num_rows - 1].size)
+                        break;
+                } else if (E.cx == 0 && E.cy == 0) {
+                    break;
+                }
+            }
+
             EditorAction* action = malloc(sizeof(EditorAction));
             if (!action)
                 PANIC("malloc");
