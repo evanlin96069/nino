@@ -13,15 +13,15 @@
 
 void editorScroll() {
     E.rx = 0;
-    if (E.cy < E.num_rows) {
-        E.rx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
+    if (E.cursor.y < E.num_rows) {
+        E.rx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
     }
 
-    if (E.cy < E.row_offset) {
-        E.row_offset = E.cy;
+    if (E.cursor.y < E.row_offset) {
+        E.row_offset = E.cursor.y;
     }
-    if (E.cy >= E.row_offset + E.rows) {
-        E.row_offset = E.cy - E.rows + 1;
+    if (E.cursor.y >= E.row_offset + E.rows) {
+        E.row_offset = E.cursor.y - E.rows + 1;
     }
     if (E.rx < E.col_offset) {
         E.col_offset = E.rx;
@@ -37,7 +37,7 @@ void editorDrawRows(abuf* ab) {
         int current_row = i + E.row_offset;
         if (current_row < E.num_rows) {
             char line_number[16];
-            if (current_row == E.cy) {
+            if (current_row == E.cursor.y) {
                 abufAppend(ab, "\x1b[30;100m");
             } else {
                 abufAppend(ab, "\x1b[90m");
@@ -74,7 +74,7 @@ void editorDrawRows(abuf* ab) {
                     }
                 } else {
                     unsigned char color = hl[j];
-                    if (E.is_selected && selected[j]) {
+                    if (E.cursor.is_selected && selected[j]) {
                         if (!has_bg) {
                             has_bg = 1;
                             colorToANSI(E.cfg->highlight_color[HL_SELECT], buf,
@@ -101,14 +101,14 @@ void editorDrawRows(abuf* ab) {
                 }
             }
             // Add newline character when selected
-            if (E.is_selected) {
+            if (E.cursor.is_selected) {
                 int select_start, select_end;
-                if (E.cy > E.select_y) {
-                    select_start = E.select_y;
-                    select_end = E.cy;
+                if (E.cursor.y > E.cursor.select_y) {
+                    select_start = E.cursor.select_y;
+                    select_end = E.cursor.y;
                 } else {
-                    select_start = E.cy;
-                    select_end = E.select_y;
+                    select_start = E.cursor.y;
+                    select_end = E.cursor.select_y;
                 }
                 if (select_end > current_row && current_row >= select_start &&
                     E.col_offset + E.cols > E.row[i].rsize) {
@@ -138,7 +138,7 @@ int editorRefreshScreen() {
     char buf[32];
     int should_show_cursor = 1;
     if (E.state == EDIT_MODE) {
-        int row = (E.cy - E.row_offset) + 2;
+        int row = (E.cursor.y - E.row_offset) + 2;
         int col = (E.rx - E.col_offset) + 1 + E.num_rows_digits + 1;
         if (row <= 1 || row > E.screen_rows - 2)
             should_show_cursor = 0;

@@ -73,8 +73,8 @@ void editorDrawStatusBar(abuf* ab) {
 
     char rstatus[80];
     int rlen = snprintf(rstatus, sizeof(rstatus), "  %s | Ln: %d, Col: %d  ",
-                        E.syntax ? E.syntax->file_type : "Plain Text", E.cy + 1,
-                        E.rx + 1);
+                        E.syntax ? E.syntax->file_type : "Plain Text",
+                        E.cursor.y + 1, E.rx + 1);
 
     if (rlen > cols) {
         rlen = 0;

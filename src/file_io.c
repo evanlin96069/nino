@@ -65,7 +65,7 @@ void editorOpen(char* filename) {
         free(line);
         fclose(f);
     } else {
-        editorInsertRow(E.cy, "", 0);
+        editorInsertRow(E.cursor.y, "", 0);
     }
     E.dirty = 0;
 }

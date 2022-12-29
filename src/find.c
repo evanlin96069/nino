@@ -94,7 +94,8 @@ static void editorFindCallback(char* query, int key) {
 
                 tail_node = cur;
 
-                if (!match_node && ((i == E.cy && col >= E.cx) || i > E.cy))
+                if (!match_node &&
+                    ((i == E.cursor.y && col >= E.cursor.x) || i > E.cursor.y))
                     match_node = cur;
 
                 col += len;
@@ -124,10 +125,10 @@ static void editorFindCallback(char* query, int key) {
         match_node = match_node->prev;
     }
 
-    E.cx = match_node->col;
-    E.cy = match_node->row;
+    E.cursor.x = match_node->col;
+    E.cursor.y = match_node->row;
     editorScroll();
-    E.row_offset = E.cy - E.rows / 2;
+    E.row_offset = E.cursor.y - E.rows / 2;
     if (E.row_offset + E.rows > E.num_rows) {
         E.row_offset = E.num_rows - E.rows;
     }

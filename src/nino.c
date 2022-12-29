@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
     if (argc >= 2) {
         editorOpen(argv[1]);
     } else {
-        editorInsertRow(E.cy, "", 0);
+        editorInsertRow(0, "", 0);
         E.dirty = 0;
     }
 

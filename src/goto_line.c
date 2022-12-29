@@ -13,9 +13,9 @@ void editorGotoLine() {
         line = E.num_rows + 1 + line;
     }
     if (line > 0 && line <= E.num_rows) {
-        E.cx = 0;
+        E.cursor.x = 0;
         E.sx = 0;
-        E.cy = line - 1;
+        E.cursor.y = line - 1;
     }
     if (query) {
         free(query);

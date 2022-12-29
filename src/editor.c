@@ -13,8 +13,13 @@ Editor E;
 void editorInit() {
     enableRawMode();
     enableSwap();
-    E.cx = 0;
-    E.cy = 0;
+
+    E.cursor.x = 0;
+    E.cursor.y = 0;
+    E.cursor.is_selected = 0;
+    E.cursor.select_x = 0;
+    E.cursor.select_y = 0;
+
     E.rx = 0;
     E.sx = 0;
     E.row_offset = 0;
@@ -22,9 +27,7 @@ void editorInit() {
     E.num_rows = 0;
     E.num_rows_digits = 0;
     E.row = NULL;
-    E.is_selected = 0;
-    E.select_x = 0;
-    E.select_y = 0;
+
     E.state = EDIT_MODE;
     E.dirty = 0;
     E.bracket_autocomplete = 0;
@@ -61,40 +64,40 @@ void editorFree() {
 }
 
 void editorInsertChar(int c) {
-    if (E.cy == E.num_rows) {
+    if (E.cursor.y == E.num_rows) {
         editorInsertRow(E.num_rows, "", 0);
     }
     if (c == '\t' && E.cfg->whitespace) {
-        int idx = editorRowCxToRx(&(E.row[E.cy]), E.cx) + 1;
+        int idx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x) + 1;
         editorInsertChar(' ');
         while (idx % E.cfg->tab_size != 0) {
             editorInsertChar(' ');
             idx++;
         }
     } else {
-        editorRowInsertChar(&(E.row[E.cy]), E.cx, c);
-        E.cx++;
+        editorRowInsertChar(&(E.row[E.cursor.y]), E.cursor.x, c);
+        E.cursor.x++;
     }
 }
 
 void editorInsertNewline() {
     int i = 0;
 
-    if (E.cx == 0) {
-        editorInsertRow(E.cy, "", 0);
+    if (E.cursor.x == 0) {
+        editorInsertRow(E.cursor.y, "", 0);
     } else {
-        editorInsertRow(E.cy + 1, "", 0);
-        EditorRow* curr_row = &(E.row[E.cy]);
-        EditorRow* new_row = &(E.row[E.cy + 1]);
+        editorInsertRow(E.cursor.y + 1, "", 0);
+        EditorRow* curr_row = &(E.row[E.cursor.y]);
+        EditorRow* new_row = &(E.row[E.cursor.y + 1]);
         if (E.cfg->auto_indent) {
-            while (i < E.cx &&
+            while (i < E.cursor.x &&
                    (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
                 i++;
             if (i != 0)
                 editorRowAppendString(new_row, curr_row->data, i);
-            if (curr_row->data[E.cx - 1] == ':' ||
-                (curr_row->data[E.cx - 1] == '{' &&
-                 curr_row->data[E.cx] != '}')) {
+            if (curr_row->data[E.cursor.x - 1] == ':' ||
+                (curr_row->data[E.cursor.x - 1] == '{' &&
+                 curr_row->data[E.cursor.x] != '}')) {
                 if (E.cfg->whitespace) {
                     for (int j = 0; j < E.cfg->tab_size; j++, i++)
                         editorRowAppendString(new_row, " ", 1);
@@ -104,31 +107,31 @@ void editorInsertNewline() {
                 }
             }
         }
-        editorRowAppendString(new_row, &(curr_row->data[E.cx]),
-                              curr_row->size - E.cx);
-        curr_row->size = E.cx;
+        editorRowAppendString(new_row, &(curr_row->data[E.cursor.x]),
+                              curr_row->size - E.cursor.x);
+        curr_row->size = E.cursor.x;
         curr_row->data[curr_row->size] = '\0';
         editorUpdateRow(curr_row);
     }
-    E.cy++;
-    E.cx = i;
-    E.sx = editorRowCxToRx(&(E.row[E.cy]), i);
+    E.cursor.y++;
+    E.cursor.x = i;
+    E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), i);
 }
 
 void editorDelChar() {
-    if (E.cy == E.num_rows)
+    if (E.cursor.y == E.num_rows)
         return;
-    if (E.cx == 0 && E.cy == 0)
+    if (E.cursor.x == 0 && E.cursor.y == 0)
         return;
-    EditorRow* row = &(E.row[E.cy]);
-    if (E.cx > 0) {
-        editorRowDelChar(row, E.cx - 1);
-        E.cx--;
+    EditorRow* row = &(E.row[E.cursor.y]);
+    if (E.cursor.x > 0) {
+        editorRowDelChar(row, E.cursor.x - 1);
+        E.cursor.x--;
     } else {
-        E.cx = E.row[E.cy - 1].size;
-        editorRowAppendString(&(E.row[E.cy - 1]), row->data, row->size);
-        editorDelRow(E.cy);
-        E.cy--;
+        E.cursor.x = E.row[E.cursor.y - 1].size;
+        editorRowAppendString(&(E.row[E.cursor.y - 1]), row->data, row->size);
+        editorDelRow(E.cursor.y);
+        E.cursor.y--;
     }
-    E.sx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
+    E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
 }

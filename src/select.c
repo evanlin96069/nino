@@ -8,26 +8,28 @@
 #include "utils.h"
 
 void getSelectStartEnd(EditorSelectRange* range) {
-    if (E.select_y > E.cy) {
-        range->start_x = E.cx;
-        range->start_y = E.cy;
-        range->end_x = E.select_x;
-        range->end_y = E.select_y;
-    } else if (E.select_y < E.cy) {
-        range->start_x = E.select_x;
-        range->start_y = E.select_y;
-        range->end_x = E.cx;
-        range->end_y = E.cy;
+    if (E.cursor.select_y > E.cursor.y) {
+        range->start_x = E.cursor.x;
+        range->start_y = E.cursor.y;
+        range->end_x = E.cursor.select_x;
+        range->end_y = E.cursor.select_y;
+    } else if (E.cursor.select_y < E.cursor.y) {
+        range->start_x = E.cursor.select_x;
+        range->start_y = E.cursor.select_y;
+        range->end_x = E.cursor.x;
+        range->end_y = E.cursor.y;
     } else {
         // same row
-        range->start_y = range->end_y = E.cy;
-        range->start_x = E.select_x > E.cx ? E.cx : E.select_x;
-        range->end_x = E.select_x > E.cx ? E.select_x : E.cx;
+        range->start_y = range->end_y = E.cursor.y;
+        range->start_x =
+            E.cursor.select_x > E.cursor.x ? E.cursor.x : E.cursor.select_x;
+        range->end_x =
+            E.cursor.select_x > E.cursor.x ? E.cursor.select_x : E.cursor.x;
     }
 }
 
 void editorSelectText() {
-    if (!E.is_selected)
+    if (!E.cursor.is_selected)
         return;
     for (int i = 0; i < E.num_rows; i++) {
         memset(E.row[i].selected, 0, E.row[i].rsize);
@@ -38,7 +40,7 @@ void editorSelectText() {
     range.end_x = editorRowCxToRx(&(E.row[range.end_y]), range.end_x);
 
     if (range.start_y == range.end_y) {
-        memset(&(E.row[E.cy].selected[range.start_x]), 1,
+        memset(&(E.row[E.cursor.y].selected[range.start_x]), 1,
                range.end_x - range.start_x);
         return;
     }
@@ -59,8 +61,8 @@ void editorDeleteText(EditorSelectRange range) {
     if (range.start_x == range.end_x && range.start_y == range.end_y)
         return;
 
-    E.cx = range.end_x;
-    E.cy = range.end_y;
+    E.cursor.x = range.end_x;
+    E.cursor.y = range.end_y;
 
     if (range.end_y - range.start_y > 1) {
         for (int i = range.start_y + 1; i < range.end_y; i++) {
@@ -73,7 +75,7 @@ void editorDeleteText(EditorSelectRange range) {
             E.row[i].idx -= removed_rows;
         }
         E.num_rows -= removed_rows;
-        E.cy -= removed_rows;
+        E.cursor.y -= removed_rows;
 
         E.num_rows_digits = 0;
         int num_rows = E.num_rows;
@@ -82,7 +84,7 @@ void editorDeleteText(EditorSelectRange range) {
             E.num_rows_digits++;
         }
     }
-    while (E.cy != range.start_y || E.cx != range.start_x) {
+    while (E.cursor.y != range.start_y || E.cursor.x != range.start_x) {
         editorDelChar();
     }
 }
@@ -130,8 +132,8 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
     if (!clipboard->size)
         return;
 
-    E.cx = x;
-    E.cy = y;
+    E.cursor.x = x;
+    E.cursor.y = y;
 
     if (clipboard->size == 1) {
         EditorRow* row = &E.row[y];
@@ -144,7 +146,7 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         row->size += paste_len;
         row->data[row->size] = '\0';
         editorUpdateRow(row);
-        E.cx += paste_len;
+        E.cursor.x += paste_len;
     } else {
         // First line
         int auto_indent = E.cfg->auto_indent;
@@ -170,10 +172,10 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         row->data[row->size] = '\0';
         editorUpdateRow(row);
 
-        E.cy = y + clipboard->size - 1;
-        E.cx = paste_len;
+        E.cursor.y = y + clipboard->size - 1;
+        E.cursor.x = paste_len;
     }
-    E.sx = editorRowCxToRx(&(E.row[E.cy]), E.cx);
+    E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
 }
 
 void editorFreeClipboardContent(EditorClipboard* clipboard) {

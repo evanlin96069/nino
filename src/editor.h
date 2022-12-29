@@ -10,10 +10,12 @@
 #include "select.h"
 
 typedef struct Editor {
-    int cx, cy;
+    EditorCursor cursor;
+
     int rx;
     int sx;
     int px;
+
     int row_offset;
     int col_offset;
     int screen_rows;
@@ -22,14 +24,15 @@ typedef struct Editor {
     int cols;
     int num_rows;
     int num_rows_digits;
+
     int state;
     int dirty;
-    int is_selected : 1;
-    int select_x, select_y;
     int bracket_autocomplete;
+
     char* filename;
     char status_msg[80];
     struct termios orig_termios;
+
     EditorClipboard clipboard;
     EditorRow* row;
     EditorSyntax* syntax;

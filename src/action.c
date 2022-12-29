@@ -13,6 +13,7 @@ void editorUndo() {
     editorPasteText(&E.action_current->action->deleted_text,
                     E.action_current->action->deleted_range.start_x,
                     E.action_current->action->deleted_range.start_y);
+    E.cursor = E.action_current->action->old_cursor;
     E.action_current = E.action_current->prev;
     E.dirty--;
 }
@@ -26,6 +27,7 @@ void editorRedo() {
     editorPasteText(&E.action_current->action->added_text,
                     E.action_current->action->added_range.start_x,
                     E.action_current->action->added_range.start_y);
+    E.cursor = E.action_current->action->new_cursor;
     E.dirty++;
 }
 
