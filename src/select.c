@@ -97,10 +97,10 @@ void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range) {
     }
 
     clipboard->size = range.end_y - range.start_y + 1;
-    clipboard->data = malloc(sizeof(char*) * clipboard->size);
+    clipboard->data = malloc_s(sizeof(char*) * clipboard->size);
     // Only one line
     if (range.start_y == range.end_y) {
-        clipboard->data[0] = malloc(range.end_x - range.start_x + 1);
+        clipboard->data[0] = malloc_s(range.end_x - range.start_x + 1);
         memcpy(clipboard->data[0], &E.row[range.start_y].data[range.start_x],
                range.end_x - range.start_x);
         clipboard->data[0][range.end_x - range.start_x] = '\0';
@@ -109,20 +109,20 @@ void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range) {
 
     // First line
     size_t size = E.row[range.start_y].size - range.start_x;
-    clipboard->data[0] = malloc(size + 1);
+    clipboard->data[0] = malloc_s(size + 1);
     memcpy(clipboard->data[0], &E.row[range.start_y].data[range.start_x], size);
     clipboard->data[0][size] = '\0';
 
     // Middle
     for (int i = range.start_y + 1; i < range.end_y; i++) {
         size = E.row[i].size;
-        clipboard->data[i - range.start_y] = malloc(size + 1);
+        clipboard->data[i - range.start_y] = malloc_s(size + 1);
         memcpy(clipboard->data[i - range.start_y], E.row[i].data, size);
         clipboard->data[i - range.start_y][size] = '\0';
     }
     // Last line
     size = range.end_x;
-    clipboard->data[range.end_y - range.start_y] = malloc(size + 1);
+    clipboard->data[range.end_y - range.start_y] = malloc_s(size + 1);
     memcpy(clipboard->data[range.end_y - range.start_y],
            E.row[range.end_y].data, size);
     clipboard->data[range.end_y - range.start_y][size] = '\0';
@@ -140,7 +140,7 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         char* paste = clipboard->data[0];
         size_t paste_len = strlen(paste);
 
-        row->data = realloc(row->data, row->size + paste_len + 1);
+        row->data = realloc_s(row->data, row->size + paste_len + 1);
         memmove(&(row->data[x + paste_len]), &(row->data[x]), row->size - x);
         memcpy(&(row->data[x]), paste, paste_len);
         row->size += paste_len;
@@ -165,7 +165,7 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         char* paste = clipboard->data[clipboard->size - 1];
         size_t paste_len = strlen(paste);
 
-        row->data = realloc(row->data, row->size + paste_len + 1);
+        row->data = realloc_s(row->data, row->size + paste_len + 1);
         memmove(&(row->data[paste_len]), row->data, row->size);
         memcpy(row->data, paste, paste_len);
         row->size += paste_len;

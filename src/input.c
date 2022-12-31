@@ -22,7 +22,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     E.state = state;
 
     size_t bufsize = 128;
-    char* buf = malloc(bufsize);
+    char* buf = malloc_s(bufsize);
 
     size_t buflen = 0;
     buf[0] = '\0';
@@ -72,7 +72,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 if (!iscntrl(c) && c < 128) {
                     if (buflen == bufsize - 1) {
                         bufsize *= 2;
-                        buf = realloc(buf, bufsize);
+                        buf = realloc_s(buf, bufsize);
                     }
                     buf[buflen++] = c;
                     buf[buflen] = '\0';
@@ -194,10 +194,7 @@ void editorProcessKeypress() {
     editorSetStatusMsg("");
 
     int should_record_action = 0;
-    EditorAction* action = calloc(1, sizeof(EditorAction));
-    if (!action)
-        PANIC("malloc");
-
+    EditorAction* action = calloc_s(1, sizeof(EditorAction));
     action->old_cursor = E.cursor;
 
     switch (c) {

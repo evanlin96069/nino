@@ -69,9 +69,7 @@ static void editorFindCallback(char* query, int key) {
         findListFree(head.next);
         head.next = NULL;
 
-        prev_query = malloc(len + 1);
-        if (!prev_query)
-            PANIC("malloc");
+        prev_query = malloc_s(len + 1);
         memcpy(prev_query, query, len + 1);
         prev_query[len] = '\0';
 
@@ -81,10 +79,8 @@ static void editorFindCallback(char* query, int key) {
             int col = 0;
             while (match = strstr(&E.row[i].data[col], query)) {
                 col = match - E.row[i].data;
-                FindList* node = malloc(sizeof(FindList));
-                if (!node) {
-                    PANIC("malloc");
-                }
+                FindList* node = malloc_s(sizeof(FindList));
+
                 node->prev = cur;
                 node->next = NULL;
                 node->row = i;
@@ -140,7 +136,7 @@ static void editorFindCallback(char* query, int key) {
     unsigned char* match_pos = &(E.row[match_node->row].hl[rx]);
     saved_hl_len = len;
     saved_hl_pos = match_pos;
-    saved_hl = malloc(len + 1);
+    saved_hl = malloc_s(len + 1);
     memcpy(saved_hl, match_pos, len);
     memset(match_pos, HL_MATCH, len);
 }

@@ -43,7 +43,7 @@ void editorUpdateRow(EditorRow* row) {
     }
 
     free(row->render);
-    row->render = malloc(row->size + tabs * (E.cfg->tab_size - 1) + 1);
+    row->render = malloc_s(row->size + tabs * (E.cfg->tab_size - 1) + 1);
 
     int idx = 0;
     for (int i = 0; i < row->size; i++) {
@@ -65,7 +65,7 @@ void editorInsertRow(int at, const char* s, size_t len) {
     if (at < 0 || at > E.num_rows)
         return;
 
-    E.row = realloc(E.row, sizeof(EditorRow) * (E.num_rows + 1));
+    E.row = realloc_s(E.row, sizeof(EditorRow) * (E.num_rows + 1));
     memmove(&(E.row[at + 1]), &(E.row[at]),
             sizeof(EditorRow) * (E.num_rows - at));
     for (int i = at + 1; i <= E.num_rows; i++) {
@@ -75,7 +75,7 @@ void editorInsertRow(int at, const char* s, size_t len) {
     E.row[at].idx = at;
 
     E.row[at].size = len;
-    E.row[at].data = malloc(len + 1);
+    E.row[at].data = malloc_s(len + 1);
     memcpy(E.row[at].data, s, len);
     E.row[at].data[len] = '\0';
 
@@ -115,7 +115,7 @@ void editorDelRow(int at) {
 void editorRowInsertChar(EditorRow* row, int at, int c) {
     if (at < 0 || at > row->size)
         at = row->size;
-    row->data = realloc(row->data, row->size + 2);
+    row->data = realloc_s(row->data, row->size + 2);
     memmove(&(row->data[at + 1]), &(row->data[at]), row->size - at + 1);
     row->size++;
     row->data[at] = c;
@@ -131,7 +131,7 @@ void editorRowDelChar(EditorRow* row, int at) {
 }
 
 void editorRowAppendString(EditorRow* row, const char* s, size_t len) {
-    row->data = realloc(row->data, row->size + len + 1);
+    row->data = realloc_s(row->data, row->size + len + 1);
     memcpy(&(row->data[row->size]), s, len);
     row->size += len;
     row->data[row->size] = '\0';

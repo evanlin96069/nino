@@ -12,8 +12,8 @@ static inline int is_separator(int c) {
 }
 
 void editorUpdateSyntax(EditorRow* row) {
-    row->hl = realloc(row->hl, row->rsize);
-    row->selected = realloc(row->selected, row->rsize);
+    row->hl = realloc_s(row->hl, row->rsize);
+    row->selected = realloc_s(row->selected, row->rsize);
     memset(row->hl, HL_NORMAL, row->rsize);
     memset(row->hl, 0, row->rsize);
 

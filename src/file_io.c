@@ -23,7 +23,7 @@ static char* editroRowsToString(int* len) {
     // last line no newline
     *len = total_len - 1;
 
-    char* buf = malloc(total_len);
+    char* buf = malloc_s(total_len);
     char* p = buf;
     for (int i = 0; i < E.num_rows; i++) {
         memcpy(p, E.row[i].data, E.row[i].size);
@@ -39,7 +39,7 @@ static char* editroRowsToString(int* len) {
 void editorOpen(char* filename) {
     free(E.filename);
     size_t fnlen = strlen(filename) + 1;
-    E.filename = malloc(fnlen);
+    E.filename = malloc_s(fnlen);
     memcpy(E.filename, filename, fnlen);
 
     editorSelectSyntaxHighlight();

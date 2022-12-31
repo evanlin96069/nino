@@ -8,6 +8,27 @@
 #include "editor.h"
 #include "terminal.h"
 
+void* malloc_s(size_t size) {
+    void* ptr = malloc(size);
+    if (!ptr && size != 0)
+        PANIC("malloc");
+    return ptr;
+}
+
+void* calloc_s(size_t n, size_t size) {
+    void* ptr = calloc(n, size);
+    if (!ptr && size != 0)
+        PANIC("calloc");
+    return ptr;
+}
+
+void* realloc_s(void* ptr, size_t size) {
+    ptr = realloc(ptr, size);
+    if (!ptr && size != 0)
+        PANIC("realloc");
+    return ptr;
+}
+
 void abufAppend(abuf* ab, const char* s) { abufAppendN(ab, s, strlen(s)); }
 
 void abufAppendN(abuf* ab, const char* s, size_t n) {
@@ -17,11 +38,7 @@ void abufAppendN(abuf* ab, const char* s, size_t n) {
     if (ab->len + n > ab->capacity) {
         ab->capacity += n;
         ab->capacity *= ABUF_GROWTH_RATE;
-        char* new = realloc(ab->buf, ab->capacity);
-
-        if (new == NULL)
-            PANIC("realloc");
-
+        char* new = realloc_s(ab->buf, ab->capacity);
         ab->buf = new;
     }
 
