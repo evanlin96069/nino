@@ -37,4 +37,6 @@ int editorRowSxToCx(EditorRow* row, int sx);
 Color strToColor(const char* color);
 int colorToANSI(Color color, char ansi[20], int is_bg);
 
+int isSeparator(char c);
+
 #endif

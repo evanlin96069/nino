@@ -80,8 +80,10 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Move Down | `Down` |
 | Move Right | `Right` |
 | Move Left | `Left` |
-| To Line Start | `Home` `Ctrl+Left` |
-| To Line End | `End` `Ctrl+Right` |
+| Move Word Right | `Ctrl+Right` |
+| Move Word Left | `Ctrl+Left` |
+| To Line Start | `Home` |
+| To Line End | `End` |
 | To File Start | `Ctrl+Home` |
 | To File End | `Ctrl+End` |
 | To Next Page | `PageUp` |
@@ -92,8 +94,10 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Select Move Down | `Shift+Down` |
 | Select Move Right | `Shift+Right` |
 | Select Move Left | `Shift+Left` |
-| Select To Line Start | `Shift+Home` `Ctrl+Shift+Left` |
-| Select To Line End | `Shift+End` `Ctrl+Shift+Right` |
+| Select Move Word Right | `Shift+Ctrl+Right` |
+| Select Move Word Left | `Shift+Ctrl+Left` |
+| Select To Line Start | `Shift+Home` |
+| Select To Line End | `Shift+End` |
 
 ## Install from source
 ### Linux

@@ -1,5 +1,6 @@
 #include "utils.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -120,4 +121,9 @@ Color strToColor(const char* color) {
 int colorToANSI(Color color, char ansi[20], int is_bg) {
     return snprintf(ansi, 20, "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, color.r,
                     color.g, color.b);
+}
+
+int isSeparator(char c) {
+    return isspace(c) || c == '\0' ||
+           strchr("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", c) != NULL;
 }

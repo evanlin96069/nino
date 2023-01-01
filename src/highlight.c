@@ -6,11 +6,6 @@
 
 #include "defines.h"
 
-static inline int is_separator(int c) {
-    return isspace(c) || c == '\0' ||
-           strchr(",.()+-/*~!^&|=~%<>[]{};?:", c) != NULL;
-}
-
 void editorUpdateSyntax(EditorRow* row) {
     row->hl = realloc_s(row->hl, row->rsize);
     row->selected = realloc_s(row->selected, row->rsize);
@@ -114,7 +109,7 @@ void editorUpdateSyntax(EditorRow* row) {
                     keyword_type = HL_KEYWORD3;
                 }
                 if (!strncmp(&(row->render[i]), keywords[j], klen) &&
-                    is_separator(row->render[i + klen])) {
+                    isSeparator(row->render[i + klen])) {
                     memset(&(row->hl[i]), keyword_type, klen);
                     i += klen;
                     break;
@@ -126,7 +121,7 @@ void editorUpdateSyntax(EditorRow* row) {
                 continue;
             }
         }
-        prev_sep = is_separator(c);
+        prev_sep = isSeparator(c);
         i++;
     }
     int changed = (row->hl_open_comment != in_comment);

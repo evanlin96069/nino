@@ -90,22 +90,22 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
 }
 
 void editorMoveCursor(int key) {
-    EditorRow* row = (E.cursor.y >= E.num_rows) ? NULL : &(E.row[E.cursor.y]);
+    EditorRow* row = &E.row[E.cursor.y];
     switch (key) {
         case ARROW_LEFT:
             if (E.cursor.x != 0) {
                 E.cursor.x--;
-                E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+                E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             } else if (E.cursor.y > 0) {
                 E.cursor.y--;
                 E.cursor.x = E.row[E.cursor.y].size;
-                E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+                E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             }
             break;
         case ARROW_RIGHT:
             if (row && E.cursor.x < row->size) {
                 E.cursor.x++;
-                E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+                E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             } else if (row && (E.cursor.y + 1 < E.num_rows) &&
                        E.cursor.x == row->size) {
                 E.cursor.y++;
@@ -132,6 +132,41 @@ void editorMoveCursor(int key) {
     if (E.cursor.x > row_len) {
         E.cursor.x = row_len;
     }
+}
+
+static void editorMoveCursorWordLeft() {
+    if (E.cursor.x == 0) {
+        if (E.cursor.y == 0)
+            return;
+        editorMoveCursor(ARROW_LEFT);
+    }
+
+    EditorRow* row = &E.row[E.cursor.y];
+    while (E.cursor.x > 0 && isSeparator(row->data[E.cursor.x - 1])) {
+        E.cursor.x--;
+    }
+    while (E.cursor.x > 0 && !isSeparator(row->data[E.cursor.x - 1])) {
+        E.cursor.x--;
+    }
+    E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
+}
+
+static void editorMoveCursorWordRight() {
+    if (E.cursor.x == E.row[E.cursor.y].size) {
+        if (E.cursor.y == E.num_rows - 1)
+            return;
+        E.cursor.x = 0;
+        E.cursor.y++;
+    }
+
+    EditorRow* row = &E.row[E.cursor.y];
+    while (E.cursor.x < row->size && isSeparator(row->data[E.cursor.x])) {
+        E.cursor.x++;
+    }
+    while (E.cursor.x < row->size && !isSeparator(row->data[E.cursor.x])) {
+        E.cursor.x++;
+    }
+    E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
 }
 
 static char isOpenBracket(int key) {
@@ -238,29 +273,38 @@ void editorProcessKeypress() {
             break;
 
         case HOME_KEY:
-        case CTRL_LEFT:
         case SHIFT_HOME:
-        case SHIFT_CTRL_LEFT:
             if (E.cursor.x == 0)
                 break;
             E.cursor.x = 0;
             E.sx = 0;
-            E.cursor.is_selected = (c == SHIFT_HOME || c == SHIFT_CTRL_LEFT);
+            E.cursor.is_selected = c == (SHIFT_HOME);
             E.bracket_autocomplete = 0;
             break;
 
         case END_KEY:
-        case CTRL_RIGHT:
         case SHIFT_END:
-        case SHIFT_CTRL_RIGHT:
             if (E.cursor.y < E.num_rows &&
                 E.cursor.x != E.row[E.cursor.y].size) {
                 E.cursor.x = E.row[E.cursor.y].size;
-                E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
-                E.cursor.is_selected =
-                    (c == SHIFT_END || c == SHIFT_CTRL_RIGHT);
+                E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
+                E.cursor.is_selected = (c == SHIFT_END);
                 E.bracket_autocomplete = 0;
             }
+            break;
+
+        case CTRL_LEFT:
+        case SHIFT_CTRL_LEFT:
+            editorMoveCursorWordLeft();
+            E.cursor.is_selected = (c == SHIFT_CTRL_LEFT);
+            E.bracket_autocomplete = 0;
+            break;
+
+        case CTRL_RIGHT:
+        case SHIFT_CTRL_RIGHT:
+            editorMoveCursorWordRight();
+            E.cursor.is_selected = (c == SHIFT_CTRL_RIGHT);
+            E.bracket_autocomplete = 0;
             break;
 
         case CTRL_KEY('f'):
@@ -288,7 +332,7 @@ void editorProcessKeypress() {
             E.bracket_autocomplete = 0;
             E.cursor.y = E.num_rows - 1;
             E.cursor.x = E.row[E.num_rows - 1].size;
-            E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+            E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             E.cursor.select_y = 0;
             E.cursor.select_x = 0;
             break;
@@ -346,7 +390,7 @@ void editorProcessKeypress() {
                     }
                 }
                 if (should_delete_tab) {
-                    int idx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+                    int idx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
                     while (idx % E.cfg->tab_size != 0) {
                         editorMoveCursor(ARROW_LEFT);
                         idx--;
@@ -471,7 +515,7 @@ void editorProcessKeypress() {
                     E.cursor.x = range.end_x;
                     E.cursor.y = range.end_y;
                 }
-                E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+                E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
                 if (c == ARROW_UP || c == ARROW_DOWN) {
                     editorMoveCursor(c);
                 }
@@ -509,7 +553,7 @@ void editorProcessKeypress() {
             E.bracket_autocomplete = 0;
             E.cursor.y = E.num_rows - 1;
             E.cursor.x = E.row[E.num_rows - 1].size;
-            E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+            E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             break;
 
         case SHIFT_ALT_UP:
@@ -722,7 +766,7 @@ void editorProcessKeypress() {
             action->added_range.end_y = E.cursor.y;
             editorCopyText(&action->added_text, action->added_range);
 
-            E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+            E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             E.cursor.is_selected = 0;
 
             if (x_offset == -1) {
