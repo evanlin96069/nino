@@ -82,10 +82,12 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Move Left | `Left` |
 | To Line Start | `Home` `Ctrl+Left` |
 | To Line End | `End` `Ctrl+Right` |
-| To File Start | `Ctrl+Up` `Ctrl+Home` |
-| To File End | `Ctrl+Down` `Ctrl+End` |
+| To File Start | `Ctrl+Home` |
+| To File End | `Ctrl+End` |
 | To Next Page | `PageUp` |
 | To Previous Page | `PageDown` |
+| Scroll Line Up | `Ctrl+Up` |
+| Scroll Line Down | `Ctrl+Down` |
 | Select Move Up | `Shift+Up` |
 | Select Move Down | `Shift+Down` |
 | Select Move Right | `Shift+Right` |

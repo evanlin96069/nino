@@ -496,7 +496,6 @@ void editorProcessKeypress() {
             editorMoveCursor(c - 9);
             break;
 
-        case CTRL_UP:
         case CTRL_HOME:
             E.cursor.is_selected = 0;
             E.bracket_autocomplete = 0;
@@ -505,7 +504,6 @@ void editorProcessKeypress() {
             E.sx = 0;
             break;
 
-        case CTRL_DOWN:
         case CTRL_END:
             E.cursor.is_selected = 0;
             E.bracket_autocomplete = 0;
@@ -637,23 +635,29 @@ void editorProcessKeypress() {
             E.sx = x;
             break;
 
+        // Scroll up
         case WHEEL_UP:
+        case CTRL_UP: {
+            int scroll_dist = (c == WHEEL_UP) ? 3 : 1;
             should_scroll = 0;
-            if (E.row_offset - 3 > 0)
-                E.row_offset -= 3;
+            if (E.row_offset - scroll_dist > 0)
+                E.row_offset -= scroll_dist;
             else
                 E.row_offset = 0;
-            break;
+        } break;
 
+        // Scroll down
         case WHEEL_DOWN:
+        case CTRL_DOWN: {
+            int scroll_dist = (c == WHEEL_DOWN) ? 3 : 1;
             should_scroll = 0;
-            if (E.row_offset + E.rows + 3 < E.num_rows)
-                E.row_offset += 3;
+            if (E.row_offset + E.rows + scroll_dist < E.num_rows)
+                E.row_offset += scroll_dist;
             else if (E.num_rows - E.rows < 0)
                 E.row_offset = 0;
             else
                 E.row_offset = E.num_rows - E.rows;
-            break;
+        } break;
 
         case SCROLL_PRESSED:
         case SCROLL_RELEASED:
