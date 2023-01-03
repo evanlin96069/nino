@@ -256,6 +256,7 @@ void editorProcessKeypress() {
         } break;
 
         case CTRL_KEY('q'):
+            editorFreeAction(action);
             if (E.dirty && quit_protect) {
                 editorSetStatusMsg(
                     "File has unsaved changes. Press ^Q again to quit anyway.");
