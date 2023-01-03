@@ -14,17 +14,22 @@ extern EditorConCmd cvar_helpinfo;
 extern EditorConCmd cvar_mouse;
 extern EditorConCmd ccmd_color;
 
+typedef struct EditorColorScheme EditorColorScheme;
+
+extern const EditorColorScheme color_default;
+
 #define CONVAR(_name, _help_string, _default_string)          \
     EditorConCmd cvar_##_name = {.name = #_name,              \
                                  .help_string = _help_string, \
                                  .cvar = {.default_string = _default_string}}
 
-#define CON_COMMAND(_name, _help_string)                                       \
-    static int _name##_callback(EditorConCmd* thisptr, EditorConCmdArgs args); \
-    EditorConCmd ccmd_##_name = {.name = #_name,                               \
-                                 .help_string = _help_string,                  \
-                                 .callback = _name##_callback};                \
-    int _name##_callback(EditorConCmd* thisptr, EditorConCmdArgs args)
+#define CON_COMMAND(_name, _help_string)                        \
+    static void _name##_callback(EditorConCmd* thisptr,         \
+                                 EditorConCmdArgs args);        \
+    EditorConCmd ccmd_##_name = {.name = #_name,                \
+                                 .help_string = _help_string,   \
+                                 .callback = _name##_callback}; \
+    void _name##_callback(EditorConCmd* thisptr, EditorConCmdArgs args)
 
 #define INIT_CONVAR(name) editorInitConVar(&cvar_##name)
 #define INIT_CONCOMMAND(name) editorInitConCmd(&ccmd_##name)
@@ -40,7 +45,7 @@ typedef struct EditorConCmdArgs {
     char argv[COMMAND_MAX_ARGC][COMMAND_MAX_LENGTH];
 } EditorConCmdArgs;
 
-typedef int (*CommandCallback)(EditorConCmd* thisptr, EditorConCmdArgs args);
+typedef void (*CommandCallback)(EditorConCmd* thisptr, EditorConCmdArgs args);
 
 typedef struct EditorConVar {
     const char* default_string;
@@ -59,10 +64,14 @@ struct EditorConCmd {
     };
 };
 
-typedef struct EditorColorConfig {
+struct EditorColorScheme {
+    Color bg;
+    Color top_status[2];
+    Color prompt[2];
     Color status[2];
+    Color line_number[2];
     Color highlight[HL_TYPE_COUNT];
-} EditorColorConfig;
+};
 
 void editorInitCommands();
 void editorLoadConfig();

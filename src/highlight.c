@@ -46,9 +46,9 @@ void editorUpdateSyntax(EditorRow* row) {
 
         if (mcs_len && mce_len && !in_string) {
             if (in_comment) {
-                row->hl[i] = HL_MLCOMMENT;
+                row->hl[i] = HL_COMMENT;
                 if (!strncmp(&(row->render[i]), mce, mce_len)) {
-                    memset(&(row->hl[i]), HL_MLCOMMENT, mce_len);
+                    memset(&(row->hl[i]), HL_COMMENT, mce_len);
                     i += mce_len;
                     in_comment = 0;
                     prev_sep = 1;
@@ -56,7 +56,7 @@ void editorUpdateSyntax(EditorRow* row) {
                 i++;
                 continue;
             } else if (!strncmp(&(row->render[i]), mcs, mcs_len)) {
-                memset(&(row->hl[i]), HL_MLCOMMENT, mcs_len);
+                memset(&(row->hl[i]), HL_COMMENT, mcs_len);
                 i += mcs_len;
                 in_comment = 1;
                 continue;

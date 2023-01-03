@@ -62,7 +62,6 @@ enum EditorState {
 enum EditorHighlight {
     HL_NORMAL = 0,
     HL_COMMENT,
-    HL_MLCOMMENT,
     HL_KEYWORD1,
     HL_KEYWORD2,
     HL_KEYWORD3,

@@ -24,64 +24,83 @@ CON_COMMAND(mouse, "Enable mouse mode.") {
         editorSetStatusMsg("Mouse mode OFF.");
         disableMouse();
     }
-    return 1;
 }
 
-CON_COMMAND(color, "Usage: color [target] [color]") {
-    if (args.argc != 3) {
-        editorSetStatusMsg("Usage: color [target] [color]");
-        return 0;
+typedef struct {
+    const char* label;
+    Color* color;
+} ColorElement;
+
+static const ColorElement color_element_map[] = {
+    {"bg", &E.color_cfg.bg},
+    {"top.fg", &E.color_cfg.top_status[0]},
+    {"top.bg", &E.color_cfg.top_status[1]},
+    {"prompt.fg", &E.color_cfg.prompt[0]},
+    {"prompt.bg", &E.color_cfg.prompt[1]},
+    {"lineno.fg", &E.color_cfg.line_number[0]},
+    {"lineno.bg", &E.color_cfg.line_number[1]},
+    {"status.fg", &E.color_cfg.status[0]},
+    {"status.bg", &E.color_cfg.status[1]},
+    {"hl.normal", &E.color_cfg.highlight[HL_NORMAL]},
+    {"hl.comment", &E.color_cfg.highlight[HL_COMMENT]},
+    {"hl.keyword1", &E.color_cfg.highlight[HL_KEYWORD1]},
+    {"hl.keyword2", &E.color_cfg.highlight[HL_KEYWORD2]},
+    {"hl.keyword3", &E.color_cfg.highlight[HL_KEYWORD3]},
+    {"hl.string", &E.color_cfg.highlight[HL_STRING]},
+    {"hl.number", &E.color_cfg.highlight[HL_NUMBER]},
+    {"hl.match", &E.color_cfg.highlight[HL_MATCH]},
+    {"hl.select", &E.color_cfg.highlight[HL_SELECT]},
+};
+
+CON_COMMAND(color, "Change the color of an element.") {
+    if (args.argc != 2 && args.argc != 3) {
+        editorSetStatusMsg("Usage: color <target> [color]");
+        return;
     }
-    Color color = strToColor(args.argv[2]);
-    if (strcmp(args.argv[1], "status.fg") == 0) {
-        E.color_cfg->status[0] = color;
-    } else if (strcmp(args.argv[1], "status.bg") == 0) {
-        E.color_cfg->status[1] = color;
-    } else if (strcmp(args.argv[1], "hl.normal") == 0) {
-        E.color_cfg->highlight[HL_NORMAL] = color;
-    } else if (strcmp(args.argv[1], "hl.comment") == 0) {
-        E.color_cfg->highlight[HL_COMMENT] = color;
-        E.color_cfg->highlight[HL_MLCOMMENT] = color;
-    } else if (strcmp(args.argv[1], "hl.keyword1") == 0) {
-        E.color_cfg->highlight[HL_KEYWORD1] = color;
-    } else if (strcmp(args.argv[1], "hl.keyword2") == 0) {
-        E.color_cfg->highlight[HL_KEYWORD2] = color;
-    } else if (strcmp(args.argv[1], "hl.keyword3") == 0) {
-        E.color_cfg->highlight[HL_KEYWORD3] = color;
-    } else if (strcmp(args.argv[1], "hl.string") == 0) {
-        E.color_cfg->highlight[HL_STRING] = color;
-    } else if (strcmp(args.argv[1], "hl.number") == 0) {
-        E.color_cfg->highlight[HL_NUMBER] = color;
-    } else if (strcmp(args.argv[1], "hl.match") == 0) {
-        E.color_cfg->highlight[HL_MATCH] = color;
-    } else if (strcmp(args.argv[1], "hl.select") == 0) {
-        E.color_cfg->highlight[HL_SELECT] = color;
-    } else {
+
+    Color* target = NULL;
+    int element_num = sizeof(color_element_map) / sizeof(ColorElement);
+    for (int i = 0; i < element_num; i++) {
+        if (strcmp(color_element_map[i].label, args.argv[1]) == 0) {
+            target = color_element_map[i].color;
+            break;
+        }
+    }
+    if (!target) {
         editorSetStatusMsg("Unknown target %s.", args.argv[1]);
-        return 0;
+        return;
     }
-    return 1;
+
+    if (args.argc == 2) {
+        char buf[16];
+        colorToStr(*target, buf);
+        editorSetStatusMsg("%s = %s", args.argv[1], buf);
+    } else if (args.argc == 3) {
+        *target = strToColor(args.argv[2]);
+    }
 }
 
 CON_COMMAND(help, "Find help about a convar/concommand.") {
     if (args.argc != 2) {
         editorSetStatusMsg("Usage: help <command>");
-        return 0;
+        return;
     }
     EditorConCmd* cmd = editorFindCmd(args.argv[1]);
     if (!cmd) {
         editorSetStatusMsg("help: No cvar or command named \"%s\".",
                            args.argv[1]);
-        return 0;
+        return;
     }
     editorSetStatusMsg("\"%s\" - %s", cmd->name, cmd->help_string);
-    return 0;
 }
 
-static EditorColorConfig cfg = {
+const EditorColorScheme color_default = {
+    .bg = {0, 0, 0, 1},
+    .top_status = {{229, 229, 229}, {28, 28, 28}},
+    .prompt = {{229, 229, 229}, {0, 0, 0, 1}},
     .status = {{225, 219, 239}, {87, 80, 104}},
+    .line_number = {{127, 127, 127}, {0, 0, 0, 1}},
     .highlight = {{229, 229, 229},
-                  {106, 153, 85},
                   {106, 153, 85},
                   {197, 134, 192},
                   {86, 156, 214},
@@ -92,17 +111,16 @@ static EditorColorConfig cfg = {
                   {38, 79, 120}},
 };
 
-static int cvarCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
+static void cvarCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
     if (args.argc < 2) {
         editorSetStatusMsg("%s = %s - %s", thisptr->name,
                            thisptr->cvar.string_val, thisptr->help_string);
-        return 0;
+        return;
     }
     editorSetConVar(&thisptr->cvar, args.argv[1]);
-    return 1;
 }
 
-static int parseLine(char* line, int verbose) {
+static void parseLine(char* line) {
     char* token = strtok(line, " ");
     EditorConCmdArgs args = {.argc = 0};
     for (int i = 0; token && i < 4; i++, args.argc++) {
@@ -111,24 +129,18 @@ static int parseLine(char* line, int verbose) {
     }
 
     if (args.argc < 1)
-        return 0;
+        return;
 
     EditorConCmd* cmd = editorFindCmd(args.argv[0]);
     if (!cmd) {
-        if (verbose)
-            editorSetStatusMsg("Unknown command \"%s\".", args.argv[0]);
-        return 0;
+        editorSetStatusMsg("Unknown command \"%s\".", args.argv[0]);
+        return;
     }
 
-    int result = 0;
     if (cmd->has_callback)
-        result = cmd->callback(cmd, args);
+        cmd->callback(cmd, args);
     else
-        result = cvarCallback(cmd, args);
-
-    if (!verbose)
-        editorSetStatusMsg("");
-    return result;
+        cvarCallback(cmd, args);
 }
 
 void editorInitCommands() {
@@ -147,7 +159,6 @@ void editorLoadConfig() {
     char path[255] = "";
     strncpy(path, getenv("HOME"), sizeof(path));
     strncat(path, "/.ninorc", sizeof(path) - 1);
-    E.color_cfg = &cfg;
     FILE* fp = fopen(path, "r");
     if (!fp)
         return;
@@ -155,9 +166,9 @@ void editorLoadConfig() {
     char buf[128];
     while (fgets(buf, sizeof(buf), fp)) {
         buf[strcspn(buf, "\r\n")] = '\0';
-        parseLine(buf, 0);
+        parseLine(buf);
     }
-
+    editorSetStatusMsg("");
     fclose(fp);
 }
 
@@ -165,14 +176,13 @@ void editorSetting() {
     char* query = editorPrompt("Config: %s", SETTING_MODE, NULL);
     if (query == NULL)
         return;
-    if (parseLine(query, 1)) {
-        for (int i = 0; i < E.num_rows; i++) {
-            editorUpdateRow(&E.row[i]);
-        }
+
+    parseLine(query);
+    for (int i = 0; i < E.num_rows; i++) {
+        editorUpdateRow(&E.row[i]);
     }
-    if (query) {
-        free(query);
-    }
+
+    free(query);
 }
 
 void editorSetConVar(EditorConVar* thisptr, const char* string_val) {

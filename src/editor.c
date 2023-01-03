@@ -30,14 +30,18 @@ void editorInit() {
 
     E.state = EDIT_MODE;
     E.mouse_mode = 0;
+
     E.dirty = 0;
     E.bracket_autocomplete = 0;
+
     E.filename = NULL;
     E.status_msg[0] = '\0';
     E.syntax = 0;
 
     E.clipboard.size = 0;
     E.clipboard.data = NULL;
+
+    E.color_cfg = color_default;
 
     E.action_head.action = NULL;
     E.action_head.next = NULL;

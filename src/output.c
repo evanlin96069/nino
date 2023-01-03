@@ -37,15 +37,26 @@ void editorDrawRows(abuf* ab) {
         int current_row = i + E.row_offset;
         if (current_row < E.num_rows) {
             char line_number[16];
+            char buf[32];
             if (current_row == E.cursor.y) {
-                abufAppend(ab, "\x1b[30;100m");
+                colorToANSI(E.color_cfg.line_number[1], buf, 0);
+                abufAppend(ab, buf);
+                colorToANSI(E.color_cfg.line_number[0], buf, 1);
+                abufAppend(ab, buf);
             } else {
-                abufAppend(ab, "\x1b[90m");
+                colorToANSI(E.color_cfg.line_number[0], buf, 0);
+                abufAppend(ab, buf);
+                colorToANSI(E.color_cfg.line_number[1], buf, 1);
+                abufAppend(ab, buf);
             }
             snprintf(line_number, sizeof(line_number), "%*d ",
                      E.num_rows_digits, current_row + 1);
             abufAppend(ab, line_number);
+
             abufAppend(ab, ANSI_CLEAR);
+            colorToANSI(E.color_cfg.bg, buf, 1);
+            abufAppend(ab, buf);
+
             int len = E.row[current_row].rsize - E.col_offset;
             if (len < 0)
                 len = 0;
@@ -58,17 +69,20 @@ void editorDrawRows(abuf* ab) {
 
             unsigned char current_color = HL_NORMAL;
             int has_bg = 0;
-            char buf[32];
-            colorToANSI(E.color_cfg->highlight[current_color], buf, 0);
+            colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
             abufAppend(ab, buf);
             for (int j = 0; j < len; j++) {
                 if (iscntrl(c[j])) {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
                     abufAppend(ab, ANSI_INVERT);
                     abufAppendN(ab, &sym, 1);
+
                     abufAppend(ab, ANSI_CLEAR);
+                    colorToANSI(E.color_cfg.bg, buf, 1);
+                    abufAppend(ab, buf);
+
                     if (current_color >= 0) {
-                        colorToANSI(E.color_cfg->highlight[current_color], buf,
+                        colorToANSI(E.color_cfg.highlight[current_color], buf,
                                     0);
                         abufAppend(ab, buf);
                     }
@@ -77,23 +91,24 @@ void editorDrawRows(abuf* ab) {
                     if (E.cursor.is_selected && selected[j]) {
                         if (!has_bg) {
                             has_bg = 1;
-                            colorToANSI(E.color_cfg->highlight[HL_SELECT], buf,
+                            colorToANSI(E.color_cfg.highlight[HL_SELECT], buf,
                                         1);
                             abufAppend(ab, buf);
                         }
                     } else if (has_bg && color != HL_MATCH) {
-                        abufAppend(ab, ANSI_DEFAULT_BG);
+                        colorToANSI(E.color_cfg.bg, buf, 1);
+                        abufAppend(ab, buf);
                     }
                     if (color != current_color) {
                         current_color = color;
                         abufAppend(ab, ANSI_DEFAULT_FG);
                         if (color == HL_MATCH) {
                             has_bg = 1;
-                            colorToANSI(E.color_cfg->highlight[HL_NORMAL], buf,
+                            colorToANSI(E.color_cfg.highlight[HL_NORMAL], buf,
                                         0);
-                            colorToANSI(E.color_cfg->highlight[color], buf, 1);
+                            colorToANSI(E.color_cfg.highlight[color], buf, 1);
                         } else {
-                            colorToANSI(E.color_cfg->highlight[color], buf, 0);
+                            colorToANSI(E.color_cfg.highlight[color], buf, 0);
                         }
                         abufAppend(ab, buf);
                     }
@@ -112,12 +127,14 @@ void editorDrawRows(abuf* ab) {
                 }
                 if (select_end > current_row && current_row >= select_start &&
                     E.col_offset + E.cols > E.row[i].rsize) {
-                    colorToANSI(E.color_cfg->highlight[HL_SELECT], buf, 1);
+                    colorToANSI(E.color_cfg.highlight[HL_SELECT], buf, 1);
                     abufAppend(ab, buf);
                     abufAppend(ab, " ");
                 }
             }
             abufAppend(ab, ANSI_CLEAR);
+            colorToANSI(E.color_cfg.bg, buf, 1);
+            abufAppend(ab, buf);
         }
         abufAppend(ab, "\x1b[K");
         abufAppend(ab, "\r\n");

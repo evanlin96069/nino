@@ -27,6 +27,7 @@ typedef struct Editor {
 
     int state;
     int mouse_mode;
+
     int dirty;
     int bracket_autocomplete;
 
@@ -36,8 +37,11 @@ typedef struct Editor {
 
     EditorClipboard clipboard;
     EditorRow* row;
+
     EditorSyntax* syntax;
-    EditorColorConfig* color_cfg;
+
+    EditorColorScheme color_cfg;
+
     EditorActionList action_head;
     EditorActionList* action_current;
 

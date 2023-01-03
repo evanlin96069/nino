@@ -17,7 +17,11 @@ void editorSetStatusMsg(const char* fmt, ...) {
 }
 
 void editorDrawTopStatusBar(abuf* ab) {
-    abufAppend(ab, "\x1b[48;5;234m");
+    char buf[32];
+    colorToANSI(E.color_cfg.top_status[0], buf, 0);
+    abufAppend(ab, buf);
+    colorToANSI(E.color_cfg.top_status[1], buf, 1);
+    abufAppend(ab, buf);
 
     int cols = E.screen_cols;
 
@@ -53,11 +57,11 @@ void editorDrawTopStatusBar(abuf* ab) {
 
 void editorDrawStatusBar(abuf* ab) {
     int cols = E.cols + E.num_rows_digits + 1;
-    char color[20];
-    colorToANSI(E.color_cfg->status[0], color, 0);
-    abufAppend(ab, color);
-    colorToANSI(E.color_cfg->status[1], color, 1);
-    abufAppend(ab, color);
+    char buf[32];
+    colorToANSI(E.color_cfg.status[0], buf, 0);
+    abufAppend(ab, buf);
+    colorToANSI(E.color_cfg.status[1], buf, 1);
+    abufAppend(ab, buf);
 
     const char* help_str = "";
     const char* help_info[] = {
@@ -97,13 +101,23 @@ void editorDrawStatusBar(abuf* ab) {
 }
 
 void editorDrawStatusMsgBar(abuf* ab) {
+    char buf[32];
     int cols = E.cols + E.num_rows_digits + 1;
-    abufAppend(ab, "\x1b[K");
+
+    colorToANSI(E.color_cfg.prompt[0], buf, 0);
+    abufAppend(ab, buf);
+    colorToANSI(E.color_cfg.prompt[1], buf, 1);
+    abufAppend(ab, buf);
+
     int len = strlen(E.status_msg);
     if (len > cols)
         len = cols;
     if (len)
         abufAppendN(ab, E.status_msg, len);
+    while (len < cols) {
+        abufAppend(ab, " ");
+        len++;
+    }
 
     abufAppend(ab, "\r\n");
 }
