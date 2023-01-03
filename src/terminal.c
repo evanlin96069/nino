@@ -165,7 +165,7 @@ int editorReadKey(int* x, int* y) {
                         }
                     }
                 }
-            } else if (seq[1] == '<' && E.cfg->mouse) {
+            } else if (seq[1] == '<' && E.mouse_mode) {
                 // Mouse input
                 char pos[16] = {0};
                 char c;
@@ -280,14 +280,14 @@ void enableSwap() {
 void disableSwap() { UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8)); }
 
 void enableMouse() {
-    if (!E.cfg->mouse &&
+    if (!E.mouse_mode &&
         write(STDOUT_FILENO, "\x1b[?1002h\x1b[?1015h\x1b[?1006h", 24) == 24)
-        E.cfg->mouse = 1;
+        E.mouse_mode = 1;
 }
 
 void disableMouse() {
-    if (E.cfg->mouse && write(STDOUT_FILENO, "\x1b[?1002l", 8) == 8)
-        E.cfg->mouse = 0;
+    if (E.mouse_mode && write(STDOUT_FILENO, "\x1b[?1002l", 8) == 8)
+        E.mouse_mode = 0;
 }
 
 static void SIGWINCH_handler(int sig) { resizeWindow(); }

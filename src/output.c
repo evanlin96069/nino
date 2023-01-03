@@ -59,7 +59,7 @@ void editorDrawRows(abuf* ab) {
             unsigned char current_color = HL_NORMAL;
             int has_bg = 0;
             char buf[32];
-            colorToANSI(E.cfg->highlight_color[current_color], buf, 0);
+            colorToANSI(E.color_cfg->highlight[current_color], buf, 0);
             abufAppend(ab, buf);
             for (int j = 0; j < len; j++) {
                 if (iscntrl(c[j])) {
@@ -68,7 +68,7 @@ void editorDrawRows(abuf* ab) {
                     abufAppendN(ab, &sym, 1);
                     abufAppend(ab, ANSI_CLEAR);
                     if (current_color >= 0) {
-                        colorToANSI(E.cfg->highlight_color[current_color], buf,
+                        colorToANSI(E.color_cfg->highlight[current_color], buf,
                                     0);
                         abufAppend(ab, buf);
                     }
@@ -77,7 +77,7 @@ void editorDrawRows(abuf* ab) {
                     if (E.cursor.is_selected && selected[j]) {
                         if (!has_bg) {
                             has_bg = 1;
-                            colorToANSI(E.cfg->highlight_color[HL_SELECT], buf,
+                            colorToANSI(E.color_cfg->highlight[HL_SELECT], buf,
                                         1);
                             abufAppend(ab, buf);
                         }
@@ -89,11 +89,11 @@ void editorDrawRows(abuf* ab) {
                         abufAppend(ab, ANSI_DEFAULT_FG);
                         if (color == HL_MATCH) {
                             has_bg = 1;
-                            colorToANSI(E.cfg->highlight_color[HL_NORMAL], buf,
+                            colorToANSI(E.color_cfg->highlight[HL_NORMAL], buf,
                                         0);
-                            colorToANSI(E.cfg->highlight_color[color], buf, 1);
+                            colorToANSI(E.color_cfg->highlight[color], buf, 1);
                         } else {
-                            colorToANSI(E.cfg->highlight_color[color], buf, 0);
+                            colorToANSI(E.color_cfg->highlight[color], buf, 0);
                         }
                         abufAppend(ab, buf);
                     }
@@ -112,7 +112,7 @@ void editorDrawRows(abuf* ab) {
                 }
                 if (select_end > current_row && current_row >= select_start &&
                     E.col_offset + E.cols > E.row[i].rsize) {
-                    colorToANSI(E.cfg->highlight_color[HL_SELECT], buf, 1);
+                    colorToANSI(E.color_cfg->highlight[HL_SELECT], buf, 1);
                     abufAppend(ab, buf);
                     abufAppend(ab, " ");
                 }

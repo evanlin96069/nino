@@ -12,7 +12,7 @@ void editorUpdateSyntax(EditorRow* row) {
     memset(row->hl, HL_NORMAL, row->rsize);
     memset(row->hl, 0, row->rsize);
 
-    if (!E.cfg->syntax)
+    if (!CONVAR_GETINT(syntax))
         return;
 
     if (E.syntax == NULL)

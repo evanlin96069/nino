@@ -36,7 +36,7 @@ mouse 1
 color status.fg f3f3f3
 color status.bg 007acc
 ```
-### Options
+### Commands and ConVars
 - `tabsize` [size]
 - `whitespace` [0|1]
 - `autoindent` [0|1]
@@ -55,6 +55,7 @@ color status.bg 007acc
     - `hl.number`
     - `hl.match`
     - `hl.select`
+- `help`
 
 ## Actions
 The terminal emulator might have some key binds overlapping with nino, make sure to change them before using.

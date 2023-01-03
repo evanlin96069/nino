@@ -29,21 +29,25 @@ void editorInit() {
     E.row = NULL;
 
     E.state = EDIT_MODE;
+    E.mouse_mode = 0;
     E.dirty = 0;
     E.bracket_autocomplete = 0;
     E.filename = NULL;
     E.status_msg[0] = '\0';
     E.syntax = 0;
+
     E.clipboard.size = 0;
     E.clipboard.data = NULL;
+
     E.action_head.action = NULL;
     E.action_head.next = NULL;
     E.action_head.prev = NULL;
     E.action_current = &E.action_head;
 
+    E.cvars = NULL;
+
+    editorInitCommands();
     editorLoadConfig();
-    if (E.cfg->mouse)
-        enableMouse();
 
     E.screen_rows = 0;
     E.screen_cols = 0;
@@ -67,10 +71,10 @@ void editorInsertChar(int c) {
     if (E.cursor.y == E.num_rows) {
         editorInsertRow(E.num_rows, "", 0);
     }
-    if (c == '\t' && E.cfg->whitespace) {
+    if (c == '\t' && CONVAR_GETINT(whitespace)) {
         int idx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x) + 1;
         editorInsertChar(' ');
-        while (idx % E.cfg->tab_size != 0) {
+        while (idx % CONVAR_GETINT(tabsize) != 0) {
             editorInsertChar(' ');
             idx++;
         }
@@ -89,7 +93,7 @@ void editorInsertNewline() {
         editorInsertRow(E.cursor.y + 1, "", 0);
         EditorRow* curr_row = &(E.row[E.cursor.y]);
         EditorRow* new_row = &(E.row[E.cursor.y + 1]);
-        if (E.cfg->auto_indent) {
+        if (CONVAR_GETINT(autoindent)) {
             while (i < E.cursor.x &&
                    (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
                 i++;
@@ -98,8 +102,8 @@ void editorInsertNewline() {
             if (curr_row->data[E.cursor.x - 1] == ':' ||
                 (curr_row->data[E.cursor.x - 1] == '{' &&
                  curr_row->data[E.cursor.x] != '}')) {
-                if (E.cfg->whitespace) {
-                    for (int j = 0; j < E.cfg->tab_size; j++, i++)
+                if (CONVAR_GETINT(whitespace)) {
+                    for (int j = 0; j < CONVAR_GETINT(tabsize); j++, i++)
                         editorRowAppendString(new_row, " ", 1);
                 } else {
                     editorRowAppendString(new_row, "\t", 1);

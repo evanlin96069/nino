@@ -54,9 +54,9 @@ void editorDrawTopStatusBar(abuf* ab) {
 void editorDrawStatusBar(abuf* ab) {
     int cols = E.cols + E.num_rows_digits + 1;
     char color[20];
-    colorToANSI(E.cfg->status_color[0], color, 0);
+    colorToANSI(E.color_cfg->status[0], color, 0);
     abufAppend(ab, color);
-    colorToANSI(E.cfg->status_color[1], color, 1);
+    colorToANSI(E.color_cfg->status[1], color, 1);
     abufAppend(ab, color);
 
     const char* help_str = "";
@@ -67,7 +67,7 @@ void editorDrawStatusBar(abuf* ab) {
         " ^Q: Cancel",
         " ^Q: Cancel",
     };
-    if (E.cfg->help_info)
+    if (CONVAR_GETINT(helpinfo))
         help_str = help_info[E.state];
     int help_len = strlen(help_str);
 

@@ -391,7 +391,7 @@ void editorProcessKeypress() {
                 }
                 if (should_delete_tab) {
                     int idx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
-                    while (idx % E.cfg->tab_size != 0) {
+                    while (idx % CONVAR_GETINT(tabsize) != 0) {
                         editorMoveCursor(ARROW_LEFT);
                         idx--;
                     }
