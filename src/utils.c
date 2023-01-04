@@ -107,12 +107,6 @@ static int isValidColor(const char* color) {
 
 Color strToColor(const char* color) {
     Color result = {0, 0, 0};
-
-    if (strcmp(color, "transparent") == 0) {
-        result.transparent = 1;
-        return result;
-    }
-
     if (!isValidColor(color))
         return result;
 
@@ -127,20 +121,11 @@ Color strToColor(const char* color) {
 }
 
 int colorToANSI(Color color, char ansi[32], int is_bg) {
-    if (is_bg && color.transparent) {
-        strcpy(ansi, ANSI_DEFAULT_BG);
-        // Excluding '\0'
-        return sizeof(ANSI_DEFAULT_BG) - 1;
-    }
     return snprintf(ansi, 20, "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, color.r,
                     color.g, color.b);
 }
 
-int colorToStr(Color color, char buf[16]) {
-    if (color.transparent) {
-        strcpy(buf, "transparent");
-        return 11;
-    }
+int colorToStr(Color color, char buf[8]) {
     return snprintf(buf, 8, "%02x%02x%02x", color.r, color.g, color.b);
 }
 

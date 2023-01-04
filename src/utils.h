@@ -20,7 +20,6 @@ typedef struct {
 
 typedef struct Color {
     int r, g, b;
-    int transparent : 1;
 } Color;
 
 void* malloc_s(size_t size);
@@ -36,7 +35,7 @@ int editorRowRxToCx(EditorRow* row, int rx);
 int editorRowSxToCx(EditorRow* row, int sx);
 
 Color strToColor(const char* color);
-int colorToStr(Color color, char buf[16]);
+int colorToStr(Color color, char buf[8]);
 int colorToANSI(Color color, char ansi[32], int is_bg);
 
 int isSeparator(char c);

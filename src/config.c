@@ -15,7 +15,7 @@ CONVAR(autoindent, "Enable auto indent.", "0");
 CONVAR(syntax, "Enable syntax highlight.", "0");
 CONVAR(helpinfo, "Show the help information.", "1");
 
-CON_COMMAND(mouse, "Enable mouse mode.") {
+CON_COMMAND(mouse, "Toggle. Enable mouse mode.") {
     int mouse = !E.mouse_mode;
     if (mouse) {
         editorSetStatusMsg("Mouse mode ON.");
@@ -54,7 +54,7 @@ static const ColorElement color_element_map[] = {
 
 CON_COMMAND(color, "Change the color of an element.") {
     if (args.argc != 2 && args.argc != 3) {
-        editorSetStatusMsg("Usage: color <target> [color]");
+        editorSetStatusMsg("Usage: color <element> [color]");
         return;
     }
 
@@ -67,12 +67,12 @@ CON_COMMAND(color, "Change the color of an element.") {
         }
     }
     if (!target) {
-        editorSetStatusMsg("Unknown target %s.", args.argv[1]);
+        editorSetStatusMsg("Unknown element \"%s.\"", args.argv[1]);
         return;
     }
 
     if (args.argc == 2) {
-        char buf[16];
+        char buf[8];
         colorToStr(*target, buf);
         editorSetStatusMsg("%s = %s", args.argv[1], buf);
     } else if (args.argc == 3) {
@@ -95,11 +95,11 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
 }
 
 const EditorColorScheme color_default = {
-    .bg = {0, 0, 0, 1},
+    .bg = {0, 0, 0},
     .top_status = {{229, 229, 229}, {28, 28, 28}},
-    .prompt = {{229, 229, 229}, {0, 0, 0, 1}},
+    .prompt = {{229, 229, 229}, {0, 0, 0}},
     .status = {{225, 219, 239}, {87, 80, 104}},
-    .line_number = {{127, 127, 127}, {0, 0, 0, 1}},
+    .line_number = {{127, 127, 127}, {0, 0, 0}},
     .highlight = {{229, 229, 229},
                   {106, 153, 85},
                   {197, 134, 192},
