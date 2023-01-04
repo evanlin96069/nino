@@ -15,6 +15,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 
 ## Color
 `color <element> [color]`
+When color code is `000000` it will be transparent.
 | Element | Default |
 | - | - |
 | `bg` | 000000 |
