@@ -421,14 +421,18 @@ void editorProcessKeypress() {
 
         // Copy
         case CTRL_KEY('c'): {
-            if (!E.cursor.is_selected)
-                return;
-
-            EditorSelectRange range;
-            getSelectStartEnd(&range);
             editorFreeClipboardContent(&E.clipboard);
-            editorCopyText(&E.clipboard, range);
-            should_scroll = 0;
+            if (E.cursor.is_selected) {
+                EditorSelectRange range;
+                getSelectStartEnd(&range);
+                editorCopyText(&E.clipboard, range);
+                should_scroll = 0;
+            } else {
+                // Copy line
+                EditorSelectRange range = {0, E.cursor.y,
+                                           E.row[E.cursor.y].size, E.cursor.y};
+                editorCopyText(&E.clipboard, range);
+            }
         } break;
 
         // Action: Paste
@@ -557,11 +561,22 @@ void editorProcessKeypress() {
             E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             break;
 
+        // Action: Copy Line Up
+        // Action: Copy Line Down
         case SHIFT_ALT_UP:
         case SHIFT_ALT_DOWN:
+            should_record_action = 1;
             E.cursor.is_selected = 0;
+            action->old_cursor.is_selected = 0;
             editorInsertRow(E.cursor.y, E.row[E.cursor.y].data,
                             E.row[E.cursor.y].size);
+
+            action->added_range.start_x = E.row[E.cursor.y].size;
+            action->added_range.start_y = E.cursor.y;
+            action->added_range.end_x = E.row[E.cursor.y + 1].size;
+            action->added_range.end_y = E.cursor.y + 1;
+            editorCopyText(&action->added_text, action->added_range);
+
             if (c == SHIFT_ALT_DOWN)
                 E.cursor.y++;
             break;
