@@ -111,13 +111,13 @@ static void editorFindCallback(char* query, int key) {
     if (!match_node)
         return;
 
-    if (key == ARROW_RIGHT || key == ARROW_DOWN) {
+    if (key == ARROW_DOWN) {
         if (match_node->next) {
             match_node = match_node->next;
         } else {
             match_node = head.next;
         }
-    } else if (key == ARROW_LEFT || key == ARROW_UP) {
+    } else if (key == ARROW_UP) {
         match_node = match_node->prev;
     }
 

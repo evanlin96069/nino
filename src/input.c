@@ -37,16 +37,40 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
         editorRefreshScreen();
         int x, y;
         int c = editorReadKey(&x, &y);
+        int idx = E.px - start;
         switch (c) {
             case DEL_KEY:
+                if (idx != buflen)
+                    idx++;
+                else
+                    break;
             case CTRL_KEY('h'):
             case BACKSPACE:
-                if (buflen != 0) {
-                    buf[--buflen] = '\0';
-                    E.px--;
+                if (idx != 0) {
+                    memmove(&buf[idx - 1], &buf[idx], buflen - idx + 1);
+                    buflen--;
+                    idx--;
                     if (callback)
                         callback(buf, c);
                 }
+                break;
+
+            case HOME_KEY:
+                idx = 0;
+                break;
+
+            case END_KEY:
+                idx = buflen;
+                break;
+
+            case ARROW_LEFT:
+                if (idx != 0)
+                    idx--;
+                break;
+
+            case ARROW_RIGHT:
+                if (idx < buflen)
+                    idx++;
                 break;
 
             case CTRL_KEY('q'):
@@ -74,14 +98,16 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                         bufsize *= 2;
                         buf = realloc_s(buf, bufsize);
                     }
-                    buf[buflen++] = c;
-                    buf[buflen] = '\0';
-                    E.px++;
+                    buflen++;
+                    memmove(&buf[idx + 1], &buf[idx], buflen - idx);
+                    buf[idx] = c;
+                    idx++;
                 }
                 if (callback)
                     callback(buf, c);
                 break;
         }
+        E.px = start + idx;
         if (getWindowSize(&E.rows, &E.cols) == -1)
             PANIC("getWindowSize");
         E.rows -= 3;
