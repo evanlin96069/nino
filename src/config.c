@@ -12,6 +12,7 @@
 CONVAR(tabsize, "Tab size.", "4");
 CONVAR(whitespace, "Use whitespace instead of tab.", "0");
 CONVAR(autoindent, "Enable auto indent.", "0");
+CONVAR(backspace, "Use hungry backspace.", "0");
 CONVAR(syntax, "Enable syntax highlight.", "0");
 CONVAR(helpinfo, "Show the help information.", "1");
 
@@ -147,6 +148,7 @@ void editorInitCommands() {
     INIT_CONVAR(tabsize);
     INIT_CONVAR(whitespace);
     INIT_CONVAR(autoindent);
+    INIT_CONVAR(backspace);
     INIT_CONVAR(syntax);
     INIT_CONVAR(helpinfo);
 

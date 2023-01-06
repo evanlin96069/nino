@@ -7,6 +7,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `tabsize` | 4 | Tab size. |
 | `whitespace` | 0 | Use whitespace instead of tab. |
 | `autoindent` | 0 | Enable auto indent. |
+| `backspace` | 0 | Use hungry backspace. |
 | `syntax` | 0 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
 | `mouse` | cmd | Toggle. Enable mouse mode. |
@@ -15,7 +16,9 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 
 ## Color
 `color <element> [color]`
+
 When color code is `000000` it will be transparent.
+
 | Element | Default |
 | - | - |
 | `bg` | 000000 |
@@ -42,7 +45,8 @@ An example of `~/.ninorc`.
 ```
 tabsize 2
 whitespace 1
-autoindent
+autoindent 1
+backspace 1
 syntax 1
 helpinfo 0
 mouse

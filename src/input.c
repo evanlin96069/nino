@@ -409,7 +409,7 @@ void editorProcessKeypress() {
             }
             char deleted_char = E.row[E.cursor.y].data[E.cursor.x - 1];
             editorMoveCursor(ARROW_LEFT);
-            if (deleted_char == ' ') {
+            if (CONVAR_GETINT(backspace) && deleted_char == ' ') {
                 int should_delete_tab = 1;
                 for (int i = 0; i < E.cursor.x; i++) {
                     if (!isspace(E.row[E.cursor.y].data[i])) {
