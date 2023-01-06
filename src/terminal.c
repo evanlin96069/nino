@@ -163,6 +163,26 @@ int editorReadKey(int* x, int* y) {
                                     return SHIFT_CTRL_LEFT;
                             }
                         }
+                    } else if (seq[1] == '5' && seq[4] == '~') {
+                        // PageUp
+                        switch (seq[3]) {
+                            case '2':
+                                return SHIFT_PAGE_UP;
+                            case '5':
+                                return CTRL_PAGE_UP;
+                            case '6':
+                                return SHIFT_PAGE_UP;
+                        }
+                    } else if (seq[1] == '6' && seq[4] == '~') {
+                        // PageDn
+                        switch (seq[3]) {
+                            case '2':
+                                return SHIFT_PAGE_DOWN;
+                            case '5':
+                                return CTRL_PAGE_DOWN;
+                            case '6':
+                                return SHIFT_CTRL_DOWN;
+                        }
                     }
                 }
             } else if (seq[1] == '<' && E.mouse_mode) {

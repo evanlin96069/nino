@@ -42,6 +42,8 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | To File End | `Ctrl+End` |
 | To Next Page | `PageUp` |
 | To Previous Page | `PageDown` |
+| To Next Blank Line | `Ctrl+PageUp` |
+| To Previous Blank Line | `Ctrl+PageDown` |
 | Scroll Line Up | `Ctrl+Up` |
 | Scroll Line Down | `Ctrl+Down` |
 
@@ -57,3 +59,7 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Select Move Word Left | `Shift+Ctrl+Left` |
 | Select To Line Start | `Shift+Home` |
 | Select To Line End | `Shift+End` |
+| Select To Next Page | `Shift+PageUp` |
+| Select To Previous Page | `Shift+PageDown` |
+| Select To Next Blank Line | `Shift+Ctrl+PageUp` |
+| Select To Previous Blank Line | `Shift+Ctrl+PageDown` |

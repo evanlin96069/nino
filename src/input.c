@@ -128,6 +128,7 @@ void editorMoveCursor(int key) {
                 E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             }
             break;
+
         case ARROW_RIGHT:
             if (row && E.cursor.x < row->size) {
                 E.cursor.x++;
@@ -138,14 +139,15 @@ void editorMoveCursor(int key) {
                 E.cursor.x = 0;
                 E.sx = 0;
             }
-
             break;
+
         case ARROW_UP:
             if (E.cursor.y != 0) {
                 E.cursor.y--;
                 E.cursor.x = editorRowSxToCx(&(E.row[E.cursor.y]), E.sx);
             }
             break;
+
         case ARROW_DOWN:
             if (E.cursor.y + 1 < E.num_rows) {
                 E.cursor.y++;
@@ -499,21 +501,23 @@ void editorProcessKeypress() {
             editorRedo();
             break;
 
+        case SHIFT_PAGE_UP:
+        case SHIFT_PAGE_DOWN:
         case PAGE_UP:
         case PAGE_DOWN:
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = (c == SHIFT_PAGE_UP || c == SHIFT_PAGE_DOWN);
             E.bracket_autocomplete = 0;
             {
-                if (c == PAGE_UP) {
+                if (c == PAGE_UP || c == SHIFT_PAGE_UP) {
                     E.cursor.y = E.row_offset;
-                } else if (c == PAGE_DOWN) {
+                } else if (c == PAGE_DOWN || c == SHIFT_PAGE_DOWN) {
                     E.cursor.y = E.row_offset + E.rows - 1;
                     if (E.cursor.y >= E.num_rows)
                         E.cursor.y = E.num_rows - 1;
                 }
                 int times = E.rows;
                 while (times--) {
-                    if (c == PAGE_UP) {
+                    if (c == PAGE_UP || c == SHIFT_PAGE_UP) {
                         if (E.cursor.y == 0) {
                             E.cursor.x = 0;
                             E.sx = 0;
@@ -527,6 +531,30 @@ void editorProcessKeypress() {
                         }
                         editorMoveCursor(ARROW_DOWN);
                     }
+                }
+            }
+            break;
+
+        case SHIFT_CTRL_PAGE_UP:
+        case CTRL_PAGE_UP:
+            E.cursor.is_selected = (c == SHIFT_CTRL_PAGE_UP);
+            E.bracket_autocomplete = 0;
+            while (E.cursor.y > 0) {
+                editorMoveCursor(ARROW_UP);
+                if (E.row[E.cursor.y].data[0] == '\0') {
+                    break;
+                }
+            }
+            break;
+
+        case SHIFT_CTRL_PAGE_DOWN:
+        case CTRL_PAGE_DOWN:
+            E.cursor.is_selected = (c == SHIFT_CTRL_PAGE_DOWN);
+            E.bracket_autocomplete = 0;
+            while (E.cursor.y < E.num_rows - 1) {
+                editorMoveCursor(ARROW_DOWN);
+                if (E.row[E.cursor.y].data[0] == '\0') {
+                    break;
                 }
             }
             break;
