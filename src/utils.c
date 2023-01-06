@@ -121,10 +121,10 @@ Color strToColor(const char* color) {
 }
 
 int colorToANSI(Color color, char ansi[32], int is_bg) {
-    if (color.r == 0 && color.g == 0 && color.b == 0) {
-        return snprintf(ansi, 20, "\x1b[%d;1m", is_bg ? 48 : 38);
+    if (color.r == 0 && color.g == 0 && color.b == 0 && is_bg) {
+        return snprintf(ansi, 32, "%s", ANSI_DEFAULT_BG);
     }
-    return snprintf(ansi, 20, "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, color.r,
+    return snprintf(ansi, 32, "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, color.r,
                     color.g, color.b);
 }
 
