@@ -10,6 +10,7 @@ extern EditorConCmd cvar_tabsize;
 extern EditorConCmd cvar_whitespace;
 extern EditorConCmd cvar_autoindent;
 extern EditorConCmd cvar_backspace;
+extern EditorConCmd cvar_bracket;
 extern EditorConCmd cvar_syntax;
 extern EditorConCmd cvar_helpinfo;
 extern EditorConCmd cvar_mouse;

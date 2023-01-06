@@ -8,6 +8,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `whitespace` | 0 | Use whitespace instead of tab. |
 | `autoindent` | 0 | Enable auto indent. |
 | `backspace` | 0 | Use hungry backspace. |
+| `bracket` | 0 | Use auto bracket completion. |
 | `syntax` | 0 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
 | `mouse` | cmd | Toggle. Enable mouse mode. |
@@ -47,6 +48,7 @@ tabsize 2
 whitespace 1
 autoindent 1
 backspace 1
+bracket 1
 syntax 1
 helpinfo 0
 mouse

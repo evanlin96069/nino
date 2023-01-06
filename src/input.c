@@ -390,25 +390,28 @@ void editorProcessKeypress() {
                 break;
             }
 
+            int should_delete_bracket =
+                E.bracket_autocomplete &&
+                (isCloseBracket(E.row[E.cursor.y].data[E.cursor.x]) ==
+                     E.row[E.cursor.y].data[E.cursor.x - 1] ||
+                 (E.row[E.cursor.y].data[E.cursor.x] == '\'' &&
+                  E.row[E.cursor.y].data[E.cursor.x - 1] == '\'') ||
+                 (E.row[E.cursor.y].data[E.cursor.x] == '"' &&
+                  E.row[E.cursor.y].data[E.cursor.x - 1] == '"'));
+
             if (c == DEL_KEY)
                 editorMoveCursor(ARROW_RIGHT);
-            else if (E.bracket_autocomplete &&
-                     (isCloseBracket(E.row[E.cursor.y].data[E.cursor.x]) ==
-                          E.row[E.cursor.y].data[E.cursor.x - 1] ||
-                      (E.row[E.cursor.y].data[E.cursor.x] == '\'' &&
-                       E.row[E.cursor.y].data[E.cursor.x - 1] == '\'') ||
-                      (E.row[E.cursor.y].data[E.cursor.x] == '"' &&
-                       E.row[E.cursor.y].data[E.cursor.x - 1] == '"'))) {
+            else if (should_delete_bracket) {
+                E.bracket_autocomplete--;
                 editorMoveCursor(ARROW_RIGHT);
             }
 
             action->deleted_range.end_x = E.cursor.x;
             action->deleted_range.end_y = E.cursor.y;
 
-            if (E.bracket_autocomplete) {
-                E.bracket_autocomplete--;
+            if (should_delete_bracket)
                 editorMoveCursor(ARROW_LEFT);
-            }
+
             char deleted_char = E.row[E.cursor.y].data[E.cursor.x - 1];
             editorMoveCursor(ARROW_LEFT);
             if (CONVAR_GETINT(backspace) && deleted_char == ' ') {
@@ -798,7 +801,9 @@ void editorProcessKeypress() {
 
             int close_bracket = isOpenBracket(c);
             int open_bracket = isCloseBracket(c);
-            if (close_bracket) {
+            if (!CONVAR_GETINT(bracket)) {
+                editorInsertChar(c);
+            } else if (close_bracket) {
                 editorInsertChar(c);
                 editorInsertChar(close_bracket);
                 x_offset = 1;
