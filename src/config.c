@@ -172,7 +172,6 @@ void editorLoadConfig() {
         buf[strcspn(buf, "\r\n")] = '\0';
         parseLine(buf);
     }
-    editorSetStatusMsg("");
     fclose(fp);
 }
 
