@@ -10,6 +10,7 @@ typedef struct EditorRow {
     char* data;
     char* render;
     unsigned char* hl;
+    int is_selected : 1;
     unsigned char* selected;
     int hl_open_comment;
 } EditorRow;

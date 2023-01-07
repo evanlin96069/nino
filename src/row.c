@@ -82,6 +82,7 @@ void editorInsertRow(int at, const char* s, size_t len) {
     E.row[at].rsize = 0;
     E.row[at].render = NULL;
     E.row[at].hl = NULL;
+    E.row[at].is_selected = 0;
     E.row[at].selected = NULL;
     E.row[at].hl_open_comment = 0;
     editorUpdateRow(&(E.row[at]));

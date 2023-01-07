@@ -32,7 +32,10 @@ void editorSelectText() {
     if (!E.cursor.is_selected)
         return;
     for (int i = 0; i < E.num_rows; i++) {
-        memset(E.row[i].selected, 0, E.row[i].rsize);
+        if (E.row[i].is_selected) {
+            memset(E.row[i].selected, 0, E.row[i].rsize);
+            E.row[i].is_selected = 0;
+        }
     }
     EditorSelectRange range;
     getSelectStartEnd(&range);
@@ -40,12 +43,14 @@ void editorSelectText() {
     range.end_x = editorRowCxToRx(&(E.row[range.end_y]), range.end_x);
 
     if (range.start_y == range.end_y) {
+        E.row[E.cursor.y].is_selected = 1;
         memset(&(E.row[E.cursor.y].selected[range.start_x]), 1,
                range.end_x - range.start_x);
         return;
     }
 
     for (int i = range.start_y; i <= range.end_y; i++) {
+        E.row[i].is_selected = 1;
         if (i == range.start_y) {
             memset(&(E.row[i].selected[range.start_x]), 1,
                    E.row[i].rsize - range.start_x);
