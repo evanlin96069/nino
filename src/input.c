@@ -298,7 +298,12 @@ void editorProcessKeypress() {
         case CTRL_KEY('s'):
             should_scroll = 0;
             if (E.dirty)
-                editorSave();
+                editorSave(0);
+            break;
+
+        case CTRL_KEY('o'):
+            should_scroll = 0;
+            editorSave(1);
             break;
 
         case HOME_KEY:

@@ -2,6 +2,6 @@
 #define FILE_IO_H
 
 void editorOpen(char* filename);
-void editorSave();
+void editorSave(int save_as);
 
 #endif

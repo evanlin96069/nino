@@ -70,13 +70,15 @@ void editorOpen(char* filename) {
     E.dirty = 0;
 }
 
-void editorSave() {
-    if (E.filename == NULL) {
-        E.filename = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
-        if (E.filename == NULL) {
+void editorSave(int save_as) {
+    if (!E.filename || save_as) {
+        char* filename = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
+        if (!filename) {
             editorSetStatusMsg("Save aborted.");
             return;
         }
+        free(E.filename);
+        E.filename = filename;
         editorSelectSyntaxHighlight();
     }
     int len;

@@ -6,6 +6,7 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | - | - |
 | Quit | `Ctrl+Q` |
 | Save | `Ctrl+S` |
+| Save As | `Ctrl+O` |
 
 ## Configs
 | Action | Keybinding |
