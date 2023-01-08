@@ -171,7 +171,7 @@ int editorReadKey(int* x, int* y) {
                             case '5':
                                 return CTRL_PAGE_UP;
                             case '6':
-                                return SHIFT_PAGE_UP;
+                                return SHIFT_CTRL_PAGE_UP;
                         }
                     } else if (seq[1] == '6' && seq[4] == '~') {
                         // PageDn
@@ -181,7 +181,7 @@ int editorReadKey(int* x, int* y) {
                             case '5':
                                 return CTRL_PAGE_DOWN;
                             case '6':
-                                return SHIFT_CTRL_DOWN;
+                                return SHIFT_CTRL_PAGE_DOWN;
                         }
                     }
                 }
