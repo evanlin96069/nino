@@ -41,26 +41,28 @@ void enableRawMode() {
 
 int editorReadKey(int* x, int* y) {
     int nread;
-    char c;
+    char seq[32];
 
     *x = *y = 0;
 
-    while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
-        if (nread == -1 && errno != EAGAIN)
-            PANIC("read");
+    while ((nread = read(STDIN_FILENO, &seq, sizeof(seq))) == 0) {
     }
-    if (c == ESC) {
-        char seq[5];
-        if (read(STDIN_FILENO, &seq[0], 1) != 1)
+
+    if (nread == -1 && errno != EAGAIN)
+        PANIC("read");
+
+    if (seq[0] == ESC) {
+        if (nread < 3)
             return ESC;
-        if (read(STDIN_FILENO, &seq[1], 1) != 1)
-            return ESC;
-        if (seq[0] == '[') {
-            if (seq[1] >= '0' && seq[1] <= '9') {
-                if (read(STDIN_FILENO, &seq[2], 1) != 1)
+
+        // TODO: Use a map?
+        if (seq[1] == '[') {
+            if (seq[2] >= '0' && seq[2] <= '9') {
+                if (nread < 4)
                     return ESC;
-                if (seq[2] == '~') {
-                    switch (seq[1]) {
+
+                if (seq[3] == '~') {
+                    switch (seq[2]) {
                         case '1':
                             return HOME_KEY;
                         case '3':
@@ -76,12 +78,11 @@ int editorReadKey(int* x, int* y) {
                         case '8':
                             return END_KEY;
                     }
-                } else if (seq[2] == ';') {
-                    if (read(STDIN_FILENO, &seq[3], 1) != 1)
+                } else if (seq[3] == ';') {
+                    if (nread < 6)
                         return ESC;
-                    if (read(STDIN_FILENO, &seq[4], 1) != 1)
-                        return ESC;
-                    if (seq[1] == '1') {
+
+                    if (seq[2] == '1') {
                         /*
                           Code     Modifiers
                         ---------+---------------------------
@@ -102,9 +103,9 @@ int editorReadKey(int* x, int* y) {
                            16    | Meta + Ctrl + Alt + Shift
                         ---------+---------------------------
                         */
-                        if (seq[3] == '2') {
+                        if (seq[4] == '2') {
                             // Shift
-                            switch (seq[4]) {
+                            switch (seq[5]) {
                                 case 'A':
                                     return SHIFT_UP;
                                 case 'B':
@@ -118,25 +119,25 @@ int editorReadKey(int* x, int* y) {
                                 case 'F':
                                     return SHIFT_END;
                             }
-                        } else if (seq[3] == '3') {
+                        } else if (seq[4] == '3') {
                             // Alt
-                            switch (seq[4]) {
+                            switch (seq[5]) {
                                 case 'A':
                                     return ALT_UP;
                                 case 'B':
                                     return ALT_DOWN;
                             }
-                        } else if (seq[3] == '4') {
+                        } else if (seq[4] == '4') {
                             // Shift + Alt
-                            switch (seq[4]) {
+                            switch (seq[5]) {
                                 case 'A':
                                     return SHIFT_ALT_UP;
                                 case 'B':
                                     return SHIFT_ALT_DOWN;
                             }
-                        } else if (seq[3] == '5') {
+                        } else if (seq[4] == '5') {
                             // Ctrl
-                            switch (seq[4]) {
+                            switch (seq[5]) {
                                 case 'A':
                                     return CTRL_UP;
                                 case 'B':
@@ -150,9 +151,9 @@ int editorReadKey(int* x, int* y) {
                                 case 'F':
                                     return CTRL_END;
                             }
-                        } else if (seq[3] == '6') {
+                        } else if (seq[4] == '6') {
                             // Shift + Ctrl
-                            switch (seq[4]) {
+                            switch (seq[5]) {
                                 case 'A':
                                     return SHIFT_CTRL_UP;
                                 case 'B':
@@ -163,9 +164,9 @@ int editorReadKey(int* x, int* y) {
                                     return SHIFT_CTRL_LEFT;
                             }
                         }
-                    } else if (seq[1] == '5' && seq[4] == '~') {
+                    } else if (seq[2] == '5' && seq[5] == '~') {
                         // PageUp
-                        switch (seq[3]) {
+                        switch (seq[4]) {
                             case '2':
                                 return SHIFT_PAGE_UP;
                             case '5':
@@ -173,9 +174,9 @@ int editorReadKey(int* x, int* y) {
                             case '6':
                                 return SHIFT_CTRL_PAGE_UP;
                         }
-                    } else if (seq[1] == '6' && seq[4] == '~') {
+                    } else if (seq[2] == '6' && seq[5] == '~') {
                         // PageDn
-                        switch (seq[3]) {
+                        switch (seq[4]) {
                             case '2':
                                 return SHIFT_PAGE_DOWN;
                             case '5':
@@ -185,16 +186,15 @@ int editorReadKey(int* x, int* y) {
                         }
                     }
                 }
-            } else if (seq[1] == '<' && E.mouse_mode) {
+            } else if (seq[2] == '<' && E.mouse_mode) {
                 // Mouse input
                 char pos[16] = {0};
-                char c;
                 int idx = 0;
-                do {
-                    if (read(STDIN_FILENO, &c, 1) != 1)
-                        return ESC;
-                    pos[idx++] = c;
-                } while (c != 'm' && c != 'M');
+                for (int i = 3; i < nread; i++) {
+                    pos[i - 3] = seq[i];
+                    if (seq[i] == 'm' || seq[i] == 'M')
+                        break;
+                }
                 pos[15] = '\0';
 
                 int type;
@@ -222,7 +222,7 @@ int editorReadKey(int* x, int* y) {
                         return WHEEL_DOWN;
                 }
             } else {
-                switch (seq[1]) {
+                switch (seq[2]) {
                     case 'A':
                         return ARROW_UP;
                     case 'B':
@@ -237,8 +237,8 @@ int editorReadKey(int* x, int* y) {
                         return END_KEY;
                 }
             }
-        } else if (seq[0] == 'O') {
-            switch (seq[1]) {
+        } else if (seq[1] == 'O') {
+            switch (seq[2]) {
                 case 'H':
                     return HOME_KEY;
                 case 'F':
@@ -246,7 +246,7 @@ int editorReadKey(int* x, int* y) {
             }
         }
     }
-    return c;
+    return seq[0];
 }
 
 static int getCursorPos(int* rows, int* cols) {
