@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -39,9 +40,95 @@ void enableRawMode() {
         PANIC("tcsetattr");
 }
 
+typedef struct {
+    const char* str;
+    int value;
+} StrIntPair;
+
+static const StrIntPair sequence_lookup[] = {
+    {"\x1b[1~", HOME_KEY},
+    // {"\x1b[2~", INSERT_KEY},
+    {"\x1b[3~", DEL_KEY},
+    {"\x1b[4~", END_KEY},
+    {"\x1b[5~", PAGE_UP},
+    {"\x1b[6~", PAGE_DOWN},
+    {"\x1b[7~", HOME_KEY},
+    {"\x1b[8~", END_KEY},
+
+    {"\x1b[A", ARROW_UP},
+    {"\x1b[B", ARROW_DOWN},
+    {"\x1b[C", ARROW_RIGHT},
+    {"\x1b[D", ARROW_LEFT},
+    {"\x1b[F", END_KEY},
+    {"\x1b[H", HOME_KEY},
+
+    /*
+      Code     Modifiers
+    ---------+---------------------------
+       2     | Shift
+       3     | Alt
+       4     | Shift + Alt
+       5     | Control
+       6     | Shift + Control
+       7     | Alt + Control
+       8     | Shift + Alt + Control
+       9     | Meta
+       10    | Meta + Shift
+       11    | Meta + Alt
+       12    | Meta + Alt + Shift
+       13    | Meta + Ctrl
+       14    | Meta + Ctrl + Shift
+       15    | Meta + Ctrl + Alt
+       16    | Meta + Ctrl + Alt + Shift
+    ---------+---------------------------
+    */
+
+    // Shift
+    {"\x1b[1;2A", SHIFT_UP},
+    {"\x1b[1;2B", SHIFT_DOWN},
+    {"\x1b[1;2C", SHIFT_RIGHT},
+    {"\x1b[1;2D", SHIFT_LEFT},
+    {"\x1b[1;2F", SHIFT_END},
+    {"\x1b[1;2H", SHIFT_HOME},
+
+    // Alt
+    {"\x1b[1;3A", ALT_UP},
+    {"\x1b[1;3B", ALT_DOWN},
+
+    // Shift+Alt
+    {"\x1b[1;4A", SHIFT_ALT_UP},
+    {"\x1b[1;4B", SHIFT_ALT_DOWN},
+
+    // Ctrl
+    {"\x1b[1;5A", CTRL_UP},
+    {"\x1b[1;5B", CTRL_DOWN},
+    {"\x1b[1;5C", CTRL_RIGHT},
+    {"\x1b[1;5D", CTRL_LEFT},
+    {"\x1b[1;5F", CTRL_END},
+    {"\x1b[1;5H", CTRL_HOME},
+
+    // Shift+Ctrl
+    {"\x1b[1;6A", SHIFT_CTRL_UP},
+    {"\x1b[1;6B", SHIFT_CTRL_DOWN},
+    {"\x1b[1;6C", SHIFT_CTRL_RIGHT},
+    {"\x1b[1;6D", SHIFT_CTRL_LEFT},
+
+    // Page UP / Page Down
+    {"\x1b[5;2~", SHIFT_PAGE_UP},
+    {"\x1b[6;2~", SHIFT_PAGE_DOWN},
+    {"\x1b[5;5~", CTRL_PAGE_UP},
+    {"\x1b[6;5~", CTRL_PAGE_DOWN},
+    {"\x1b[5;6~", SHIFT_CTRL_PAGE_UP},
+    {"\x1b[6;6~", SHIFT_CTRL_PAGE_DOWN},
+
+    // O
+    {"\x1bOF", END_KEY},
+    {"\x1bOH", HOME_KEY},
+};
+
 int editorReadKey(int* x, int* y) {
     int nread;
-    char seq[32];
+    char seq[32] = {0};
 
     *x = *y = 0;
 
@@ -55,194 +142,47 @@ int editorReadKey(int* x, int* y) {
         if (nread < 3)
             return ESC;
 
-        // TODO: Use a map?
-        if (seq[1] == '[') {
-            if (seq[2] >= '0' && seq[2] <= '9') {
-                if (nread < 4)
-                    return ESC;
-
-                if (seq[3] == '~') {
-                    switch (seq[2]) {
-                        case '1':
-                            return HOME_KEY;
-                        case '3':
-                            return DEL_KEY;
-                        case '4':
-                            return END_KEY;
-                        case '5':
-                            return PAGE_UP;
-                        case '6':
-                            return PAGE_DOWN;
-                        case '7':
-                            return HOME_KEY;
-                        case '8':
-                            return END_KEY;
-                    }
-                } else if (seq[3] == ';') {
-                    if (nread < 6)
-                        return ESC;
-
-                    if (seq[2] == '1') {
-                        /*
-                          Code     Modifiers
-                        ---------+---------------------------
-                           2     | Shift
-                           3     | Alt
-                           4     | Shift + Alt
-                           5     | Control
-                           6     | Shift + Control
-                           7     | Alt + Control
-                           8     | Shift + Alt + Control
-                           9     | Meta
-                           10    | Meta + Shift
-                           11    | Meta + Alt
-                           12    | Meta + Alt + Shift
-                           13    | Meta + Ctrl
-                           14    | Meta + Ctrl + Shift
-                           15    | Meta + Ctrl + Alt
-                           16    | Meta + Ctrl + Alt + Shift
-                        ---------+---------------------------
-                        */
-                        if (seq[4] == '2') {
-                            // Shift
-                            switch (seq[5]) {
-                                case 'A':
-                                    return SHIFT_UP;
-                                case 'B':
-                                    return SHIFT_DOWN;
-                                case 'C':
-                                    return SHIFT_RIGHT;
-                                case 'D':
-                                    return SHIFT_LEFT;
-                                case 'H':
-                                    return SHIFT_HOME;
-                                case 'F':
-                                    return SHIFT_END;
-                            }
-                        } else if (seq[4] == '3') {
-                            // Alt
-                            switch (seq[5]) {
-                                case 'A':
-                                    return ALT_UP;
-                                case 'B':
-                                    return ALT_DOWN;
-                            }
-                        } else if (seq[4] == '4') {
-                            // Shift + Alt
-                            switch (seq[5]) {
-                                case 'A':
-                                    return SHIFT_ALT_UP;
-                                case 'B':
-                                    return SHIFT_ALT_DOWN;
-                            }
-                        } else if (seq[4] == '5') {
-                            // Ctrl
-                            switch (seq[5]) {
-                                case 'A':
-                                    return CTRL_UP;
-                                case 'B':
-                                    return CTRL_DOWN;
-                                case 'C':
-                                    return CTRL_RIGHT;
-                                case 'D':
-                                    return CTRL_LEFT;
-                                case 'H':
-                                    return CTRL_HOME;
-                                case 'F':
-                                    return CTRL_END;
-                            }
-                        } else if (seq[4] == '6') {
-                            // Shift + Ctrl
-                            switch (seq[5]) {
-                                case 'A':
-                                    return SHIFT_CTRL_UP;
-                                case 'B':
-                                    return SHIFT_CTRL_DOWN;
-                                case 'C':
-                                    return SHIFT_CTRL_RIGHT;
-                                case 'D':
-                                    return SHIFT_CTRL_LEFT;
-                            }
-                        }
-                    } else if (seq[2] == '5' && seq[5] == '~') {
-                        // PageUp
-                        switch (seq[4]) {
-                            case '2':
-                                return SHIFT_PAGE_UP;
-                            case '5':
-                                return CTRL_PAGE_UP;
-                            case '6':
-                                return SHIFT_CTRL_PAGE_UP;
-                        }
-                    } else if (seq[2] == '6' && seq[5] == '~') {
-                        // PageDn
-                        switch (seq[4]) {
-                            case '2':
-                                return SHIFT_PAGE_DOWN;
-                            case '5':
-                                return CTRL_PAGE_DOWN;
-                            case '6':
-                                return SHIFT_CTRL_PAGE_DOWN;
-                        }
-                    }
-                }
-            } else if (seq[2] == '<' && E.mouse_mode) {
-                // Mouse input
-                char pos[16] = {0};
-                int idx = 0;
-                for (int i = 3; i < nread; i++) {
-                    pos[i - 3] = seq[i];
-                    if (seq[i] == 'm' || seq[i] == 'M')
-                        break;
-                }
-                pos[15] = '\0';
-
-                int type;
-                char m;
-                sscanf(pos, "%d;%d;%d%c", &type, x, y, &m);
-                (*x)--;
-                (*y)--;
-                switch (type) {
-                    case 0:
-                        if (m == 'M')
-                            return MOUSE_PRESSED;
-                        if (m == 'm')
-                            return MOUSE_RELEASED;
-                    case 1:
-                        if (m == 'M')
-                            return SCROLL_PRESSED;
-                        if (m == 'm')
-                            return SCROLL_RELEASED;
-                        break;
-                    case 32:
-                        return MOUSE_MOVE;
-                    case 64:
-                        return WHEEL_UP;
-                    case 65:
-                        return WHEEL_DOWN;
-                }
-            } else {
-                switch (seq[2]) {
-                    case 'A':
-                        return ARROW_UP;
-                    case 'B':
-                        return ARROW_DOWN;
-                    case 'C':
-                        return ARROW_RIGHT;
-                    case 'D':
-                        return ARROW_LEFT;
-                    case 'H':
-                        return HOME_KEY;
-                    case 'F':
-                        return END_KEY;
-                }
+        if (seq[1] == '[' && seq[2] == '<' && E.mouse_mode) {
+            // Mouse input
+            char pos[16] = {0};
+            int idx = 0;
+            for (int i = 3; i < nread; i++) {
+                pos[i - 3] = seq[i];
+                if (seq[i] == 'm' || seq[i] == 'M')
+                    break;
             }
-        } else if (seq[1] == 'O') {
-            switch (seq[2]) {
-                case 'H':
-                    return HOME_KEY;
-                case 'F':
-                    return END_KEY;
+            pos[15] = '\0';
+
+            int type;
+            char m;
+            sscanf(pos, "%d;%d;%d%c", &type, x, y, &m);
+            (*x)--;
+            (*y)--;
+            switch (type) {
+                case 0:
+                    if (m == 'M')
+                        return MOUSE_PRESSED;
+                    if (m == 'm')
+                        return MOUSE_RELEASED;
+                case 1:
+                    if (m == 'M')
+                        return SCROLL_PRESSED;
+                    if (m == 'm')
+                        return SCROLL_RELEASED;
+                    break;
+                case 32:
+                    return MOUSE_MOVE;
+                case 64:
+                    return WHEEL_UP;
+                case 65:
+                    return WHEEL_DOWN;
+            }
+            return ESC;
+        }
+
+        for (int i = 0; i < sizeof(sequence_lookup) / sizeof(StrIntPair); i++) {
+            if (strcmp(sequence_lookup[i].str, seq) == 0) {
+                return sequence_lookup[i].value;
             }
         }
     }
