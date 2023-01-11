@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stdbool.h>
+
 #include "defines.h"
 #include "utils.h"
 
@@ -26,12 +28,11 @@ extern const EditorColorScheme color_default;
                                  .cvar = {.default_string = _default_string}}
 
 #define CON_COMMAND(_name, _help_string)                        \
-    static void _name##_callback(EditorConCmd* thisptr,         \
-                                 EditorConCmdArgs args);        \
+    static void _name##_callback(EditorConCmdArgs args);        \
     EditorConCmd ccmd_##_name = {.name = #_name,                \
                                  .help_string = _help_string,   \
                                  .callback = _name##_callback}; \
-    void _name##_callback(EditorConCmd* thisptr, EditorConCmdArgs args)
+    void _name##_callback(EditorConCmdArgs args)
 
 #define INIT_CONVAR(name) editorInitConVar(&cvar_##name)
 #define INIT_CONCOMMAND(name) editorInitConCmd(&ccmd_##name)
@@ -47,7 +48,7 @@ typedef struct EditorConCmdArgs {
     char argv[COMMAND_MAX_ARGC][COMMAND_MAX_LENGTH];
 } EditorConCmdArgs;
 
-typedef void (*CommandCallback)(EditorConCmd* thisptr, EditorConCmdArgs args);
+typedef void (*CommandCallback)(EditorConCmdArgs args);
 
 typedef struct EditorConVar {
     const char* default_string;
@@ -59,7 +60,7 @@ struct EditorConCmd {
     struct EditorConCmd* next;
     const char* name;
     const char* help_string;
-    int has_callback : 1;
+    bool has_callback;
     union {
         CommandCallback callback;
         EditorConVar cvar;

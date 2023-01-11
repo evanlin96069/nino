@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "defines.h"
 #include "editor.h"
 #include "input.h"
 #include "status.h"
@@ -18,6 +19,7 @@ CONVAR(syntax, "Enable syntax highlight.", "0");
 CONVAR(helpinfo, "Show the help information.", "1");
 
 CON_COMMAND(mouse, "Toggle. Enable mouse mode.") {
+    UNUSED(args.argc);
     int mouse = !E.mouse_mode;
     if (mouse) {
         editorSetStatusMsg("Mouse mode ON.");
@@ -140,7 +142,7 @@ static void parseLine(char* line) {
     }
 
     if (cmd->has_callback)
-        cmd->callback(cmd, args);
+        cmd->callback(args);
     else
         cvarCallback(cmd, args);
 }
@@ -210,13 +212,13 @@ static void registerConCmd(EditorConCmd* thisptr) {
 
 void editorInitConCmd(EditorConCmd* thisptr) {
     thisptr->next = NULL;
-    thisptr->has_callback = 1;
+    thisptr->has_callback = true;
     registerConCmd(thisptr);
 }
 
 void editorInitConVar(EditorConCmd* thisptr) {
     thisptr->next = NULL;
-    thisptr->has_callback = 0;
+    thisptr->has_callback = false;
     if (!thisptr->cvar.default_string)
         thisptr->cvar.default_string = "";
     editorSetConVar(&thisptr->cvar, thisptr->cvar.default_string);

@@ -5,6 +5,6 @@
 
 void editorScroll();
 void editorDrawRows(abuf* ab);
-int editorRefreshScreen();
+void editorRefreshScreen();
 
 #endif

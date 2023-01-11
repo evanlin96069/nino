@@ -7,6 +7,8 @@
 
 #define CTRL_KEY(k) ((k)&0x1f)
 
+#define UNUSED(x) (void)!(x)
+
 #define HL_HIGHLIGHT_NUMBERS (1 << 0)
 #define HL_HIGHLIGHT_STRINGS (1 << 1)
 

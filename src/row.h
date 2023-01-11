@@ -1,6 +1,7 @@
 #ifndef ROW_H
 #define ROW_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef struct EditorRow {
@@ -10,7 +11,7 @@ typedef struct EditorRow {
     char* data;
     char* render;
     unsigned char* hl;
-    int is_selected : 1;
+    bool is_selected : 1;
     unsigned char* selected;
     int hl_open_comment;
 } EditorRow;

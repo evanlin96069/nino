@@ -80,12 +80,8 @@ void editorDrawRows(abuf* ab) {
                     abufAppend(ab, ANSI_CLEAR);
                     colorToANSI(E.color_cfg.bg, buf, 1);
                     abufAppend(ab, buf);
-
-                    if (current_color >= 0) {
-                        colorToANSI(E.color_cfg.highlight[current_color], buf,
-                                    0);
-                        abufAppend(ab, buf);
-                    }
+                    colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
+                    abufAppend(ab, buf);
                 } else {
                     unsigned char color = hl[j];
                     if (E.cursor.is_selected && selected[j]) {
@@ -141,7 +137,7 @@ void editorDrawRows(abuf* ab) {
     }
 }
 
-int editorRefreshScreen() {
+void editorRefreshScreen() {
     abuf ab = ABUF_INIT;
 
     abufAppend(&ab, "\x1b[?25l");
@@ -169,8 +165,6 @@ int editorRefreshScreen() {
     if (should_show_cursor)
         abufAppend(&ab, "\x1b[?25h");
 
-    int success = write(STDOUT_FILENO, ab.buf, ab.len) == ab.len;
+    UNUSED(write(STDOUT_FILENO, ab.buf, ab.len));
     abufFree(&ab);
-
-    return success;
 }

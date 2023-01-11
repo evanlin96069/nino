@@ -34,7 +34,7 @@ void editorSelectText() {
     for (int i = 0; i < E.num_rows; i++) {
         if (E.row[i].is_selected) {
             memset(E.row[i].selected, 0, E.row[i].rsize);
-            E.row[i].is_selected = 0;
+            E.row[i].is_selected = false;
         }
     }
     EditorSelectRange range;
@@ -43,14 +43,14 @@ void editorSelectText() {
     range.end_x = editorRowCxToRx(&(E.row[range.end_y]), range.end_x);
 
     if (range.start_y == range.end_y) {
-        E.row[E.cursor.y].is_selected = 1;
+        E.row[E.cursor.y].is_selected = true;
         memset(&(E.row[E.cursor.y].selected[range.start_x]), 1,
                range.end_x - range.start_x);
         return;
     }
 
     for (int i = range.start_y; i <= range.end_y; i++) {
-        E.row[i].is_selected = 1;
+        E.row[i].is_selected = true;
         if (i == range.start_y) {
             memset(&(E.row[i].selected[range.start_x]), 1,
                    E.row[i].rsize - range.start_x);
@@ -161,7 +161,7 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         editorRowAppendString(&E.row[y], clipboard->data[0],
                               strlen(clipboard->data[0]));
         // Middle
-        for (int i = 1; i < clipboard->size - 1; i++) {
+        for (size_t i = 1; i < clipboard->size - 1; i++) {
             editorInsertRow(y + i, clipboard->data[i],
                             strlen(clipboard->data[i]));
         }
@@ -186,7 +186,7 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
 void editorFreeClipboardContent(EditorClipboard* clipboard) {
     if (!clipboard || !clipboard->size)
         return;
-    for (int i = 0; i < clipboard->size; i++) {
+    for (size_t i = 0; i < clipboard->size; i++) {
         free(clipboard->data[i]);
     }
     clipboard->size = 0;

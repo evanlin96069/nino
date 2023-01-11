@@ -37,7 +37,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
         editorRefreshScreen();
         int x, y;
         int c = editorReadKey(&x, &y);
-        int idx = E.px - start;
+        size_t idx = E.px - start;
         switch (c) {
             case DEL_KEY:
                 if (idx != buflen)
@@ -270,7 +270,7 @@ void editorProcessKeypress() {
             if (E.cursor.is_selected) {
                 editorCopyText(&action->deleted_text, action->deleted_range);
                 editorDeleteText(action->deleted_range);
-                E.cursor.is_selected = 0;
+                E.cursor.is_selected = false;
             }
 
             E.bracket_autocomplete = 0;
@@ -342,19 +342,19 @@ void editorProcessKeypress() {
             break;
 
         case CTRL_KEY('f'):
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorFind();
             break;
 
         case CTRL_KEY('g'):
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorGotoLine();
             break;
 
         case CTRL_KEY('p'):
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorSetting();
             break;
@@ -362,7 +362,7 @@ void editorProcessKeypress() {
         case CTRL_KEY('a'):
             if (E.num_rows == 1 && E.row[0].size == 0)
                 break;
-            E.cursor.is_selected = 1;
+            E.cursor.is_selected = true;
             E.bracket_autocomplete = 0;
             E.cursor.y = E.num_rows - 1;
             E.cursor.x = E.row[E.num_rows - 1].size;
@@ -391,7 +391,7 @@ void editorProcessKeypress() {
                 getSelectStartEnd(&action->deleted_range);
                 editorCopyText(&action->deleted_text, action->deleted_range);
                 editorDeleteText(action->deleted_range);
-                E.cursor.is_selected = 0;
+                E.cursor.is_selected = false;
                 break;
             }
 
@@ -452,7 +452,7 @@ void editorProcessKeypress() {
             editorFreeClipboardContent(&E.clipboard);
             editorCopyText(&E.clipboard, action->deleted_range);
             editorDeleteText(action->deleted_range);
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
         } break;
 
         // Copy
@@ -483,7 +483,7 @@ void editorProcessKeypress() {
             if (E.cursor.is_selected) {
                 editorCopyText(&action->deleted_text, action->deleted_range);
                 editorDeleteText(action->deleted_range);
-                E.cursor.is_selected = 0;
+                E.cursor.is_selected = false;
             }
 
             action->added_range.start_x = E.cursor.x;
@@ -497,14 +497,14 @@ void editorProcessKeypress() {
 
         // Undo
         case CTRL_KEY('z'):
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorUndo();
             break;
 
         // Redo
         case CTRL_KEY('y'):
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorRedo();
             break;
@@ -586,7 +586,7 @@ void editorProcessKeypress() {
                 if (c == ARROW_UP || c == ARROW_DOWN) {
                     editorMoveCursor(c);
                 }
-                E.cursor.is_selected = 0;
+                E.cursor.is_selected = false;
             } else {
                 if (E.bracket_autocomplete) {
                     if (ARROW_RIGHT)
@@ -602,13 +602,13 @@ void editorProcessKeypress() {
         case SHIFT_DOWN:
         case SHIFT_LEFT:
         case SHIFT_RIGHT:
-            E.cursor.is_selected = 1;
+            E.cursor.is_selected = true;
             E.bracket_autocomplete = 0;
             editorMoveCursor(c - 9);
             break;
 
         case CTRL_HOME:
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             E.cursor.y = 0;
             E.cursor.x = 0;
@@ -616,7 +616,7 @@ void editorProcessKeypress() {
             break;
 
         case CTRL_END:
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             E.cursor.y = E.num_rows - 1;
             E.cursor.x = E.row[E.num_rows - 1].size;
@@ -628,7 +628,7 @@ void editorProcessKeypress() {
         case SHIFT_ALT_UP:
         case SHIFT_ALT_DOWN:
             should_record_action = 1;
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             action->old_cursor.is_selected = 0;
             editorInsertRow(E.cursor.y, E.row[E.cursor.y].data,
                             E.row[E.cursor.y].size);
@@ -726,7 +726,7 @@ void editorProcessKeypress() {
             prev_x = x;
             prev_y = y;
 
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
 
             if (!mousePosToEditorPos(&x, &y))
@@ -751,7 +751,7 @@ void editorProcessKeypress() {
             if (!isValidMousePos(x, y) || !mousePosToEditorPos(&x, &y))
                 break;
 
-            E.cursor.is_selected = 1;
+            E.cursor.is_selected = true;
             E.cursor.x = editorRowRxToCx(&E.row[y], x);
             E.cursor.y = y;
             E.sx = x;
@@ -797,7 +797,7 @@ void editorProcessKeypress() {
             if (E.cursor.is_selected) {
                 editorCopyText(&action->deleted_text, action->deleted_range);
                 editorDeleteText(action->deleted_range);
-                E.cursor.is_selected = 0;
+                E.cursor.is_selected = false;
             }
 
             int x_offset = 0;
@@ -847,7 +847,7 @@ void editorProcessKeypress() {
             editorCopyText(&action->added_text, action->added_range);
 
             E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
-            E.cursor.is_selected = 0;
+            E.cursor.is_selected = false;
 
             if (x_offset == -1) {
                 should_record_action = 0;

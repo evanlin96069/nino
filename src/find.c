@@ -77,7 +77,7 @@ static void editorFindCallback(char* query, int key) {
         for (int i = 0; i < E.num_rows; i++) {
             char* match = NULL;
             int col = 0;
-            while (match = strstr(&E.row[i].data[col], query)) {
+            while ((match = strstr(&E.row[i].data[col], query))) {
                 col = match - E.row[i].data;
                 FindList* node = malloc_s(sizeof(FindList));
 

@@ -145,7 +145,6 @@ int editorReadKey(int* x, int* y) {
         if (seq[1] == '[' && seq[2] == '<' && E.mouse_mode) {
             // Mouse input
             char pos[16] = {0};
-            int idx = 0;
             for (int i = 3; i < nread; i++) {
                 pos[i - 3] = seq[i];
                 if (seq[i] == 'm' || seq[i] == 'M')
@@ -164,23 +163,26 @@ int editorReadKey(int* x, int* y) {
                         return MOUSE_PRESSED;
                     if (m == 'm')
                         return MOUSE_RELEASED;
+                    return ESC;
                 case 1:
                     if (m == 'M')
                         return SCROLL_PRESSED;
                     if (m == 'm')
                         return SCROLL_RELEASED;
-                    break;
+                    return ESC;
                 case 32:
                     return MOUSE_MOVE;
                 case 64:
                     return WHEEL_UP;
                 case 65:
                     return WHEEL_DOWN;
+                default:
+                    return ESC;
             }
-            return ESC;
         }
 
-        for (int i = 0; i < sizeof(sequence_lookup) / sizeof(StrIntPair); i++) {
+        for (size_t i = 0; i < sizeof(sequence_lookup) / sizeof(StrIntPair);
+             i++) {
             if (strcmp(sequence_lookup[i].str, seq) == 0) {
                 return sequence_lookup[i].value;
             }
@@ -226,6 +228,8 @@ int getWindowSize(int* rows, int* cols) {
 }
 
 static void SIGSEGV_handler(int sig) {
+    if (sig != SIGSEGV)
+        return;
     terminalExit();
     UNUSED(write(STDOUT_FILENO, "Exit from SIGSEGV_handler\r\n", 20));
     _exit(EXIT_FAILURE);
@@ -250,7 +254,11 @@ void disableMouse() {
         E.mouse_mode = 0;
 }
 
-static void SIGWINCH_handler(int sig) { resizeWindow(); }
+static void SIGWINCH_handler(int sig) {
+    if (sig != SIGWINCH)
+        return;
+    resizeWindow();
+}
 
 void enableAutoResize() { signal(SIGWINCH, SIGWINCH_handler); }
 

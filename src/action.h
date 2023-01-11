@@ -1,11 +1,12 @@
 #ifndef ACTION_H
 #define ACTION_H
+#include <stdbool.h>
 
 #include "select.h"
 
 typedef struct EditorCursor {
     int x, y;
-    int is_selected : 1;
+    bool is_selected;
     int select_x;
     int select_y;
 } EditorCursor;

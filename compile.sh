@@ -2,7 +2,7 @@
 
 CC=gcc
 
-warnings="-Wall -Wextra -pedantic -std=c99"
+warnings="-Wall -Wextra"
 
 dbg=0
 if [ $dbg = 1 ]; then
@@ -11,4 +11,4 @@ else
     cflags="-Os -s"
 fi
 
-$CC src/*.c -o nino $warngins $cflags
+$CC src/*.c -pedantic -std=c11 $warnings $cflags -o nino

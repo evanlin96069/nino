@@ -16,7 +16,7 @@ void editorInit() {
 
     E.cursor.x = 0;
     E.cursor.y = 0;
-    E.cursor.is_selected = 0;
+    E.cursor.is_selected = false;
     E.cursor.select_x = 0;
     E.cursor.select_y = 0;
 
