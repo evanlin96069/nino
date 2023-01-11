@@ -162,8 +162,8 @@ void editorInitCommands() {
 }
 
 void editorLoadConfig() {
-    char path[255] = "";
-    strncpy(path, getenv("HOME"), sizeof(path));
+    char path[256] = "";
+    strncpy(path, getenv("HOME"), sizeof(path) - 1);
     strncat(path, "/.ninorc", sizeof(path) - 1);
     FILE* fp = fopen(path, "r");
     if (!fp)
