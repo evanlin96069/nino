@@ -2,17 +2,17 @@
 #define FILE_TYPE_H
 
 typedef struct EditorSyntax {
-    char* file_type;
-    char** file_match;
-    char** keywords;
-    char* singleline_comment_start;
-    char* multiline_comment_start;
-    char* multiline_comment_end;
+    const char* file_type;
+    const char** file_match;
+    const char** keywords;
+    const char* singleline_comment_start;
+    const char* multiline_comment_start;
+    const char* multiline_comment_end;
     int flags;
 } EditorSyntax;
 
 #define HLDB_ENTRIES 2
 
-extern EditorSyntax HLDB[HLDB_ENTRIES];
+extern const EditorSyntax HLDB[HLDB_ENTRIES];
 
 #endif

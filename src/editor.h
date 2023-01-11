@@ -38,7 +38,7 @@ typedef struct Editor {
     EditorClipboard clipboard;
     EditorRow* row;
 
-    EditorSyntax* syntax;
+    const EditorSyntax* syntax;
 
     EditorColorScheme color_cfg;
 

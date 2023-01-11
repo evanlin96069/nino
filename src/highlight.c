@@ -17,14 +17,14 @@ void editorUpdateSyntax(EditorRow* row) {
     if (!CONVAR_GETINT(syntax))
         return;
 
-    if (E.syntax == NULL)
+    if (!E.syntax)
         return;
 
-    char** keywords = E.syntax->keywords;
+    const char** keywords = E.syntax->keywords;
 
-    char* scs = E.syntax->singleline_comment_start;
-    char* mcs = E.syntax->multiline_comment_start;
-    char* mce = E.syntax->multiline_comment_end;
+    const char* scs = E.syntax->singleline_comment_start;
+    const char* mcs = E.syntax->multiline_comment_start;
+    const char* mce = E.syntax->multiline_comment_end;
 
     int scs_len = scs ? strlen(scs) : 0;
     int mcs_len = mcs ? strlen(mcs) : 0;
@@ -140,7 +140,7 @@ void editorSelectSyntaxHighlight() {
     char* ext = strrchr(E.filename, '.');
 
     for (unsigned int i = 0; i < HLDB_ENTRIES; i++) {
-        EditorSyntax* s = &HLDB[i];
+        const EditorSyntax* s = &HLDB[i];
         unsigned int j = 0;
         while (s->file_match[j]) {
             int is_ext = (s->file_match[j][0] == '.');
