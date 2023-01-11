@@ -1,5 +1,5 @@
-#ifndef FILE_TYPE_H
-#define FILE_TYPE_H
+#ifndef FILE_TYPES_H
+#define FILE_TYPES_H
 
 typedef struct EditorSyntax {
     const char* file_type;
