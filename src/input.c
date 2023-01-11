@@ -44,6 +44,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     idx++;
                 else
                     break;
+                // fall through
             case CTRL_KEY('h'):
             case BACKSPACE:
                 if (idx != 0) {

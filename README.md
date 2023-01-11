@@ -27,8 +27,7 @@ Also, see the original text editor the tutorial based on: [kilo](https://github.
 ```
 git clone https://github.com/evanlin96069/nino.git
 cd nino
-./compile.sh
-sudo ./install.sh
+make install
 ```
 
 ## Documentation
