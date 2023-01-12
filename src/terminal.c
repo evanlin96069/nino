@@ -1,7 +1,9 @@
 #include "terminal.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,21 +48,21 @@ typedef struct {
 } StrIntPair;
 
 static const StrIntPair sequence_lookup[] = {
-    {"\x1b[1~", HOME_KEY},
-    // {"\x1b[2~", INSERT_KEY},
-    {"\x1b[3~", DEL_KEY},
-    {"\x1b[4~", END_KEY},
-    {"\x1b[5~", PAGE_UP},
-    {"\x1b[6~", PAGE_DOWN},
-    {"\x1b[7~", HOME_KEY},
-    {"\x1b[8~", END_KEY},
+    {"[1~", HOME_KEY},
+    // {"[2~", INSERT_KEY},
+    {"[3~", DEL_KEY},
+    {"[4~", END_KEY},
+    {"[5~", PAGE_UP},
+    {"[6~", PAGE_DOWN},
+    {"[7~", HOME_KEY},
+    {"[8~", END_KEY},
 
-    {"\x1b[A", ARROW_UP},
-    {"\x1b[B", ARROW_DOWN},
-    {"\x1b[C", ARROW_RIGHT},
-    {"\x1b[D", ARROW_LEFT},
-    {"\x1b[F", END_KEY},
-    {"\x1b[H", HOME_KEY},
+    {"[A", ARROW_UP},
+    {"[B", ARROW_DOWN},
+    {"[C", ARROW_RIGHT},
+    {"[D", ARROW_LEFT},
+    {"[F", END_KEY},
+    {"[H", HOME_KEY},
 
     /*
       Code     Modifiers
@@ -84,77 +86,79 @@ static const StrIntPair sequence_lookup[] = {
     */
 
     // Shift
-    {"\x1b[1;2A", SHIFT_UP},
-    {"\x1b[1;2B", SHIFT_DOWN},
-    {"\x1b[1;2C", SHIFT_RIGHT},
-    {"\x1b[1;2D", SHIFT_LEFT},
-    {"\x1b[1;2F", SHIFT_END},
-    {"\x1b[1;2H", SHIFT_HOME},
+    {"[1;2A", SHIFT_UP},
+    {"[1;2B", SHIFT_DOWN},
+    {"[1;2C", SHIFT_RIGHT},
+    {"[1;2D", SHIFT_LEFT},
+    {"[1;2F", SHIFT_END},
+    {"[1;2H", SHIFT_HOME},
 
     // Alt
-    {"\x1b[1;3A", ALT_UP},
-    {"\x1b[1;3B", ALT_DOWN},
+    {"[1;3A", ALT_UP},
+    {"[1;3B", ALT_DOWN},
 
     // Shift+Alt
-    {"\x1b[1;4A", SHIFT_ALT_UP},
-    {"\x1b[1;4B", SHIFT_ALT_DOWN},
+    {"[1;4A", SHIFT_ALT_UP},
+    {"[1;4B", SHIFT_ALT_DOWN},
 
     // Ctrl
-    {"\x1b[1;5A", CTRL_UP},
-    {"\x1b[1;5B", CTRL_DOWN},
-    {"\x1b[1;5C", CTRL_RIGHT},
-    {"\x1b[1;5D", CTRL_LEFT},
-    {"\x1b[1;5F", CTRL_END},
-    {"\x1b[1;5H", CTRL_HOME},
+    {"[1;5A", CTRL_UP},
+    {"[1;5B", CTRL_DOWN},
+    {"[1;5C", CTRL_RIGHT},
+    {"[1;5D", CTRL_LEFT},
+    {"[1;5F", CTRL_END},
+    {"[1;5H", CTRL_HOME},
 
     // Shift+Ctrl
-    {"\x1b[1;6A", SHIFT_CTRL_UP},
-    {"\x1b[1;6B", SHIFT_CTRL_DOWN},
-    {"\x1b[1;6C", SHIFT_CTRL_RIGHT},
-    {"\x1b[1;6D", SHIFT_CTRL_LEFT},
+    {"[1;6A", SHIFT_CTRL_UP},
+    {"[1;6B", SHIFT_CTRL_DOWN},
+    {"[1;6C", SHIFT_CTRL_RIGHT},
+    {"[1;6D", SHIFT_CTRL_LEFT},
 
     // Page UP / Page Down
-    {"\x1b[5;2~", SHIFT_PAGE_UP},
-    {"\x1b[6;2~", SHIFT_PAGE_DOWN},
-    {"\x1b[5;5~", CTRL_PAGE_UP},
-    {"\x1b[6;5~", CTRL_PAGE_DOWN},
-    {"\x1b[5;6~", SHIFT_CTRL_PAGE_UP},
-    {"\x1b[6;6~", SHIFT_CTRL_PAGE_DOWN},
-
-    // O
-    {"\x1bOF", END_KEY},
-    {"\x1bOH", HOME_KEY},
+    {"[5;2~", SHIFT_PAGE_UP},
+    {"[6;2~", SHIFT_PAGE_DOWN},
+    {"[5;5~", CTRL_PAGE_UP},
+    {"[6;5~", CTRL_PAGE_DOWN},
+    {"[5;6~", SHIFT_CTRL_PAGE_UP},
+    {"[6;6~", SHIFT_CTRL_PAGE_DOWN},
 };
 
 int editorReadKey(int* x, int* y) {
     int nread;
-    char seq[32] = {0};
+    char c;
 
     *x = *y = 0;
 
-    while ((nread = read(STDIN_FILENO, &seq, sizeof(seq))) == 0) {
+    while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+        if (nread == -1 && errno != EAGAIN)
+            PANIC("read");
     }
 
-    if (nread == -1 && errno != EAGAIN)
-        PANIC("read");
+    if (c == ESC) {
+        char seq[16] = {0};
+        bool success = false;
+        if (read(STDIN_FILENO, &seq[0], 1) != 1)
+            return ESC;
+        if (seq[0] != '[')
+            return ESC;
+        for (size_t i = 1; i < sizeof(seq) - 1; i++) {
+            if (read(STDIN_FILENO, &seq[i], 1) != 1)
+                return ESC;
+            if (isupper(seq[i]) || seq[i] == 'm' || seq[i] == '~') {
+                success = true;
+                break;
+            }
+        }
 
-    if (seq[0] == ESC) {
-        if (nread < 3)
+        if (!success)
             return ESC;
 
-        if (seq[1] == '[' && seq[2] == '<' && E.mouse_mode) {
-            // Mouse input
-            char pos[16] = {0};
-            for (int i = 3; i < nread; i++) {
-                pos[i - 3] = seq[i];
-                if (seq[i] == 'm' || seq[i] == 'M')
-                    break;
-            }
-            pos[15] = '\0';
-
+        // Mouse input
+        if (seq[1] == '<' && E.mouse_mode) {
             int type;
             char m;
-            sscanf(pos, "%d;%d;%d%c", &type, x, y, &m);
+            sscanf(&seq[2], "%d;%d;%d%c", &type, x, y, &m);
             (*x)--;
             (*y)--;
             switch (type) {
@@ -181,14 +185,14 @@ int editorReadKey(int* x, int* y) {
             }
         }
 
-        for (size_t i = 0; i < sizeof(sequence_lookup) / sizeof(StrIntPair);
-             i++) {
+        for (size_t i = 0;
+             i < sizeof(sequence_lookup) / sizeof(sequence_lookup[0]); i++) {
             if (strcmp(sequence_lookup[i].str, seq) == 0) {
                 return sequence_lookup[i].value;
             }
         }
     }
-    return seq[0];
+    return c;
 }
 
 static int getCursorPos(int* rows, int* cols) {
