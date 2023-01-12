@@ -1,7 +1,7 @@
 # Compiler flags
 CC = gcc
 CFLAGS = -MMD -pedantic -std=gnu11 -Wall -Wextra
-RELEASE_CFLAGS = -Os -s
+RELEASE_CFLAGS = -Os
 DEBUG_CFLAGS = -g
 
 # Directories
@@ -23,7 +23,7 @@ all: release
 # Release build
 release: CFLAGS += $(RELEASE_CFLAGS)
 release: $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) -o $(EXE)
+	$(CC) $(CFLAGS) -s $(OBJECTS) -o $(EXE)
 
 # Debug build
 debug: CFLAGS += $(DEBUG_CFLAGS)
