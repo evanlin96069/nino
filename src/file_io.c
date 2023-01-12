@@ -1,7 +1,5 @@
 #include "file_io.h"
 
-#define _GNU_SOURCE
-
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>

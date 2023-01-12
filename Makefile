@@ -1,6 +1,6 @@
 # Compiler flags
 CC = gcc
-CFLAGS = -MMD -pedantic -std=c11 -Wall -Wextra
+CFLAGS = -MMD -pedantic -std=gnu11 -Wall -Wextra
 RELEASE_CFLAGS = -Os -s
 DEBUG_CFLAGS = -g
 
