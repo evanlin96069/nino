@@ -34,6 +34,7 @@ void editorInit() {
     E.dirty = 0;
     E.bracket_autocomplete = 0;
 
+    E.loading = true;
     E.filename = NULL;
     E.status_msg[0] = '\0';
     E.syntax = 0;

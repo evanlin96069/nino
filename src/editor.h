@@ -31,6 +31,7 @@ typedef struct Editor {
     int dirty;
     int bracket_autocomplete;
 
+    bool loading;
     char* filename;
     char status_msg[80];
     struct termios orig_termios;

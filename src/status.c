@@ -29,9 +29,9 @@ void editorDrawTopStatusBar(abuf* ab) {
     int title_len = strlen(title);
 
     char filename[255] = {0};
-    int filename_len =
-        snprintf(filename, sizeof(filename), "%s%s", E.dirty ? "*" : "",
-                 E.filename ? E.filename : "Untitled");
+    int filename_len = snprintf(
+        filename, sizeof(filename), "%s%s", E.dirty ? "*" : "",
+        E.filename ? E.filename : (E.loading ? "Loading..." : "Untitled"));
 
     if (cols <= filename_len) {
         abufAppendN(ab, &filename[filename_len - cols], cols);
