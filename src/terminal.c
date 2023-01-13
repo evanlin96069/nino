@@ -254,7 +254,8 @@ void enableMouse() {
 }
 
 void disableMouse() {
-    if (E.mouse_mode && write(STDOUT_FILENO, "\x1b[?1002l", 8) == 8)
+    if (E.mouse_mode &&
+        write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
         E.mouse_mode = 0;
 }
 
