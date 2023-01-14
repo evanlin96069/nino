@@ -96,7 +96,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 break;
 
             case MOUSE_PRESSED:
-                if(!isValidMousePos(x, y)) {
+                if (!isValidMousePos(x, y)) {
                     if (y == E.screen_rows - 2 && x >= start) {
                         size_t cx = x - start;
                         if (cx < buflen)

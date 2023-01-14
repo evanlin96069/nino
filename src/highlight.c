@@ -8,9 +8,6 @@
 
 void editorUpdateSyntax(EditorRow* row) {
     row->hl = realloc_s(row->hl, row->rsize);
-    row->is_selected = false;
-    row->selected = realloc_s(row->selected, row->rsize);
-    memset(row->selected, 0, row->rsize);
     memset(row->hl, HL_NORMAL, row->rsize);
     memset(row->hl, 0, row->rsize);
 

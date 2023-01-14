@@ -1,6 +1,7 @@
 #ifndef SELECT_H
 #define SELECT_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef struct EditorClipboard {
@@ -16,7 +17,7 @@ typedef struct EditorSelectRange {
 } EditorSelectRange;
 
 void getSelectStartEnd(EditorSelectRange* range);
-void editorSelectText();
+bool isPosSelected(int row, int col, EditorSelectRange range);
 
 void editorDeleteText(EditorSelectRange range);
 void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range);

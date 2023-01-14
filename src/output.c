@@ -33,7 +33,10 @@ void editorScroll() {
 }
 
 void editorDrawRows(abuf* ab) {
-    editorSelectText();
+    EditorSelectRange range = {0};
+    if (E.cursor.is_selected)
+        getSelectStartEnd(&range);
+
     for (int i = 0; i < E.rows; i++) {
         int current_row = i + E.row_offset;
         if (current_row < E.num_rows) {
@@ -65,9 +68,6 @@ void editorDrawRows(abuf* ab) {
                 len = E.cols;
             char* c = &(E.row[current_row].render[E.col_offset]);
             unsigned char* hl = &(E.row[current_row].hl[E.col_offset]);
-            unsigned char* selected =
-                &(E.row[current_row].selected[E.col_offset]);
-
             unsigned char current_color = HL_NORMAL;
             int has_bg = 0;
             colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
@@ -85,7 +85,8 @@ void editorDrawRows(abuf* ab) {
                     abufAppend(ab, buf);
                 } else {
                     unsigned char color = hl[j];
-                    if (E.cursor.is_selected && selected[j]) {
+                    if (E.cursor.is_selected &&
+                        isPosSelected(current_row, j + E.col_offset, range)) {
                         if (!has_bg) {
                             has_bg = 1;
                             colorToANSI(E.color_cfg.highlight[HL_SELECT], buf,
