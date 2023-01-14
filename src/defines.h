@@ -13,6 +13,7 @@
 #define HL_HIGHLIGHT_STRINGS (1 << 1)
 
 enum EditorKey {
+    UNKNOWN = -1,
     ESC = 27,
     BACKSPACE = 127,
     ARROW_UP = 1000,

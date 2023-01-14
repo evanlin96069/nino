@@ -3,6 +3,7 @@
 #include "defines.h"
 #include "editor.h"
 #include "input.h"
+#include "output.h"
 
 void editorGotoLine() {
     char* query = editorPrompt("Goto line: %s", GOTO_LINE_MODE, NULL);
@@ -16,6 +17,7 @@ void editorGotoLine() {
         E.cursor.x = 0;
         E.sx = 0;
         E.cursor.y = line - 1;
+        editorScroll();
     }
     if (query) {
         free(query);

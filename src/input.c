@@ -1,6 +1,7 @@
 #include "input.h"
 
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -16,6 +17,26 @@
 #include "status.h"
 #include "terminal.h"
 #include "utils.h"
+
+static bool isValidMousePos(int x, int y) {
+    if (y < 1 || y >= E.screen_rows - 2)
+        return false;
+    if (x < E.num_rows_digits + 1)
+        return false;
+    return true;
+}
+
+static bool mousePosToEditorPos(int* x, int* y) {
+    int row = E.row_offset + *y - 1;
+    if (row >= E.num_rows)
+        return false;
+    int col = *x - E.num_rows_digits - 1 + E.col_offset;
+    if (col > E.row[row].rsize)
+        col = E.row[row].rsize;
+    *x = col;
+    *y = row;
+    return true;
+}
 
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     int prev_state = E.state;
@@ -74,6 +95,24 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     idx++;
                 break;
 
+            case MOUSE_PRESSED:
+                if(!isValidMousePos(x, y)) {
+                    if (y == E.screen_rows - 2 && x >= start) {
+                        size_t cx = x - start;
+                        if (cx < buflen)
+                            idx = cx;
+                        else
+                            idx = buflen;
+                    }
+                    break;
+                }
+
+                if (mousePosToEditorPos(&x, &y)) {
+                    E.cursor.y = y;
+                    E.cursor.x = editorRowRxToCx(&E.row[y], x);
+                    E.sx = x;
+                }
+                // fall through
             case CTRL_KEY('q'):
             case ESC:
                 editorSetStatusMsg("");
@@ -94,7 +133,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 break;
 
             default:
-                if (!iscntrl(c) && c < 128) {
+                if (isprint(c)) {
                     if (buflen == bufsize - 1) {
                         bufsize *= 2;
                         buf = realloc_s(buf, bufsize);
@@ -104,6 +143,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     buf[idx] = c;
                     idx++;
                 }
+
                 if (callback)
                     callback(buf, c);
                 break;
@@ -224,47 +264,27 @@ static char isCloseBracket(int key) {
     }
 }
 
-static int isValidMousePos(int x, int y) {
-    if (y < 1 || y >= E.screen_rows - 2)
-        return 0;
-    if (x < E.num_rows_digits + 1)
-        return 0;
-    return 1;
-}
-
-static int mousePosToEditorPos(int* x, int* y) {
-    int row = E.row_offset + *y - 1;
-    if (row >= E.num_rows)
-        return 0;
-    int col = *x - E.num_rows_digits - 1 + E.col_offset;
-    if (col > E.row[row].rsize)
-        col = E.row[row].rsize;
-    *x = col;
-    *y = row;
-    return 1;
-}
-
 void editorProcessKeypress() {
-    static int quit_protect = 1;
-    static int pressed = 0;
+    static bool quit_protect = true;
+    static bool pressed = false;
     static int prev_x = 0;
     static int prev_y = 0;
 
     int x, y;
     int c = editorReadKey(&x, &y);
 
-    int should_scroll = 1;
+    bool should_scroll = true;
 
     editorSetStatusMsg("");
 
-    int should_record_action = 0;
+    bool should_record_action = false;
     EditorAction* action = calloc_s(1, sizeof(EditorAction));
     action->old_cursor = E.cursor;
 
     switch (c) {
         // Action: Newline
         case '\r': {
-            should_record_action = 1;
+            should_record_action = true;
 
             getSelectStartEnd(&action->deleted_range);
 
@@ -289,7 +309,7 @@ void editorProcessKeypress() {
             if (E.dirty && quit_protect) {
                 editorSetStatusMsg(
                     "File has unsaved changes. Press ^Q again to quit anyway.");
-                quit_protect = 0;
+                quit_protect = false;
                 return;
             }
             editorFree();
@@ -297,13 +317,13 @@ void editorProcessKeypress() {
             break;
 
         case CTRL_KEY('s'):
-            should_scroll = 0;
+            should_scroll = false;
             if (E.dirty)
                 editorSave(0);
             break;
 
         case CTRL_KEY('o'):
-            should_scroll = 0;
+            should_scroll = false;
             editorSave(1);
             break;
 
@@ -343,18 +363,21 @@ void editorProcessKeypress() {
             break;
 
         case CTRL_KEY('f'):
+            should_scroll = false;
             E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorFind();
             break;
 
         case CTRL_KEY('g'):
+            should_scroll = false;
             E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorGotoLine();
             break;
 
         case CTRL_KEY('p'):
+            should_scroll = false;
             E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
             editorSetting();
@@ -386,7 +409,7 @@ void editorProcessKeypress() {
                 }
             }
 
-            should_record_action = 1;
+            should_record_action = true;
 
             if (E.cursor.is_selected) {
                 getSelectStartEnd(&action->deleted_range);
@@ -396,7 +419,7 @@ void editorProcessKeypress() {
                 break;
             }
 
-            int should_delete_bracket =
+            bool should_delete_bracket =
                 E.bracket_autocomplete &&
                 (isCloseBracket(E.row[E.cursor.y].data[E.cursor.x]) ==
                      E.row[E.cursor.y].data[E.cursor.x - 1] ||
@@ -421,10 +444,10 @@ void editorProcessKeypress() {
             char deleted_char = E.row[E.cursor.y].data[E.cursor.x - 1];
             editorMoveCursor(ARROW_LEFT);
             if (CONVAR_GETINT(backspace) && deleted_char == ' ') {
-                int should_delete_tab = 1;
+                bool should_delete_tab = true;
                 for (int i = 0; i < E.cursor.x; i++) {
                     if (!isspace(E.row[E.cursor.y].data[i])) {
-                        should_delete_tab = 0;
+                        should_delete_tab = false;
                     }
                 }
                 if (should_delete_tab) {
@@ -446,7 +469,7 @@ void editorProcessKeypress() {
             if (!E.cursor.is_selected)
                 break;
 
-            should_record_action = 1;
+            should_record_action = true;
 
             getSelectStartEnd(&action->deleted_range);
             editorCopyText(&action->deleted_text, action->deleted_range);
@@ -463,7 +486,7 @@ void editorProcessKeypress() {
                 EditorSelectRange range;
                 getSelectStartEnd(&range);
                 editorCopyText(&E.clipboard, range);
-                should_scroll = 0;
+                should_scroll = false;
             } else {
                 // Copy line
                 EditorSelectRange range = {0, E.cursor.y,
@@ -477,7 +500,7 @@ void editorProcessKeypress() {
             if (!E.clipboard.size)
                 break;
 
-            should_record_action = 1;
+            should_record_action = true;
 
             getSelectStartEnd(&action->deleted_range);
 
@@ -628,7 +651,7 @@ void editorProcessKeypress() {
         // Action: Copy Line Down
         case SHIFT_ALT_UP:
         case SHIFT_ALT_DOWN:
-            should_record_action = 1;
+            should_record_action = true;
             E.cursor.is_selected = false;
             action->old_cursor.is_selected = 0;
             editorInsertRow(E.cursor.y, E.row[E.cursor.y].data,
@@ -658,7 +681,7 @@ void editorProcessKeypress() {
                     break;
             }
 
-            should_record_action = 1;
+            should_record_action = true;
 
             int old_cx = E.cursor.x;
             int old_cy = E.cursor.y;
@@ -715,15 +738,11 @@ void editorProcessKeypress() {
             E.cursor.select_y = old_select_y;
         } break;
 
-        case CTRL_KEY('l'):
-        case ESC:
-            break;
-
         // Mouse input
         case MOUSE_PRESSED:
             if (!isValidMousePos(x, y))
                 break;
-            pressed = 1;
+            pressed = true;
             prev_x = x;
             prev_y = y;
 
@@ -744,7 +763,7 @@ void editorProcessKeypress() {
                 break;
 
             if (c == MOUSE_RELEASED) {
-                pressed = 0;
+                pressed = false;
                 if (x == prev_x && y == prev_y)
                     break;
             }
@@ -762,7 +781,7 @@ void editorProcessKeypress() {
         case WHEEL_UP:
         case CTRL_UP: {
             int scroll_dist = (c == WHEEL_UP) ? 3 : 1;
-            should_scroll = 0;
+            should_scroll = false;
             if (E.row_offset - scroll_dist > 0)
                 E.row_offset -= scroll_dist;
             else
@@ -773,7 +792,7 @@ void editorProcessKeypress() {
         case WHEEL_DOWN:
         case CTRL_DOWN: {
             int scroll_dist = (c == WHEEL_DOWN) ? 3 : 1;
-            should_scroll = 0;
+            should_scroll = false;
             if (E.row_offset + E.rows + scroll_dist < E.num_rows)
                 E.row_offset += scroll_dist;
             else if (E.num_rows - E.rows < 0)
@@ -782,16 +801,14 @@ void editorProcessKeypress() {
                 E.row_offset = E.num_rows - E.rows;
         } break;
 
-        case SCROLL_PRESSED:
-        case SCROLL_RELEASED:
-            break;
-
         // Action: Input
         default: {
-            if (!isprint(c) && c != '\t')
+            if (!isprint(c) && c != '\t') {
+                should_scroll = false;
                 break;
+            }
 
-            should_record_action = 1;
+            should_record_action = true;
 
             getSelectStartEnd(&action->deleted_range);
 
@@ -851,7 +868,7 @@ void editorProcessKeypress() {
             E.cursor.is_selected = false;
 
             if (x_offset == -1) {
-                should_record_action = 0;
+                should_record_action = false;
             }
         } break;
     }
@@ -870,5 +887,5 @@ void editorProcessKeypress() {
 
     if (should_scroll)
         editorScroll();
-    quit_protect = 1;
+    quit_protect = true;
 }

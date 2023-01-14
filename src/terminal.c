@@ -141,10 +141,10 @@ int editorReadKey(int* x, int* y) {
         if (read(STDIN_FILENO, &seq[0], 1) != 1)
             return ESC;
         if (seq[0] != '[')
-            return ESC;
+            return seq[0];
         for (size_t i = 1; i < sizeof(seq) - 1; i++) {
             if (read(STDIN_FILENO, &seq[i], 1) != 1)
-                return ESC;
+                return UNKNOWN;
             if (isupper(seq[i]) || seq[i] == 'm' || seq[i] == '~') {
                 success = true;
                 break;
@@ -152,7 +152,7 @@ int editorReadKey(int* x, int* y) {
         }
 
         if (!success)
-            return ESC;
+            return UNKNOWN;
 
         // Mouse input
         if (seq[1] == '<' && E.mouse_mode) {
@@ -167,13 +167,13 @@ int editorReadKey(int* x, int* y) {
                         return MOUSE_PRESSED;
                     if (m == 'm')
                         return MOUSE_RELEASED;
-                    return ESC;
+                    return UNKNOWN;
                 case 1:
                     if (m == 'M')
                         return SCROLL_PRESSED;
                     if (m == 'm')
                         return SCROLL_RELEASED;
-                    return ESC;
+                    return UNKNOWN;
                 case 32:
                     return MOUSE_MOVE;
                 case 64:
@@ -181,7 +181,7 @@ int editorReadKey(int* x, int* y) {
                 case 65:
                     return WHEEL_DOWN;
                 default:
-                    return ESC;
+                    return UNKNOWN;
             }
         }
 
@@ -191,6 +191,7 @@ int editorReadKey(int* x, int* y) {
                 return sequence_lookup[i].value;
             }
         }
+        return UNKNOWN;
     }
     return c;
 }
@@ -250,13 +251,13 @@ void disableSwap() { UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8)); }
 void enableMouse() {
     if (!E.mouse_mode &&
         write(STDOUT_FILENO, "\x1b[?1002h\x1b[?1015h\x1b[?1006h", 24) == 24)
-        E.mouse_mode = 1;
+        E.mouse_mode = true;
 }
 
 void disableMouse() {
     if (E.mouse_mode &&
         write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
-        E.mouse_mode = 0;
+        E.mouse_mode = false;
 }
 
 static void SIGWINCH_handler(int sig) {
