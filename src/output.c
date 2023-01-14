@@ -1,6 +1,7 @@
 #include "output.h"
 
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -149,12 +150,12 @@ void editorRefreshScreen() {
     editorDrawStatusBar(&ab);
 
     char buf[32];
-    int should_show_cursor = 1;
+    bool should_show_cursor = 1;
     if (E.state == EDIT_MODE) {
         int row = (E.cursor.y - E.row_offset) + 2;
         int col = (E.rx - E.col_offset) + 1 + E.num_rows_digits + 1;
         if (row <= 1 || row > E.screen_rows - 2)
-            should_show_cursor = 0;
+            should_show_cursor = false;
         else
             snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row, col);
     } else {

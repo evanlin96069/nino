@@ -26,7 +26,7 @@ typedef struct Editor {
     int num_rows_digits;
 
     int state;
-    int mouse_mode;
+    bool mouse_mode;
 
     int dirty;
     int bracket_autocomplete;

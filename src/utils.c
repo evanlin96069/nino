@@ -94,15 +94,15 @@ int editorRowSxToCx(EditorRow* row, int sx) {
     return cx;
 }
 
-static int isValidColor(const char* color) {
+static bool isValidColor(const char* color) {
     if (strlen(color) != 6)
-        return 0;
+        return false;
     for (int i = 0; i < 6; i++) {
         if (!(('0' <= color[i]) || (color[i] <= '9') || ('A' <= color[i]) ||
               (color[i] <= 'F') || ('a' <= color[i]) || (color[i] <= 'f')))
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 Color strToColor(const char* color) {

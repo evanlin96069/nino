@@ -29,7 +29,7 @@ void editorInit() {
     E.row = NULL;
 
     E.state = EDIT_MODE;
-    E.mouse_mode = 0;
+    E.mouse_mode = false;
 
     E.dirty = 0;
     E.bracket_autocomplete = 0;
