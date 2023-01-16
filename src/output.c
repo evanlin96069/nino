@@ -86,7 +86,9 @@ void editorDrawRows(abuf* ab) {
                 } else {
                     unsigned char color = hl[j];
                     if (E.cursor.is_selected &&
-                        isPosSelected(i, j + E.col_offset, range)) {
+                        isPosSelected(
+                            i, editorRowRxToCx(&E.row[i], j + E.col_offset),
+                            range)) {
                         if (!in_select) {
                             in_select = true;
                             colorToANSI(E.color_cfg.highlight[HL_SELECT], buf,
