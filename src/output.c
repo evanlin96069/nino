@@ -37,12 +37,11 @@ void editorDrawRows(abuf* ab) {
     if (E.cursor.is_selected)
         getSelectStartEnd(&range);
 
-    for (int i = 0; i < E.rows; i++) {
-        int current_row = i + E.row_offset;
-        if (current_row < E.num_rows) {
+    for (int i = E.row_offset; i < E.row_offset + E.rows; i++) {
+        if (i < E.num_rows) {
             char line_number[16];
             char buf[32];
-            if (current_row == E.cursor.y) {
+            if (i == E.cursor.y) {
                 colorToANSI(E.color_cfg.line_number[1], buf, 0);
                 abufAppend(ab, buf);
                 colorToANSI(E.color_cfg.line_number[0], buf, 1);
@@ -54,20 +53,20 @@ void editorDrawRows(abuf* ab) {
                 abufAppend(ab, buf);
             }
             snprintf(line_number, sizeof(line_number), "%*d ",
-                     E.num_rows_digits, current_row + 1);
+                     E.num_rows_digits, i + 1);
             abufAppend(ab, line_number);
 
             abufAppend(ab, ANSI_CLEAR);
             colorToANSI(E.color_cfg.bg, buf, 1);
             abufAppend(ab, buf);
 
-            int len = E.row[current_row].rsize - E.col_offset;
+            int len = E.row[i].rsize - E.col_offset;
             if (len < 0)
                 len = 0;
             if (len > E.cols)
                 len = E.cols;
-            char* c = &(E.row[current_row].render[E.col_offset]);
-            unsigned char* hl = &(E.row[current_row].hl[E.col_offset]);
+            char* c = &(E.row[i].render[E.col_offset]);
+            unsigned char* hl = &(E.row[i].hl[E.col_offset]);
             unsigned char current_color = HL_NORMAL;
             bool in_select = false;
             bool has_bg = false;
@@ -87,7 +86,7 @@ void editorDrawRows(abuf* ab) {
                 } else {
                     unsigned char color = hl[j];
                     if (E.cursor.is_selected &&
-                        isPosSelected(current_row, j + E.col_offset, range)) {
+                        isPosSelected(i, j + E.col_offset, range)) {
                         if (!in_select) {
                             in_select = true;
                             colorToANSI(E.color_cfg.highlight[HL_SELECT], buf,
@@ -134,21 +133,11 @@ void editorDrawRows(abuf* ab) {
                 }
             }
             // Add newline character when selected
-            if (E.cursor.is_selected) {
-                int select_start, select_end;
-                if (E.cursor.y > E.cursor.select_y) {
-                    select_start = E.cursor.select_y;
-                    select_end = E.cursor.y;
-                } else {
-                    select_start = E.cursor.y;
-                    select_end = E.cursor.select_y;
-                }
-                if (select_end > current_row && current_row >= select_start &&
-                    E.col_offset + E.cols > E.row[i].rsize) {
-                    colorToANSI(E.color_cfg.highlight[HL_SELECT], buf, 1);
-                    abufAppend(ab, buf);
-                    abufAppend(ab, " ");
-                }
+            if (E.cursor.is_selected && range.end_y > i && i >= range.start_y &&
+                E.row[i].rsize - E.col_offset < E.cols) {
+                colorToANSI(E.color_cfg.highlight[HL_SELECT], buf, 1);
+                abufAppend(ab, buf);
+                abufAppend(ab, " ");
             }
             abufAppend(ab, ANSI_CLEAR);
             colorToANSI(E.color_cfg.bg, buf, 1);
