@@ -15,6 +15,7 @@ CONVAR(whitespace, "Use whitespace instead of tab.", "0");
 CONVAR(autoindent, "Enable auto indent.", "0");
 CONVAR(backspace, "Use hungry backspace.", "0");
 CONVAR(bracket, "Use auto bracket completion.", "0");
+CONVAR(trailing, "Highlight trailing spaces.", "0");
 CONVAR(syntax, "Enable syntax highlight.", "0");
 CONVAR(helpinfo, "Show the help information.", "1");
 
@@ -54,6 +55,7 @@ static const ColorElement color_element_map[] = {
     {"hl.number", &E.color_cfg.highlight[HL_NUMBER]},
     {"hl.match", &E.color_cfg.highlight[HL_MATCH]},
     {"hl.select", &E.color_cfg.highlight[HL_SELECT]},
+    {"hl.space", &E.color_cfg.highlight[HL_SPACE]},
 };
 
 CON_COMMAND(color, "Change the color of an element.") {
@@ -112,7 +114,8 @@ const EditorColorScheme color_default = {
                   {206, 145, 120},
                   {181, 206, 168},
                   {89, 46, 20},
-                  {38, 79, 120}},
+                  {38, 79, 120},
+                  {255, 100, 100}},
 };
 
 static void cvarCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
@@ -158,6 +161,7 @@ void editorInitCommands() {
     INIT_CONVAR(autoindent);
     INIT_CONVAR(backspace);
     INIT_CONVAR(bracket);
+    INIT_CONVAR(trailing);
     INIT_CONVAR(syntax);
     INIT_CONVAR(helpinfo);
 

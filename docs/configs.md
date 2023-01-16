@@ -9,6 +9,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `autoindent` | 0 | Enable auto indent. |
 | `backspace` | 0 | Use hungry backspace. |
 | `bracket` | 0 | Use auto bracket completion. |
+| `trailing` | 0 | Highlight trailing spaces. |
 | `syntax` | 0 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
 | `mouse` | cmd | Toggle. Enable mouse mode. |
@@ -40,10 +41,19 @@ When color code is `000000` it will be transparent.
 | `hl.number` | b5cea8 |
 | `hl.match` | 592e14 |
 | `hl.select` | 264f78 |
+| `hl.space` | ff6464 |
 
 ## Example
 An example of `~/.ninorc`.
 ```
+# command
+mouse
+
+# color
+color status.fg f3f3f3
+color status.bg 007acc
+
+# cvars
 tabsize 2
 whitespace 1
 autoindent 1
@@ -51,7 +61,4 @@ backspace 1
 bracket 1
 syntax 1
 helpinfo 0
-mouse
-color status.fg f3f3f3
-color status.bg 007acc
 ```

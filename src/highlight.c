@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "defines.h"
 
 void editorUpdateSyntax(EditorRow* row) {
@@ -11,11 +12,8 @@ void editorUpdateSyntax(EditorRow* row) {
     memset(row->hl, HL_NORMAL, row->rsize);
     memset(row->hl, 0, row->rsize);
 
-    if (!CONVAR_GETINT(syntax))
-        return;
-
-    if (!E.syntax)
-        return;
+    if (!CONVAR_GETINT(syntax) || !E.syntax)
+        goto update_trailing;
 
     const char** keywords = E.syntax->keywords;
 
@@ -127,6 +125,16 @@ void editorUpdateSyntax(EditorRow* row) {
     row->hl_open_comment = in_comment;
     if (changed && row->idx + 1 < E.num_rows)
         editorUpdateSyntax(&(E.row[row->idx + 1]));
+
+update_trailing:
+    if (CONVAR_GETINT(trailing)) {
+        for (int i = row->rsize - 1; i >= 0; i--) {
+            if (row->render[i] == ' ')
+                row->hl[i] = HL_SPACE;
+            else
+                break;
+        }
+    }
 }
 
 void editorSelectSyntaxHighlight() {

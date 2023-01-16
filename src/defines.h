@@ -57,7 +57,7 @@ enum EditorKey {
     SCROLL_RELEASED,
     MOUSE_MOVE,
     WHEEL_UP,
-    WHEEL_DOWN
+    WHEEL_DOWN,
 };
 
 enum EditorState {
@@ -65,7 +65,7 @@ enum EditorState {
     SAVE_AS_MODE,
     FIND_MODE,
     GOTO_LINE_MODE,
-    SETTING_MODE
+    SETTING_MODE,
 };
 
 enum EditorHighlight {
@@ -78,7 +78,8 @@ enum EditorHighlight {
     HL_NUMBER,
     HL_MATCH,
     HL_SELECT,
-    HL_TYPE_COUNT
+    HL_SPACE,
+    HL_TYPE_COUNT,
 };
 
 #endif

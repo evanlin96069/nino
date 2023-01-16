@@ -69,7 +69,8 @@ void editorDrawRows(abuf* ab) {
             char* c = &(E.row[current_row].render[E.col_offset]);
             unsigned char* hl = &(E.row[current_row].hl[E.col_offset]);
             unsigned char current_color = HL_NORMAL;
-            int has_bg = 0;
+            bool in_select = false;
+            bool has_bg = false;
             colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
             abufAppend(ab, buf);
             for (int j = 0; j < len; j++) {
@@ -87,28 +88,47 @@ void editorDrawRows(abuf* ab) {
                     unsigned char color = hl[j];
                     if (E.cursor.is_selected &&
                         isPosSelected(current_row, j + E.col_offset, range)) {
-                        if (!has_bg) {
-                            has_bg = 1;
+                        if (!in_select) {
+                            in_select = true;
                             colorToANSI(E.color_cfg.highlight[HL_SELECT], buf,
                                         1);
                             abufAppend(ab, buf);
                         }
-                    } else if (has_bg && color != HL_MATCH) {
-                        colorToANSI(E.color_cfg.bg, buf, 1);
-                        abufAppend(ab, buf);
+                    } else {
+                        in_select = false;
+                        // restore bg
+                        if (color == HL_MATCH || color == HL_SPACE) {
+                            colorToANSI(E.color_cfg.highlight[color], buf, 1);
+                            abufAppend(ab, buf);
+                        } else {
+                            colorToANSI(E.color_cfg.bg, buf, 1);
+                            abufAppend(ab, buf);
+                        }
                     }
+
                     if (color != current_color) {
                         current_color = color;
-                        abufAppend(ab, ANSI_DEFAULT_FG);
-                        if (color == HL_MATCH) {
-                            has_bg = 1;
+                        if (color == HL_MATCH || color == HL_SPACE) {
+                            has_bg = true;
                             colorToANSI(E.color_cfg.highlight[HL_NORMAL], buf,
                                         0);
-                            colorToANSI(E.color_cfg.highlight[color], buf, 1);
+                            abufAppend(ab, buf);
+                            if (!in_select) {
+                                colorToANSI(E.color_cfg.highlight[color], buf,
+                                            1);
+                                abufAppend(ab, buf);
+                            }
                         } else {
+                            if (has_bg) {
+                                has_bg = false;
+                                if (!in_select) {
+                                    colorToANSI(E.color_cfg.bg, buf, 1);
+                                    abufAppend(ab, buf);
+                                }
+                            }
                             colorToANSI(E.color_cfg.highlight[color], buf, 0);
+                            abufAppend(ab, buf);
                         }
-                        abufAppend(ab, buf);
                     }
                     abufAppendN(ab, &c[j], 1);
                 }
