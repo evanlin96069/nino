@@ -125,6 +125,11 @@ static void cvarCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
 }
 
 static void parseLine(char* line) {
+    // remove comment
+    char* hash = strchr(line, '#');
+    if (hash)
+        *hash = '\0';
+
     char* token = strtok(line, " ");
     EditorConCmdArgs args = {.argc = 0};
     for (int i = 0; token && i < 4; i++, args.argc++) {
@@ -162,14 +167,14 @@ void editorInitCommands() {
 }
 
 void editorLoadConfig() {
-    char path[256] = "";
+    char path[256] = {0};
     strncpy(path, getenv("HOME"), sizeof(path) - 1);
     strncat(path, "/.ninorc", sizeof(path) - 1);
     FILE* fp = fopen(path, "r");
     if (!fp)
         return;
 
-    char buf[128];
+    char buf[128] = {0};
     while (fgets(buf, sizeof(buf), fp)) {
         buf[strcspn(buf, "\r\n")] = '\0';
         parseLine(buf);
