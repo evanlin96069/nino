@@ -12,7 +12,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `trailing` | 0 | Highlight trailing spaces. |
 | `syntax` | 0 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
-| `mouse` | cmd | Toggle. Enable mouse mode. |
+| `mouse` | 0 | Enable mouse mode. |
 | `color` | cmd | Change the color of an element. |
 | `help` | cmd | Find help about a convar/concommand. |
 
@@ -45,20 +45,21 @@ When color code is `000000` it will be transparent.
 
 ## Example
 An example of `~/.ninorc`.
+
 ```
-# command
-mouse
-
-# color
-color status.fg f3f3f3
-color status.bg 007acc
-
 # cvars
 tabsize 2
 whitespace 1
 autoindent 1
 backspace 1
 bracket 1
+trailing 1
 syntax 1
 helpinfo 0
+mouse 1
+
+# color
+color status.fg f3f3f3
+color status.bg 007acc
+
 ```

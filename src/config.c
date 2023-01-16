@@ -19,15 +19,17 @@ CONVAR(trailing, "Highlight trailing spaces.", "0");
 CONVAR(syntax, "Enable syntax highlight.", "0");
 CONVAR(helpinfo, "Show the help information.", "1");
 
-CON_COMMAND(mouse, "Toggle. Enable mouse mode.") {
-    UNUSED(args.argc);
-    int mouse = !E.mouse_mode;
-    if (mouse) {
-        editorSetStatusMsg("Mouse mode ON.");
-        enableMouse();
-    } else {
-        editorSetStatusMsg("Mouse mode OFF.");
-        disableMouse();
+CON_COMMAND(mouse, "Enable mouse mode.") {
+    if (args.argc < 2) {
+        editorSetStatusMsg("mouse = %d - Enable mouse mode.", E.mouse_mode);
+        return;
+    }
+    bool mode = !!atoi(args.argv[1]);
+    if (E.mouse_mode != mode) {
+        if (mode)
+            enableMouse();
+        else
+            disableMouse();
     }
 }
 
