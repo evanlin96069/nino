@@ -38,6 +38,22 @@ static bool mousePosToEditorPos(int* x, int* y) {
     return true;
 }
 
+static void scrollUp(int dist) {
+    if (E.row_offset - dist > 0)
+        E.row_offset -= dist;
+    else
+        E.row_offset = 0;
+}
+
+static void scrollDown(int dist) {
+    if (E.row_offset + E.rows + dist < E.num_rows)
+        E.row_offset += dist;
+    else if (E.num_rows - E.rows < 0)
+        E.row_offset = 0;
+    else
+        E.row_offset = E.num_rows - E.rows;
+}
+
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     int prev_state = E.state;
     E.state = state;
@@ -93,6 +109,14 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             case ARROW_RIGHT:
                 if (idx < buflen)
                     idx++;
+                break;
+
+            case WHEEL_UP:
+                scrollUp(3);
+                break;
+
+            case WHEEL_DOWN:
+                scrollDown(3);
                 break;
 
             case MOUSE_PRESSED:
@@ -779,27 +803,17 @@ void editorProcessKeypress() {
 
         // Scroll up
         case WHEEL_UP:
-        case CTRL_UP: {
-            int scroll_dist = (c == WHEEL_UP) ? 3 : 1;
+        case CTRL_UP:
             should_scroll = false;
-            if (E.row_offset - scroll_dist > 0)
-                E.row_offset -= scroll_dist;
-            else
-                E.row_offset = 0;
-        } break;
+            scrollUp(c == WHEEL_UP ? 3 : 1);
+            break;
 
         // Scroll down
         case WHEEL_DOWN:
-        case CTRL_DOWN: {
-            int scroll_dist = (c == WHEEL_DOWN) ? 3 : 1;
+        case CTRL_DOWN:
             should_scroll = false;
-            if (E.row_offset + E.rows + scroll_dist < E.num_rows)
-                E.row_offset += scroll_dist;
-            else if (E.num_rows - E.rows < 0)
-                E.row_offset = 0;
-            else
-                E.row_offset = E.num_rows - E.rows;
-        } break;
+            scrollDown(c == WHEEL_DOWN ? 3 : 1);
+            break;
 
         // Action: Input
         default: {
