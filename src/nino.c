@@ -7,11 +7,8 @@
 int main(int argc, char* argv[]) {
     editorInit();
 
-    if (argc >= 2) {
-        editorOpen(argv[1]);
-    } else {
+    if (argc < 2 || !editorOpen(argv[1])) {
         editorInsertRow(0, "", 0);
-        E.dirty = 0;
     }
 
     E.loading = false;

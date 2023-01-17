@@ -36,16 +36,23 @@ static char* editroRowsToString(int* len) {
     return buf;
 }
 
-void editorOpen(char* filename) {
+bool editorOpen(char* filename) {
+    FILE* f = fopen(filename, "r+");
+
+    if (!f && errno != ENOENT) {
+        editorSetStatusMsg("Can't load! I/O error: %s", strerror(errno));
+        return false;
+    }
+
     free(E.filename);
     size_t fnlen = strlen(filename) + 1;
     E.filename = malloc_s(fnlen);
     memcpy(E.filename, filename, fnlen);
-
     editorSelectSyntaxHighlight();
 
-    FILE* f = fopen(filename, "r");
-    if (f) {
+    if (errno == ENOENT) {
+        editorInsertRow(E.cursor.y, "", 0);
+    } else {
         char* line = NULL;
         size_t cap = 0;
         ssize_t len;
@@ -64,10 +71,9 @@ void editorOpen(char* filename) {
         }
         free(line);
         fclose(f);
-    } else {
-        editorInsertRow(E.cursor.y, "", 0);
     }
     E.dirty = 0;
+    return true;
 }
 
 void editorSave(int save_as) {
