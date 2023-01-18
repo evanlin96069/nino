@@ -24,10 +24,15 @@ Also, see the original text editor the tutorial based on: [kilo](https://github.
 
 ## Quick Start
 ### Linux
+Build nino:
 ```
 git clone https://github.com/evanlin96069/nino.git
 cd nino
-make install
+sudo make install
+```
+Install the [example](docs/example.ninorc) config:
+```
+cp docs/example.ninorc ~/.ninorc
 ```
 
 ## Documentation

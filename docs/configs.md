@@ -44,22 +44,4 @@ When color code is `000000` it will be transparent.
 | `hl.space` | ff6464 |
 
 ## Example
-An example of `~/.ninorc`.
-
-```
-# cvars
-tabsize 2
-whitespace 1
-autoindent 1
-backspace 1
-bracket 1
-trailing 1
-syntax 1
-helpinfo 0
-mouse 1
-
-# color
-color status.fg f3f3f3
-color status.bg 007acc
-
-```
+An [example](example.ninorc) of `~/.ninorc`.
