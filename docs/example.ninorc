@@ -6,6 +6,7 @@ autoindent 1
 backspace 1
 bracket 1
 trailing 1
+ignorecase 2
 syntax 1
 mouse 1
 

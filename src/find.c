@@ -1,3 +1,6 @@
+#define _GNU_SOURCE
+
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -56,7 +59,7 @@ static void editorFindCallback(char* query, int key) {
         return;
     }
 
-    int len = strlen(query);
+    size_t len = strlen(query);
     if (len == 0)
         return;
 
@@ -77,7 +80,24 @@ static void editorFindCallback(char* query, int key) {
         for (int i = 0; i < E.num_rows; i++) {
             char* match = NULL;
             int col = 0;
-            while ((match = strstr(&E.row[i].data[col], query))) {
+            char* (*search_func)(const char*, const char*) = &strstr;
+
+            if (CONVAR_GETINT(ignorecase) == 1) {
+                search_func = &strcasestr;
+            } else if (CONVAR_GETINT(ignorecase) == 2) {
+                bool has_upper = false;
+                for (size_t i = 0; i < len; i++) {
+                    if (isupper(query[i])) {
+                        has_upper = true;
+                        break;
+                    }
+                }
+                if (!has_upper) {
+                    search_func = &strcasestr;
+                }
+            }
+
+            while ((match = (*search_func)(&E.row[i].data[col], query))) {
                 col = match - E.row[i].data;
                 FindList* node = malloc_s(sizeof(FindList));
 

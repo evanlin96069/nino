@@ -18,6 +18,7 @@ CONVAR(bracket, "Use auto bracket completion.", "0");
 CONVAR(trailing, "Highlight trailing spaces.", "0");
 CONVAR(syntax, "Enable syntax highlight.", "0");
 CONVAR(helpinfo, "Show the help information.", "1");
+CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smartcase.", "0");
 
 CON_COMMAND(mouse, "Enable mouse mode.") {
     if (args.argc < 2) {
@@ -166,6 +167,7 @@ void editorInitCommands() {
     INIT_CONVAR(trailing);
     INIT_CONVAR(syntax);
     INIT_CONVAR(helpinfo);
+    INIT_CONVAR(ignorecase);
 
     INIT_CONCOMMAND(mouse);
     INIT_CONCOMMAND(color);

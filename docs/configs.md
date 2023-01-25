@@ -12,6 +12,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `trailing` | 0 | Highlight trailing spaces. |
 | `syntax` | 0 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
+| `ignorecase` | 0 | Use case insensitive search. Set to 2 to use smartcase. |
 | `mouse` | 0 | Enable mouse mode. |
 | `color` | cmd | Change the color of an element. |
 | `help` | cmd | Find help about a convar/concommand. |

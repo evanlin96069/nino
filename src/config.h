@@ -16,8 +16,7 @@ extern EditorConCmd cvar_bracket;
 extern EditorConCmd cvar_trailing;
 extern EditorConCmd cvar_syntax;
 extern EditorConCmd cvar_helpinfo;
-extern EditorConCmd cvar_mouse;
-extern EditorConCmd ccmd_color;
+extern EditorConCmd cvar_ignorecase;
 
 typedef struct EditorColorScheme EditorColorScheme;
 
