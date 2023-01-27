@@ -8,7 +8,8 @@ static const char* C_HL_keywords[] = {
     "break",         "case",      "continue",  "default",    "do",
     "else",          "for",       "goto",      "if",         "return",
     "switch",        "while",     "#include",  "#define",    "#undef",
-    "#if",           "#ifdef",    "#ifndef",   "#error",     "#pragma",
+    "#if",           "#else",     "#elif",     "#endif",     "#",
+    "#ifdef",        "#ifndef",   "#error",    "#pragma",
 
     "auto|",         "char|",     "const|",    "double|",    "enum|",
     "extern|",       "float|",    "inline|",   "int|",       "long|",
