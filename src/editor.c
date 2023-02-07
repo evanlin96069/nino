@@ -36,7 +36,8 @@ void editorInit() {
 
     E.loading = true;
     E.filename = NULL;
-    E.status_msg[0] = '\0';
+    E.status_msg[0][0] = '\0';
+    E.status_msg[1][0] = '\0';
     E.syntax = 0;
 
     E.clipboard.size = 0;

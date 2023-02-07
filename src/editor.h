@@ -33,7 +33,7 @@ typedef struct Editor {
 
     bool loading;
     char* filename;
-    char status_msg[80];
+    char status_msg[2][64];
     struct termios orig_termios;
 
     EditorClipboard clipboard;

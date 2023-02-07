@@ -8,6 +8,7 @@
 #include "editor.h"
 #include "input.h"
 #include "output.h"
+#include "status.h"
 #include "terminal.h"
 #include "utils.h"
 
@@ -36,6 +37,9 @@ static void editorFindCallback(char* query, int key) {
     static unsigned char* saved_hl = NULL;
     static int saved_hl_len = 0;
 
+    static int total = 0;
+    static int current = 0;
+
     if (saved_hl && saved_hl_pos) {
         memcpy(saved_hl_pos, saved_hl, saved_hl_len);
         free(saved_hl);
@@ -45,7 +49,8 @@ static void editorFindCallback(char* query, int key) {
     }
 
     // Quit find mode
-    if (key == ESC || key == CTRL_KEY('q') || key == '\r') {
+    if (key == ESC || key == CTRL_KEY('q') || key == '\r' ||
+        key == MOUSE_PRESSED) {
         if (prev_query) {
             free(prev_query);
             prev_query = NULL;
@@ -56,16 +61,23 @@ static void editorFindCallback(char* query, int key) {
         }
         findListFree(head.next);
         head.next = NULL;
+        editorSetRStatusMsg("");
         return;
     }
 
     size_t len = strlen(query);
-    if (len == 0)
+    if (len == 0) {
+        editorSetRStatusMsg("");
         return;
+    }
 
     FindList* tail_node = NULL;
     if (!head.next || !prev_query || strcmp(prev_query, query) != 0) {
         // Recompute find list
+
+        total = 0;
+        current = 0;
+
         match_node = NULL;
         if (prev_query)
             free(prev_query);
@@ -107,19 +119,24 @@ static void editorFindCallback(char* query, int key) {
                 node->col = col;
                 cur->next = node;
                 cur = cur->next;
-
                 tail_node = cur;
 
-                if (!match_node &&
-                    ((i == E.cursor.y && col >= E.cursor.x) || i > E.cursor.y))
-                    match_node = cur;
-
+                total++;
+                if (!match_node) {
+                    current++;
+                    if (((i == E.cursor.y && col >= E.cursor.x) ||
+                         i > E.cursor.y)) {
+                        match_node = cur;
+                    }
+                }
                 col += len;
             }
         }
 
-        if (!head.next)
+        if (!head.next) {
+            editorSetRStatusMsg("  No results");
             return;
+        }
 
         if (!match_node)
             match_node = head.next;
@@ -128,18 +145,22 @@ static void editorFindCallback(char* query, int key) {
         head.next->prev = tail_node;
     }
 
-    if (!match_node)
-        return;
-
     if (key == ARROW_DOWN) {
         if (match_node->next) {
             match_node = match_node->next;
+            current++;
         } else {
             match_node = head.next;
+            current = 1;
         }
     } else if (key == ARROW_UP) {
         match_node = match_node->prev;
+        if (current == 1)
+            current = total;
+        else
+            current--;
     }
+    editorSetRStatusMsg("  %d of %d", current, total);
 
     E.cursor.x = match_node->col;
     E.cursor.y = match_node->row;

@@ -12,7 +12,14 @@
 void editorSetStatusMsg(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(E.status_msg, sizeof(E.status_msg), fmt, ap);
+    vsnprintf(E.status_msg[0], sizeof(E.status_msg[0]), fmt, ap);
+    va_end(ap);
+}
+
+void editorSetRStatusMsg(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(E.status_msg[1], sizeof(E.status_msg[1]), fmt, ap);
     va_end(ap);
 }
 
@@ -55,8 +62,30 @@ void editorDrawTopStatusBar(abuf* ab) {
     abufAppend(ab, "\r\n");
 }
 
-void editorDrawStatusBar(abuf* ab) {
+static void drawLeftRightMsg(abuf* ab, const char* left, const char* right) {
     int cols = E.cols + E.num_rows_digits + 1;
+    int len = strlen(left);
+    int rlen = strlen(right);
+
+    if (rlen > cols)
+        rlen = 0;
+    if (len + rlen > cols)
+        len = cols - rlen;
+
+    abufAppendN(ab, left, len);
+
+    while (len < cols) {
+        if (cols - len == rlen) {
+            abufAppendN(ab, right, rlen);
+            break;
+        } else {
+            abufAppend(ab, " ");
+            len++;
+        }
+    }
+}
+
+void editorDrawStatusBar(abuf* ab) {
     char buf[32];
     colorToANSI(E.color_cfg.status[0], buf, 0);
     abufAppend(ab, buf);
@@ -73,51 +102,24 @@ void editorDrawStatusBar(abuf* ab) {
     };
     if (CONVAR_GETINT(helpinfo))
         help_str = help_info[E.state];
-    int help_len = strlen(help_str);
 
-    char rstatus[80];
-    int rlen = snprintf(rstatus, sizeof(rstatus), "  %s | Ln: %d, Col: %d  ",
-                        E.syntax ? E.syntax->file_type : "Plain Text",
-                        E.cursor.y + 1, E.rx + 1);
+    char rstatus[64];
+    snprintf(rstatus, sizeof(rstatus), "  %s | Ln: %d, Col: %d  ",
+             E.syntax ? E.syntax->file_type : "Plain Text", E.cursor.y + 1,
+             E.rx + 1);
 
-    if (rlen > cols) {
-        rlen = 0;
-    }
-    if (help_len + rlen > cols)
-        help_len = cols - rlen;
-
-    abufAppendN(ab, help_str, help_len);
-
-    while (help_len < cols) {
-        if (cols - help_len == rlen) {
-            abufAppendN(ab, rstatus, rlen);
-            break;
-        } else {
-            abufAppend(ab, " ");
-            help_len++;
-        }
-    }
+    drawLeftRightMsg(ab, help_str, rstatus);
     abufAppend(ab, ANSI_CLEAR);
 }
 
 void editorDrawStatusMsgBar(abuf* ab) {
     char buf[32];
-    int cols = E.cols + E.num_rows_digits + 1;
 
     colorToANSI(E.color_cfg.prompt[0], buf, 0);
     abufAppend(ab, buf);
     colorToANSI(E.color_cfg.prompt[1], buf, 1);
     abufAppend(ab, buf);
 
-    int len = strlen(E.status_msg);
-    if (len > cols)
-        len = cols;
-    if (len)
-        abufAppendN(ab, E.status_msg, len);
-    while (len < cols) {
-        abufAppend(ab, " ");
-        len++;
-    }
-
+    drawLeftRightMsg(ab, E.status_msg[0], E.status_msg[1]);
     abufAppend(ab, "\r\n");
 }

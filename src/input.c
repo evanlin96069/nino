@@ -69,7 +69,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
         start++;
     }
     E.px = start;
-    while (1) {
+    while (true) {
         editorSetStatusMsg(prompt, buf);
         editorRefreshScreen();
         int x, y;
