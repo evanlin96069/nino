@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
 
     E.loading = false;
 
-    while (1) {
+    while (true) {
         editorRefreshScreen();
         editorProcessKeypress();
     }

@@ -162,7 +162,7 @@ void editorRefreshScreen() {
     editorDrawStatusBar(&ab);
 
     char buf[32];
-    bool should_show_cursor = 1;
+    bool should_show_cursor = true;
     if (E.state == EDIT_MODE) {
         int row = (E.cursor.y - E.row_offset) + 2;
         int col = (E.rx - E.col_offset) + 1 + E.num_rows_digits + 1;
