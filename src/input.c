@@ -140,10 +140,10 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             case CTRL_KEY('q'):
             case ESC:
                 editorSetStatusMsg("");
-                free(buf);
                 E.state = prev_state;
                 if (callback)
                     callback(buf, c);
+                free(buf);
                 return NULL;
 
             case '\r':
