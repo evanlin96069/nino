@@ -96,15 +96,15 @@ void editorDrawRows(abuf* ab) {
                             abufAppend(ab, buf);
                         }
                     } else {
-                        in_select = false;
                         // restore bg
                         if (color == HL_MATCH || color == HL_SPACE) {
                             colorToANSI(E.color_cfg.highlight[color], buf, 1);
                             abufAppend(ab, buf);
-                        } else {
+                        } else if (in_select) {
                             colorToANSI(E.color_cfg.bg, buf, 1);
                             abufAppend(ab, buf);
                         }
+                        in_select = false;
                     }
 
                     if (color != current_color) {
