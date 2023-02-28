@@ -77,7 +77,7 @@ CON_COMMAND(color, "Change the color of an element.") {
         }
     }
     if (!target) {
-        editorSetStatusMsg("Unknown element \"%s.\"", args.argv[1]);
+        editorSetStatusMsg("Unknown element \"%s\".", args.argv[1]);
         return;
     }
 
