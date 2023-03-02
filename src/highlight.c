@@ -8,9 +8,8 @@
 #include "defines.h"
 
 void editorUpdateSyntax(EditorRow* row) {
-    row->hl = realloc_s(row->hl, row->rsize);
-    memset(row->hl, HL_NORMAL, row->rsize);
-    memset(row->hl, 0, row->rsize);
+    row->hl = realloc_s(row->hl, row->size);
+    memset(row->hl, HL_NORMAL, row->size);
 
     if (!CONVAR_GETINT(syntax) || !E.syntax)
         goto update_trailing;
@@ -30,13 +29,13 @@ void editorUpdateSyntax(EditorRow* row) {
     int in_comment = (row->idx > 0 && E.row[row->idx - 1].hl_open_comment);
 
     int i = 0;
-    while (i < row->rsize) {
-        char c = row->render[i];
+    while (i < row->size) {
+        char c = row->data[i];
         unsigned char prev_hl = i > 0 ? row->hl[i - 1] : HL_NORMAL;
 
         if (scs_len && !in_string && !in_comment) {
-            if (!strncmp(&(row->render[i]), scs, scs_len)) {
-                memset(&(row->hl[i]), HL_COMMENT, row->rsize - i);
+            if (!strncmp(&(row->data[i]), scs, scs_len)) {
+                memset(&(row->hl[i]), HL_COMMENT, row->size - i);
                 break;
             }
         }
@@ -44,7 +43,7 @@ void editorUpdateSyntax(EditorRow* row) {
         if (mcs_len && mce_len && !in_string) {
             if (in_comment) {
                 row->hl[i] = HL_COMMENT;
-                if (!strncmp(&(row->render[i]), mce, mce_len)) {
+                if (!strncmp(&(row->data[i]), mce, mce_len)) {
                     memset(&(row->hl[i]), HL_COMMENT, mce_len);
                     i += mce_len;
                     in_comment = 0;
@@ -52,7 +51,7 @@ void editorUpdateSyntax(EditorRow* row) {
                 }
                 i++;
                 continue;
-            } else if (!strncmp(&(row->render[i]), mcs, mcs_len)) {
+            } else if (!strncmp(&(row->data[i]), mcs, mcs_len)) {
                 memset(&(row->hl[i]), HL_COMMENT, mcs_len);
                 i += mcs_len;
                 in_comment = 1;
@@ -63,7 +62,7 @@ void editorUpdateSyntax(EditorRow* row) {
         if (E.syntax->flags & HL_HIGHLIGHT_STRINGS) {
             if (in_string) {
                 row->hl[i] = HL_STRING;
-                if (c == '\\' && i + 1 < row->rsize) {
+                if (c == '\\' && i + 1 < row->size) {
                     row->hl[i + 1] = HL_STRING;
                     i += 2;
                     continue;
@@ -105,8 +104,8 @@ void editorUpdateSyntax(EditorRow* row) {
                 } else if (kw3) {
                     keyword_type = HL_KEYWORD3;
                 }
-                if (!strncmp(&(row->render[i]), keywords[j], klen) &&
-                    isSeparator(row->render[i + klen])) {
+                if (!strncmp(&(row->data[i]), keywords[j], klen) &&
+                    isSeparator(row->data[i + klen])) {
                     memset(&(row->hl[i]), keyword_type, klen);
                     i += klen;
                     break;
@@ -128,8 +127,8 @@ void editorUpdateSyntax(EditorRow* row) {
 
 update_trailing:
     if (CONVAR_GETINT(trailing)) {
-        for (int i = row->rsize - 1; i >= 0; i--) {
-            if (row->render[i] == ' ')
+        for (int i = row->size - 1; i >= 0; i--) {
+            if (row->data[i] == ' ' || row->data[i] == '\t')
                 row->hl[i] = HL_SPACE;
             else
                 break;

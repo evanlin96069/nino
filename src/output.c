@@ -15,7 +15,7 @@
 void editorScroll() {
     E.rx = 0;
     if (E.cursor.y < E.num_rows) {
-        E.rx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+        E.rx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
     }
 
     if (E.cursor.y < E.row_offset) {
@@ -60,20 +60,24 @@ void editorDrawRows(abuf* ab) {
             colorToANSI(E.color_cfg.bg, buf, 1);
             abufAppend(ab, buf);
 
-            int len = E.row[i].rsize - E.col_offset;
-            if (len < 0)
-                len = 0;
-            if (len > E.cols)
-                len = E.cols;
-            char* c = &(E.row[i].render[E.col_offset]);
-            unsigned char* hl = &(E.row[i].hl[E.col_offset]);
+            int col_offset = editorRowRxToCx(&E.row[i], E.col_offset);
+            int rlen = E.row[i].rsize - E.col_offset;
+            rlen = rlen > E.cols ? E.cols : rlen;
+            rlen += E.col_offset;
+
+            char* c = &E.row[i].data[col_offset];
+            unsigned char* hl = &(E.row[i].hl[col_offset]);
             unsigned char current_color = HL_NORMAL;
+
             bool in_select = false;
             bool has_bg = false;
+
             colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
             abufAppend(ab, buf);
-            for (int j = 0; j < len; j++) {
-                if (iscntrl(c[j])) {
+
+            // If rlen is calculated correctly, j shouldn't go out of bounds
+            for (int j = 0, rx = E.col_offset; rx < rlen; j++, rx++) {
+                if (iscntrl(c[j]) && c[j] != '\t') {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
                     abufAppend(ab, ANSI_INVERT);
                     abufAppendN(ab, &sym, 1);
@@ -86,9 +90,7 @@ void editorDrawRows(abuf* ab) {
                 } else {
                     unsigned char color = hl[j];
                     if (E.cursor.is_selected &&
-                        isPosSelected(
-                            i, editorRowRxToCx(&E.row[i], j + E.col_offset),
-                            range)) {
+                        isPosSelected(i, j + col_offset, range)) {
                         if (!in_select) {
                             in_select = true;
                             colorToANSI(E.color_cfg.highlight[HL_SELECT], buf,
@@ -101,10 +103,10 @@ void editorDrawRows(abuf* ab) {
                             colorToANSI(E.color_cfg.highlight[color], buf, 1);
                             abufAppend(ab, buf);
                         } else if (in_select) {
+                            in_select = false;
                             colorToANSI(E.color_cfg.bg, buf, 1);
                             abufAppend(ab, buf);
                         }
-                        in_select = false;
                     }
 
                     if (color != current_color) {
@@ -131,7 +133,17 @@ void editorDrawRows(abuf* ab) {
                             abufAppend(ab, buf);
                         }
                     }
-                    abufAppendN(ab, &c[j], 1);
+                    if (c[j] == '\t') {
+                        // TODO: Add show tab feature
+                        abufAppend(ab, " ");
+                        while ((rx + 1) % CONVAR_GETINT(tabsize) != 0 &&
+                               (rx + 1) < rlen) {
+                            abufAppend(ab, " ");
+                            rx++;
+                        }
+                    } else {
+                        abufAppendN(ab, &c[j], 1);
+                    }
                 }
             }
             // Add newline character when selected
@@ -166,7 +178,8 @@ void editorRefreshScreen() {
     if (E.state == EDIT_MODE) {
         int row = (E.cursor.y - E.row_offset) + 2;
         int col = (E.rx - E.col_offset) + 1 + E.num_rows_digits + 1;
-        if (row <= 1 || row > E.screen_rows - 2)
+        if (row <= 1 || row > E.screen_rows - 2 || col <= 1 ||
+            col > E.screen_cols)
             should_show_cursor = false;
         else
             snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row, col);

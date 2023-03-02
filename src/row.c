@@ -36,28 +36,7 @@ static void editorUpdateNumRowsDigits() {
 }
 
 void editorUpdateRow(EditorRow* row) {
-    int tabs = 0;
-    for (int i = 0; i < row->size; i++) {
-        if (row->data[i] == '\t')
-            tabs++;
-    }
-
-    free(row->render);
-    row->render = malloc_s(row->size + tabs * (CONVAR_GETINT(tabsize) - 1) + 1);
-
-    int idx = 0;
-    for (int i = 0; i < row->size; i++) {
-        if (row->data[i] == '\t') {
-            row->render[idx++] = ' ';
-            while (idx % CONVAR_GETINT(tabsize) != 0)
-                row->render[idx++] = ' ';
-        } else {
-            row->render[idx++] = row->data[i];
-        }
-    }
-    row->render[idx] = '\0';
-    row->rsize = idx;
-
+    row->rsize = editorRowCxToRx(row, row->size);
     editorUpdateSyntax(row);
 }
 
@@ -79,8 +58,6 @@ void editorInsertRow(int at, const char* s, size_t len) {
     memcpy(E.row[at].data, s, len);
     E.row[at].data[len] = '\0';
 
-    E.row[at].rsize = 0;
-    E.row[at].render = NULL;
     E.row[at].hl = NULL;
     E.row[at].hl_open_comment = 0;
     editorUpdateRow(&(E.row[at]));
@@ -91,7 +68,6 @@ void editorInsertRow(int at, const char* s, size_t len) {
 }
 
 void editorFreeRow(EditorRow* row) {
-    free(row->render);
     free(row->data);
     free(row->hl);
 }
