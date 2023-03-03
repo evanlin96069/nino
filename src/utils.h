@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stdint.h>
+
 #include "row.h"
 
 #define ANSI_CLEAR "\x1b[m"
@@ -29,6 +31,9 @@ void* realloc_s(void* ptr, size_t size);
 void abufAppend(abuf* ab, const char* s);
 void abufAppendN(abuf* ab, const char* s, size_t n);
 void abufFree(abuf* ab);
+
+int editorRowPreviousUTF8(EditorRow* row, int cx);
+int editorRowNextUTF8(EditorRow* row, int cx);
 
 int editorRowCxToRx(EditorRow* row, int cx);
 int editorRowRxToCx(EditorRow* row, int rx);

@@ -173,8 +173,7 @@ static void editorFindCallback(char* query, int key) {
         E.row_offset = 0;
     }
 
-    int rx = editorRowCxToRx(&E.row[match_node->row], match_node->col);
-    unsigned char* match_pos = &(E.row[match_node->row].hl[rx]);
+    unsigned char* match_pos = &(E.row[match_node->row].hl[match_node->col]);
     saved_hl_len = len;
     saved_hl_pos = match_pos;
     saved_hl = malloc_s(len + 1);

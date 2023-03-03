@@ -185,7 +185,8 @@ void editorMoveCursor(int key) {
     switch (key) {
         case ARROW_LEFT:
             if (E.cursor.x != 0) {
-                E.cursor.x--;
+                E.cursor.x =
+                    editorRowPreviousUTF8(&E.row[E.cursor.y], E.cursor.x);
                 E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             } else if (E.cursor.y > 0) {
                 E.cursor.y--;
@@ -196,7 +197,7 @@ void editorMoveCursor(int key) {
 
         case ARROW_RIGHT:
             if (row && E.cursor.x < row->size) {
-                E.cursor.x++;
+                E.cursor.x = editorRowNextUTF8(&E.row[E.cursor.y], E.cursor.x);
                 E.sx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
             } else if (row && (E.cursor.y + 1 < E.num_rows) &&
                        E.cursor.x == row->size) {
@@ -209,14 +210,14 @@ void editorMoveCursor(int key) {
         case ARROW_UP:
             if (E.cursor.y != 0) {
                 E.cursor.y--;
-                E.cursor.x = editorRowSxToCx(&(E.row[E.cursor.y]), E.sx);
+                E.cursor.x = editorRowRxToCx(&(E.row[E.cursor.y]), E.sx);
             }
             break;
 
         case ARROW_DOWN:
             if (E.cursor.y + 1 < E.num_rows) {
                 E.cursor.y++;
-                E.cursor.x = editorRowSxToCx(&(E.row[E.cursor.y]), E.sx);
+                E.cursor.x = editorRowRxToCx(&(E.row[E.cursor.y]), E.sx);
             }
             break;
     }
@@ -817,7 +818,7 @@ void editorProcessKeypress() {
 
         // Action: Input
         default: {
-            if (!isprint(c) && c != '\t') {
+            if ((c & 0x80) == 0 && (!isprint(c) && c != '\t')) {
                 should_scroll = false;
                 break;
             }

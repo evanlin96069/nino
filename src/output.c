@@ -11,6 +11,7 @@
 #include "highlight.h"
 #include "select.h"
 #include "status.h"
+#include "unicode.h"
 
 void editorScroll() {
     E.rx = 0;
@@ -61,8 +62,11 @@ void editorDrawRows(abuf* ab) {
             abufAppend(ab, buf);
 
             int col_offset = editorRowRxToCx(&E.row[i], E.col_offset);
+            int len = E.row[i].size - col_offset;
+            len = (len < 0) ? 0 : len;
+
             int rlen = E.row[i].rsize - E.col_offset;
-            rlen = rlen > E.cols ? E.cols : rlen;
+            rlen = (rlen > E.cols) ? E.cols : rlen;
             rlen += E.col_offset;
 
             char* c = &E.row[i].data[col_offset];
@@ -75,8 +79,9 @@ void editorDrawRows(abuf* ab) {
             colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
             abufAppend(ab, buf);
 
-            // If rlen is calculated correctly, j shouldn't go out of bounds
-            for (int j = 0, rx = E.col_offset; rx < rlen; j++, rx++) {
+            int j = 0;
+            int rx = E.col_offset;
+            while (rx < rlen) {
                 if (iscntrl(c[j]) && c[j] != '\t') {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
                     abufAppend(ab, ANSI_INVERT);
@@ -87,6 +92,9 @@ void editorDrawRows(abuf* ab) {
                     abufAppend(ab, buf);
                     colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
                     abufAppend(ab, buf);
+
+                    rx++;
+                    j++;
                 } else {
                     unsigned char color = hl[j];
                     if (E.cursor.is_selected &&
@@ -136,13 +144,24 @@ void editorDrawRows(abuf* ab) {
                     if (c[j] == '\t') {
                         // TODO: Add show tab feature
                         abufAppend(ab, " ");
-                        while ((rx + 1) % CONVAR_GETINT(tabsize) != 0 &&
-                               (rx + 1) < rlen) {
+                        rx++;
+                        while (rx % CONVAR_GETINT(tabsize) != 0 && rx < rlen) {
                             abufAppend(ab, " ");
                             rx++;
                         }
+                        j++;
                     } else {
-                        abufAppendN(ab, &c[j], 1);
+                        size_t byte_size;
+                        uint32_t unicode =
+                            decodeUTF8(&c[j], len - j, &byte_size);
+                        int width = unicodeWidth(unicode);
+                        if (width >= 0) {
+                            rx += width;
+                            // Make sure double won't exceed the screen
+                            if (rx <= rlen)
+                                abufAppendN(ab, &c[j], byte_size);
+                        }
+                        j += byte_size;
                     }
                 }
             }
