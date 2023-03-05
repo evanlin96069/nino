@@ -209,6 +209,8 @@ void editorRefreshScreen() {
 
     if (should_show_cursor)
         abufAppend(&ab, "\x1b[?25h");
+    else
+        abufAppend(&ab, "\x1b[?25l");
 
     UNUSED(write(STDOUT_FILENO, ab.buf, ab.len));
     abufFree(&ab);

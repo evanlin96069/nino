@@ -818,7 +818,8 @@ void editorProcessKeypress() {
 
         // Action: Input
         default: {
-            if ((c & 0x80) == 0 && (!isprint(c) && c != '\t')) {
+            if (c == UNKNOWN ||
+                ((c & 0x80) == 0 && (!isprint(c) && c != '\t'))) {
                 should_scroll = false;
                 break;
             }
