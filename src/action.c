@@ -5,9 +5,9 @@
 #include "editor.h"
 #include "terminal.h"
 
-void editorUndo() {
+bool editorUndo() {
     if (E.action_current == &E.action_head)
-        return;
+        return false;
 
     editorDeleteText(E.action_current->action->added_range);
     editorPasteText(&E.action_current->action->deleted_text,
@@ -16,11 +16,12 @@ void editorUndo() {
     E.cursor = E.action_current->action->old_cursor;
     E.action_current = E.action_current->prev;
     E.dirty--;
+    return true;
 }
 
-void editorRedo() {
+bool editorRedo() {
     if (!E.action_current->next)
-        return;
+        return false;
 
     E.action_current = E.action_current->next;
     editorDeleteText(E.action_current->action->deleted_range);
@@ -29,6 +30,7 @@ void editorRedo() {
                     E.action_current->action->added_range.start_y);
     E.cursor = E.action_current->action->new_cursor;
     E.dirty++;
+    return true;
 }
 
 void editorAppendAction(EditorAction* action) {

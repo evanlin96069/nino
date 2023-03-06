@@ -28,8 +28,8 @@ typedef struct EditorActionList {
     EditorAction* action;
 } EditorActionList;
 
-void editorUndo();
-void editorRedo();
+bool editorUndo();
+bool editorRedo();
 void editorAppendAction(EditorAction* action);
 void editorFreeActionList(EditorActionList* thisptr);
 void editorFreeAction(EditorAction* action);

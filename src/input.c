@@ -491,8 +491,10 @@ void editorProcessKeypress() {
 
         // Action: Cut
         case CTRL_KEY('x'): {
-            if (!E.cursor.is_selected)
+            if (!E.cursor.is_selected) {
+                should_scroll = false;
                 break;
+            }
 
             should_record_action = true;
 
@@ -507,11 +509,11 @@ void editorProcessKeypress() {
         // Copy
         case CTRL_KEY('c'): {
             editorFreeClipboardContent(&E.clipboard);
+            should_scroll = false;
             if (E.cursor.is_selected) {
                 EditorSelectRange range;
                 getSelectStartEnd(&range);
                 editorCopyText(&E.clipboard, range);
-                should_scroll = false;
             } else {
                 // Copy line
                 EditorSelectRange range = {0, E.cursor.y,
@@ -548,14 +550,14 @@ void editorProcessKeypress() {
         case CTRL_KEY('z'):
             E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
-            editorUndo();
+            should_scroll = editorUndo();
             break;
 
         // Redo
         case CTRL_KEY('y'):
             E.cursor.is_selected = false;
             E.bracket_autocomplete = 0;
-            editorRedo();
+            should_scroll = editorRedo();
             break;
 
         case SHIFT_PAGE_UP:
