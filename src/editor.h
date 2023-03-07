@@ -9,39 +9,7 @@
 #include "row.h"
 #include "select.h"
 
-#define MAX_EDITOR_FILE_SLOT 10
-
-typedef struct Editor {
-    // Raw screen size
-    int screen_rows;
-    int screen_cols;
-
-    // Text field size
-    int display_rows;
-
-    // Editor mode
-    bool loading;
-    int state;
-    bool mouse_mode;
-
-    // Cursor position for prompt
-    int px;
-
-    // Copy paste
-    EditorClipboard clipboard;
-
-    // Color settings
-    EditorColorScheme color_cfg;
-
-    // ConCmd linked list
-    EditorConCmd* cvars;
-
-    // For restore termios when exit
-    struct termios orig_termios;
-
-    // Button status message (left/right)
-    char status_msg[2][64];
-} Editor;
+#define EDITOR_FILE_MAX_SLOT 10
 
 typedef struct EditorFile {
     // Cursor position
@@ -76,6 +44,43 @@ typedef struct EditorFile {
     EditorActionList* action_current;
 } EditorFile;
 
+typedef struct Editor {
+    // Raw screen size
+    int screen_rows;
+    int screen_cols;
+
+    // Text field size
+    int display_rows;
+
+    // Editor mode
+    bool loading;
+    int state;
+    bool mouse_mode;
+
+    // Cursor position for prompt
+    int px;
+
+    // Copy paste
+    EditorClipboard clipboard;
+
+    // Color settings
+    EditorColorScheme color_cfg;
+
+    // ConCmd linked list
+    EditorConCmd* cvars;
+
+    // For restore termios when exit
+    struct termios orig_termios;
+
+    // Button status message (left/right)
+    char status_msg[2][64];
+
+    // Files
+    EditorFile files[EDITOR_FILE_MAX_SLOT];
+    int file_count;
+    int file_index;
+} Editor;
+
 // Text editor
 extern Editor gEditor;
 
@@ -83,7 +88,16 @@ extern Editor gEditor;
 extern EditorFile* gCurFile;
 
 void editorInit();
+void editorInitFile(EditorFile* file);
 void editorFree();
+void editorFreeFile(EditorFile* file);
+
+// Multiple files control
+int editorAddFile();
+void editorRemoveFile(int index);
+void editorChangeToFile(int index);
+
+// Edit (move this somewhere else?)
 void editorInsertChar(int c);
 void editorInsertNewline();
 void editorDelChar();

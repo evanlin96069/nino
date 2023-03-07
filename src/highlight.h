@@ -3,7 +3,7 @@
 
 #include "editor.h"
 
-void editorUpdateSyntax(EditorRow* row);
-void editorSelectSyntaxHighlight();
+void editorUpdateSyntax(EditorFile* file, EditorRow* row);
+void editorSelectSyntaxHighlight(EditorFile* file);
 
 #endif

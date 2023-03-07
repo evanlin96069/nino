@@ -135,11 +135,11 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         size_t paste_len = strlen(paste);
 
         row->data = realloc_s(row->data, row->size + paste_len + 1);
-        memmove(&(row->data[x + paste_len]), &(row->data[x]), row->size - x);
-        memcpy(&(row->data[x]), paste, paste_len);
+        memmove(&row->data[x + paste_len], &row->data[x], row->size - x);
+        memcpy(&row->data[x], paste, paste_len);
         row->size += paste_len;
         row->data[row->size] = '\0';
-        editorUpdateRow(row);
+        editorUpdateRow(gCurFile, row);
         gCurFile->cursor.x += paste_len;
     } else {
         // First line
@@ -160,17 +160,17 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         size_t paste_len = strlen(paste);
 
         row->data = realloc_s(row->data, row->size + paste_len + 1);
-        memmove(&(row->data[paste_len]), row->data, row->size);
+        memmove(&row->data[paste_len], row->data, row->size);
         memcpy(row->data, paste, paste_len);
         row->size += paste_len;
         row->data[row->size] = '\0';
-        editorUpdateRow(row);
+        editorUpdateRow(gCurFile, row);
 
         gCurFile->cursor.y = y + clipboard->size - 1;
         gCurFile->cursor.x = paste_len;
     }
-    gCurFile->sx = editorRowCxToRx(&(gCurFile->row[gCurFile->cursor.y]),
-                                   gCurFile->cursor.x);
+    gCurFile->sx =
+        editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
 }
 
 void editorFreeClipboardContent(EditorClipboard* clipboard) {

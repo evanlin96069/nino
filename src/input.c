@@ -347,19 +347,21 @@ void editorProcessKeypress() {
                 quit_protect = false;
                 return;
             }
-            editorFree();
-            exit(EXIT_SUCCESS);
-            break;
+            editorRemoveFile(gEditor.file_index);
+            if (gEditor.file_index != 0) {
+                editorChangeToFile(gEditor.file_index - 1);
+            }
+            return;
 
         case CTRL_KEY('s'):
             should_scroll = false;
             if (gCurFile->dirty)
-                editorSave(0);
+                editorSave(gCurFile, 0);
             break;
 
         case CTRL_KEY('o'):
             should_scroll = false;
-            editorSave(1);
+            editorSave(gCurFile, 1);
             break;
 
         case HOME_KEY:

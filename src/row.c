@@ -34,9 +34,9 @@ static void editorUpdateNumRowsDigits() {
     }
 }
 
-void editorUpdateRow(EditorRow* row) {
+void editorUpdateRow(EditorFile* file, EditorRow* row) {
     row->rsize = editorRowCxToRx(row, row->size);
-    editorUpdateSyntax(row);
+    editorUpdateSyntax(file, row);
 }
 
 void editorInsertRow(int at, const char* s, size_t len) {
@@ -60,7 +60,7 @@ void editorInsertRow(int at, const char* s, size_t len) {
 
     gCurFile->row[at].hl = NULL;
     gCurFile->row[at].hl_open_comment = 0;
-    editorUpdateRow(&(gCurFile->row[at]));
+    editorUpdateRow(gCurFile, &gCurFile->row[at]);
 
     gCurFile->num_rows++;
 
@@ -90,24 +90,24 @@ void editorRowInsertChar(EditorRow* row, int at, int c) {
     if (at < 0 || at > row->size)
         at = row->size;
     row->data = realloc_s(row->data, row->size + 2);
-    memmove(&(row->data[at + 1]), &(row->data[at]), row->size - at + 1);
+    memmove(&row->data[at + 1], &row->data[at], row->size - at + 1);
     row->size++;
     row->data[at] = c;
-    editorUpdateRow(row);
+    editorUpdateRow(gCurFile, row);
 }
 
 void editorRowDelChar(EditorRow* row, int at) {
     if (at < 0 || at >= row->size)
         return;
-    memmove(&(row->data[at]), &(row->data[at + 1]), row->size - at);
+    memmove(&row->data[at], &row->data[at + 1], row->size - at);
     row->size--;
-    editorUpdateRow(row);
+    editorUpdateRow(gCurFile, row);
 }
 
 void editorRowAppendString(EditorRow* row, const char* s, size_t len) {
     row->data = realloc_s(row->data, row->size + len + 1);
-    memcpy(&(row->data[row->size]), s, len);
+    memcpy(&row->data[row->size], s, len);
     row->size += len;
     row->data[row->size] = '\0';
-    editorUpdateRow(row);
+    editorUpdateRow(gCurFile, row);
 }

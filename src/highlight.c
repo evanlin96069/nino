@@ -7,18 +7,18 @@
 #include "config.h"
 #include "defines.h"
 
-void editorUpdateSyntax(EditorRow* row) {
+void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
     row->hl = realloc_s(row->hl, row->size);
     memset(row->hl, HL_NORMAL, row->size);
 
-    if (!CONVAR_GETINT(syntax) || !gCurFile->syntax)
+    if (!CONVAR_GETINT(syntax) || !file->syntax)
         goto update_trailing;
 
-    const char** keywords = gCurFile->syntax->keywords;
+    const char** keywords = file->syntax->keywords;
 
-    const char* scs = gCurFile->syntax->singleline_comment_start;
-    const char* mcs = gCurFile->syntax->multiline_comment_start;
-    const char* mce = gCurFile->syntax->multiline_comment_end;
+    const char* scs = file->syntax->singleline_comment_start;
+    const char* mcs = file->syntax->multiline_comment_start;
+    const char* mce = file->syntax->multiline_comment_end;
 
     int scs_len = scs ? strlen(scs) : 0;
     int mcs_len = mcs ? strlen(mcs) : 0;
@@ -26,8 +26,7 @@ void editorUpdateSyntax(EditorRow* row) {
 
     int prev_sep = 1;
     int in_string = 0;
-    int in_comment =
-        (row->idx > 0 && gCurFile->row[row->idx - 1].hl_open_comment);
+    int in_comment = (row->idx > 0 && file->row[row->idx - 1].hl_open_comment);
 
     int i = 0;
     while (i < row->size) {
@@ -60,7 +59,7 @@ void editorUpdateSyntax(EditorRow* row) {
             }
         }
 
-        if (gCurFile->syntax->flags & HL_HIGHLIGHT_STRINGS) {
+        if (file->syntax->flags & HL_HIGHLIGHT_STRINGS) {
             if (in_string) {
                 row->hl[i] = HL_STRING;
                 if (c == '\\' && i + 1 < row->size) {
@@ -81,7 +80,7 @@ void editorUpdateSyntax(EditorRow* row) {
             }
         }
 
-        if (gCurFile->syntax->flags & HL_HIGHLIGHT_NUMBERS) {
+        if (file->syntax->flags & HL_HIGHLIGHT_NUMBERS) {
             if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
                 ((c == '.' || c == 'x' || c == 'X') && prev_hl == HL_NUMBER)) {
                 row->hl[i] = HL_NUMBER;
@@ -123,8 +122,8 @@ void editorUpdateSyntax(EditorRow* row) {
     }
     int changed = (row->hl_open_comment != in_comment);
     row->hl_open_comment = in_comment;
-    if (changed && row->idx + 1 < gCurFile->num_rows)
-        editorUpdateSyntax(&(gCurFile->row[row->idx + 1]));
+    if (changed && row->idx + 1 < file->num_rows)
+        editorUpdateSyntax(file, &file->row[row->idx + 1]);
 
 update_trailing:
     if (CONVAR_GETINT(trailing)) {
@@ -137,12 +136,12 @@ update_trailing:
     }
 }
 
-void editorSelectSyntaxHighlight() {
-    gCurFile->syntax = NULL;
-    if (gCurFile->filename == NULL)
+void editorSelectSyntaxHighlight(EditorFile* file) {
+    file->syntax = NULL;
+    if (file->filename == NULL)
         return;
 
-    char* ext = strrchr(gCurFile->filename, '.');
+    char* ext = strrchr(file->filename, '.');
 
     for (unsigned int i = 0; i < HLDB_ENTRIES; i++) {
         const EditorSyntax* s = &HLDB[i];
@@ -150,12 +149,11 @@ void editorSelectSyntaxHighlight() {
         while (s->file_match[j]) {
             int is_ext = (s->file_match[j][0] == '.');
             if ((is_ext && ext && !strcmp(ext, s->file_match[j])) ||
-                (!is_ext && strstr(gCurFile->filename, s->file_match[j]))) {
-                gCurFile->syntax = s;
+                (!is_ext && strstr(file->filename, s->file_match[j]))) {
+                file->syntax = s;
 
-                for (int file_row = 0; file_row < gCurFile->num_rows;
-                     file_row++) {
-                    editorUpdateSyntax(&(gCurFile->row[file_row]));
+                for (int file_row = 0; file_row < file->num_rows; file_row++) {
+                    editorUpdateSyntax(file, &file->row[file_row]);
                 }
 
                 return;

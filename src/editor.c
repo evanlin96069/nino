@@ -1,6 +1,7 @@
 #include "editor.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "config.h"
 #include "defines.h"
@@ -11,13 +12,16 @@
 Editor gEditor;
 EditorFile* gCurFile;
 
-static EditorFile f;  // temporary placeholder
-
 void editorInit() {
     enableRawMode();
     enableSwap();
 
-    gCurFile = &f;
+    gEditor.file_count = 0;
+    gEditor.file_index = 0;
+
+    // Set current file to 0 before load
+    editorInitFile(&gEditor.files[0]);
+    gCurFile = &gEditor.files[0];
 
     gEditor.screen_rows = 0;
     gEditor.screen_cols = 0;
@@ -38,34 +42,6 @@ void editorInit() {
     gEditor.status_msg[0][0] = '\0';
     gEditor.status_msg[1][0] = '\0';
 
-    gCurFile->cursor.x = 0;
-    gCurFile->cursor.y = 0;
-    gCurFile->cursor.is_selected = false;
-    gCurFile->cursor.select_x = 0;
-    gCurFile->cursor.select_y = 0;
-
-    gCurFile->sx = 0;
-
-    gCurFile->bracket_autocomplete = 0;
-
-    gCurFile->row_offset = 0;
-    gCurFile->col_offset = 0;
-
-    gCurFile->num_rows = 0;
-    gCurFile->num_rows_digits = 0;
-
-    gCurFile->dirty = 0;
-    gCurFile->filename = NULL;
-
-    gCurFile->row = NULL;
-
-    gCurFile->syntax = 0;
-
-    gCurFile->action_head.action = NULL;
-    gCurFile->action_head.next = NULL;
-    gCurFile->action_head.prev = NULL;
-    gCurFile->action_current = &gCurFile->action_head;
-
     editorInitCommands();
     editorLoadConfig();
 
@@ -76,14 +52,80 @@ void editorInit() {
 }
 
 void editorFree() {
-    // TODO: Multi-file support
-    for (int i = 0; i < gCurFile->num_rows; i++) {
-        editorFreeRow(&gCurFile->row[i]);
+    for (int i = 0; i < gEditor.file_count; i++) {
+        editorFreeFile(&gEditor.files[i]);
     }
     editorFreeClipboardContent(&gEditor.clipboard);
-    editorFreeActionList(gCurFile->action_head.next);
-    free(gCurFile->row);
-    free(gCurFile->filename);
+}
+
+void editorFreeFile(EditorFile* file) {
+    for (int i = 0; i < file->num_rows; i++) {
+        editorFreeRow(&file->row[i]);
+    }
+    editorFreeActionList(file->action_head.next);
+    free(file->row);
+    free(file->filename);
+}
+
+int editorAddFile() {
+    if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT)
+        return -1;
+    EditorFile* file = &gEditor.files[gEditor.file_count++];
+    editorInitFile(file);
+    return gEditor.file_count - 1;
+}
+
+void editorRemoveFile(int index) {
+    if (index > gEditor.file_count)
+        return;
+
+    EditorFile* file = &gEditor.files[index];
+    editorFreeFile(file);
+    if (file == &gEditor.files[gEditor.file_count]) {
+        // file is at the end
+        gEditor.file_count--;
+        return;
+    }
+    memmove(file, &gEditor.files[index + 1],
+            sizeof(EditorFile) * (gEditor.file_count - index));
+    gEditor.file_count--;
+}
+
+void editorChangeToFile(int index) {
+    if (index >= gEditor.file_count)
+        return;
+    gEditor.file_index = index;
+    gCurFile = &gEditor.files[index];
+}
+
+void editorInitFile(EditorFile* file) {
+    file->cursor.x = 0;
+    file->cursor.y = 0;
+    file->cursor.is_selected = false;
+    file->cursor.select_x = 0;
+    file->cursor.select_y = 0;
+
+    file->sx = 0;
+
+    file->bracket_autocomplete = 0;
+
+    file->row_offset = 0;
+    file->col_offset = 0;
+
+    file->num_rows = 0;
+    file->num_rows_digits = 0;
+
+    file->dirty = 0;
+    file->filename = NULL;
+
+    file->row = NULL;
+
+    file->syntax = 0;
+
+    file->action_head.action = NULL;
+    file->action_head.next = NULL;
+    file->action_head.prev = NULL;
+    file->action_current = &file->action_head;
 }
 
 void editorInsertChar(int c) {
@@ -137,7 +179,7 @@ void editorInsertNewline() {
                               curr_row->size - gCurFile->cursor.x);
         curr_row->size = gCurFile->cursor.x;
         curr_row->data[curr_row->size] = '\0';
-        editorUpdateRow(curr_row);
+        editorUpdateRow(gCurFile, curr_row);
     }
     gCurFile->cursor.y++;
     gCurFile->cursor.x = i;

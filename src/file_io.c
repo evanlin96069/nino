@@ -15,20 +15,20 @@
 #include "row.h"
 #include "status.h"
 
-static char* editroRowsToString(int* len) {
+static char* editroRowsToString(EditorFile* file, int* len) {
     int total_len = 0;
-    for (int i = 0; i < gCurFile->num_rows; i++) {
-        total_len += gCurFile->row[i].size + 1;
+    for (int i = 0; i < file->num_rows; i++) {
+        total_len += file->row[i].size + 1;
     }
     // last line no newline
     *len = total_len - 1;
 
     char* buf = malloc_s(total_len);
     char* p = buf;
-    for (int i = 0; i < gCurFile->num_rows; i++) {
-        memcpy(p, gCurFile->row[i].data, gCurFile->row[i].size);
-        p += gCurFile->row[i].size;
-        if (i != gCurFile->num_rows - 1)
+    for (int i = 0; i < file->num_rows; i++) {
+        memcpy(p, file->row[i].data, file->row[i].size);
+        p += file->row[i].size;
+        if (i != file->num_rows - 1)
             *p = '\n';
         p++;
     }
@@ -36,7 +36,7 @@ static char* editroRowsToString(int* len) {
     return buf;
 }
 
-bool editorOpen(char* filename) {
+bool editorOpen(EditorFile* file, char* filename) {
     FILE* f = fopen(filename, "r+");
 
     if (!f && errno != ENOENT) {
@@ -44,14 +44,14 @@ bool editorOpen(char* filename) {
         return false;
     }
 
-    free(gCurFile->filename);
+    free(file->filename);
     size_t fnlen = strlen(filename) + 1;
-    gCurFile->filename = malloc_s(fnlen);
-    memcpy(gCurFile->filename, filename, fnlen);
-    editorSelectSyntaxHighlight();
+    file->filename = malloc_s(fnlen);
+    memcpy(file->filename, filename, fnlen);
+    editorSelectSyntaxHighlight(file);
 
     if (errno == ENOENT) {
-        editorInsertRow(gCurFile->cursor.y, "", 0);
+        editorInsertRow(file->cursor.y, "", 0);
     } else {
         char* line = NULL;
         size_t cap = 0;
@@ -64,39 +64,39 @@ bool editorOpen(char* filename) {
                 end_nl = 1;
                 len--;
             }
-            editorInsertRow(gCurFile->num_rows, line, len);
+            editorInsertRow(file->num_rows, line, len);
         }
         if (end_nl) {
-            editorInsertRow(gCurFile->num_rows, "", 0);
+            editorInsertRow(file->num_rows, "", 0);
         }
         free(line);
         fclose(f);
     }
-    gCurFile->dirty = 0;
+    file->dirty = 0;
     return true;
 }
 
-void editorSave(int save_as) {
-    if (!gCurFile->filename || save_as) {
+void editorSave(EditorFile* file, int save_as) {
+    if (!file->filename || save_as) {
         char* filename = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
         if (!filename) {
             editorSetStatusMsg("Save aborted.");
             return;
         }
-        free(gCurFile->filename);
-        gCurFile->filename = filename;
-        editorSelectSyntaxHighlight();
+        free(file->filename);
+        file->filename = filename;
+        editorSelectSyntaxHighlight(file);
     }
     int len;
-    char* buf = editroRowsToString(&len);
+    char* buf = editroRowsToString(file, &len);
 
-    int fd = open(gCurFile->filename, O_RDWR | O_CREAT, 0644);
+    int fd = open(file->filename, O_RDWR | O_CREAT, 0644);
     if (fd != -1) {
         if (ftruncate(fd, len) != -1) {
             if (write(fd, buf, len) == len) {
                 close(fd);
                 free(buf);
-                gCurFile->dirty = 0;
+                file->dirty = 0;
                 editorSetStatusMsg("%d bytes written to disk.", len);
                 return;
             }

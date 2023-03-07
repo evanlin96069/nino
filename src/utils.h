@@ -6,7 +6,10 @@
 #include "row.h"
 
 #define ANSI_CLEAR "\x1b[m"
+#define ANSI_UNDERLINE "\x1b[4m"
+#define ANSI_NOT_UNDERLINE "\x1b[24m"
 #define ANSI_INVERT "\x1b[7m"
+#define ANSI_NOT_INVERT "\x1b[27m"
 #define ANSI_DEFAULT_FG "\x1b[39m"
 #define ANSI_DEFAULT_BG "\x1b[49m"
 

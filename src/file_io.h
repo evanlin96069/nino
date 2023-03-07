@@ -3,7 +3,9 @@
 
 #include <stdbool.h>
 
-bool editorOpen(char* filename);
-void editorSave(int save_as);
+#include "editor.h"
+
+bool editorOpen(EditorFile* file, char* filename);
+void editorSave(EditorFile* file, int save_as);
 
 #endif

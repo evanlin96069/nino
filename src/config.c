@@ -105,6 +105,14 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
     editorSetStatusMsg("\"%s\" - %s", cmd->name, cmd->help_string);
 }
 
+CON_COMMAND(slot, "Change current file slot.") {
+    if (args.argc != 2) {
+        editorSetStatusMsg("Usage: slot <index>");
+        return;
+    }
+    editorChangeToFile(atoi(args.argv[1]));
+}
+
 const EditorColorScheme color_default = {
     .bg = {0, 0, 0},
     .top_status = {{229, 229, 229}, {28, 28, 28}},
@@ -174,6 +182,7 @@ void editorInitCommands() {
     INIT_CONCOMMAND(mouse);
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(help);
+    INIT_CONCOMMAND(slot);
 }
 
 void editorLoadConfig() {
@@ -198,8 +207,11 @@ void editorSetting() {
         return;
 
     parseLine(query);
-    for (int i = 0; i < gCurFile->num_rows; i++) {
-        editorUpdateRow(&gCurFile->row[i]);
+    // TODO: only update when actully needed
+    for (int i = 0; i < gEditor.file_count; i++) {
+        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
+            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
+        }
     }
 
     free(query);

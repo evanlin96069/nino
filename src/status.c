@@ -30,32 +30,48 @@ void editorDrawTopStatusBar(abuf* ab) {
     colorToANSI(gEditor.color_cfg.top_status[1], buf, 1);
     abufAppend(ab, buf);
 
-    int cols = gEditor.screen_cols;
+    const char* right_buf = "  nino v" EDITOR_VERSION " ";
+    int rlen = strlen(right_buf);
 
-    const char* title = "  nino v" EDITOR_VERSION " ";
-    int title_len = strlen(title);
-
-    char filename[255] = {0};
-    int filename_len = snprintf(
-        filename, sizeof(filename), "%s%s", gCurFile->dirty ? "*" : "",
-        gCurFile->filename ? gCurFile->filename
-                           : (gEditor.loading ? "Loading..." : "Untitled"));
-
-    if (cols <= filename_len) {
-        abufAppendN(ab, &filename[filename_len - cols], cols);
+    int len = 0;
+    if (gEditor.loading) {
+        const char* loading_text = "Loading...";
+        int loading_text_len = sizeof(loading_text);
+        abufAppendN(ab, loading_text, loading_text_len);
+        len = loading_text_len;
     } else {
-        int center = (cols - filename_len) / 2;
-        if (center > title_len) {
-            abufAppendN(ab, title, title_len);
-        } else {
-            title_len = 0;
-        }
-        for (int i = title_len; i < cols; i++) {
-            if (i == center) {
-                abufAppendN(ab, filename, filename_len);
-                i += filename_len;
+        for (int i = 0; i < gEditor.file_count; i++) {
+            if (len >= gEditor.screen_cols)
+                break;
+
+            char buf[255] = {0};
+            const EditorFile* file = &gEditor.files[i];
+            bool is_current = (file == gCurFile);
+            const char* effect = is_current ? ANSI_INVERT : ANSI_UNDERLINE;
+            const char* not_effect = is_current ? ANSI_NOT_INVERT : ANSI_NOT_UNDERLINE;
+
+            int buf_len =
+                snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
+                         file->filename ? file->filename : "Untitled");
+            if (gEditor.screen_cols - len < buf_len) {
+                buf_len = gEditor.screen_cols - len;
             }
+
+            abufAppend(ab, effect);
+            abufAppendN(ab, buf, buf_len);
+            abufAppend(ab, not_effect);
+
+            len += buf_len;
+        }
+    }
+
+    while (len < gEditor.screen_cols) {
+        if (gEditor.screen_cols - len == rlen) {
+            abufAppendN(ab, right_buf, rlen);
+            break;
+        } else {
             abufAppend(ab, " ");
+            len++;
         }
     }
 

@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+struct EditorFile;
+typedef struct EditorFile EditorFile;
+
 typedef struct EditorRow {
     int idx;
     int size;
@@ -13,7 +16,7 @@ typedef struct EditorRow {
     int hl_open_comment;
 } EditorRow;
 
-void editorUpdateRow(EditorRow* row);
+void editorUpdateRow(EditorFile* file, EditorRow* row);
 void editorInsertRow(int at, const char* s, size_t len);
 void editorFreeRow(EditorRow* row);
 void editorDelRow(int at);
