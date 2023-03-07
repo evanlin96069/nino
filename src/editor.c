@@ -8,55 +8,67 @@
 #include "terminal.h"
 #include "utils.h"
 
-Editor E;
+Editor gEditor;
+EditorFile* gCurFile;
+
+static EditorFile f;  // temporary placeholder
 
 void editorInit() {
     enableRawMode();
     enableSwap();
 
-    E.cursor.x = 0;
-    E.cursor.y = 0;
-    E.cursor.is_selected = false;
-    E.cursor.select_x = 0;
-    E.cursor.select_y = 0;
+    gCurFile = &f;
 
-    E.rx = 0;
-    E.sx = 0;
-    E.row_offset = 0;
-    E.col_offset = 0;
-    E.num_rows = 0;
-    E.num_rows_digits = 0;
-    E.row = NULL;
+    gEditor.screen_rows = 0;
+    gEditor.screen_cols = 0;
 
-    E.state = EDIT_MODE;
-    E.mouse_mode = false;
+    gEditor.loading = true;
+    gEditor.state = EDIT_MODE;
+    gEditor.mouse_mode = false;
 
-    E.dirty = 0;
-    E.bracket_autocomplete = 0;
+    gEditor.px = 0;
 
-    E.loading = true;
-    E.filename = NULL;
-    E.status_msg[0][0] = '\0';
-    E.status_msg[1][0] = '\0';
-    E.syntax = 0;
+    gEditor.clipboard.size = 0;
+    gEditor.clipboard.data = NULL;
 
-    E.clipboard.size = 0;
-    E.clipboard.data = NULL;
+    gEditor.cvars = NULL;
 
-    E.color_cfg = color_default;
+    gEditor.color_cfg = color_default;
 
-    E.action_head.action = NULL;
-    E.action_head.next = NULL;
-    E.action_head.prev = NULL;
-    E.action_current = &E.action_head;
+    gEditor.status_msg[0][0] = '\0';
+    gEditor.status_msg[1][0] = '\0';
 
-    E.cvars = NULL;
+    gCurFile->cursor.x = 0;
+    gCurFile->cursor.y = 0;
+    gCurFile->cursor.is_selected = false;
+    gCurFile->cursor.select_x = 0;
+    gCurFile->cursor.select_y = 0;
+
+    gCurFile->sx = 0;
+
+    gCurFile->bracket_autocomplete = 0;
+
+    gCurFile->row_offset = 0;
+    gCurFile->col_offset = 0;
+
+    gCurFile->num_rows = 0;
+    gCurFile->num_rows_digits = 0;
+
+    gCurFile->dirty = 0;
+    gCurFile->filename = NULL;
+
+    gCurFile->row = NULL;
+
+    gCurFile->syntax = 0;
+
+    gCurFile->action_head.action = NULL;
+    gCurFile->action_head.next = NULL;
+    gCurFile->action_head.prev = NULL;
+    gCurFile->action_current = &gCurFile->action_head;
 
     editorInitCommands();
     editorLoadConfig();
 
-    E.screen_rows = 0;
-    E.screen_cols = 0;
     resizeWindow();
     enableAutoResize();
 
@@ -64,50 +76,54 @@ void editorInit() {
 }
 
 void editorFree() {
-    for (int i = 0; i < E.num_rows; i++) {
-        editorFreeRow(&E.row[i]);
+    // TODO: Multi-file support
+    for (int i = 0; i < gCurFile->num_rows; i++) {
+        editorFreeRow(&gCurFile->row[i]);
     }
-    editorFreeClipboardContent(&E.clipboard);
-    editorFreeActionList(E.action_head.next);
-    free(E.row);
-    free(E.filename);
+    editorFreeClipboardContent(&gEditor.clipboard);
+    editorFreeActionList(gCurFile->action_head.next);
+    free(gCurFile->row);
+    free(gCurFile->filename);
 }
 
 void editorInsertChar(int c) {
-    if (E.cursor.y == E.num_rows) {
-        editorInsertRow(E.num_rows, "", 0);
+    if (gCurFile->cursor.y == gCurFile->num_rows) {
+        editorInsertRow(gCurFile->num_rows, "", 0);
     }
     if (c == '\t' && CONVAR_GETINT(whitespace)) {
-        int idx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x) + 1;
+        int idx = editorRowCxToRx(&(gCurFile->row[gCurFile->cursor.y]),
+                                  gCurFile->cursor.x) +
+                  1;
         editorInsertChar(' ');
         while (idx % CONVAR_GETINT(tabsize) != 0) {
             editorInsertChar(' ');
             idx++;
         }
     } else {
-        editorRowInsertChar(&(E.row[E.cursor.y]), E.cursor.x, c);
-        E.cursor.x++;
+        editorRowInsertChar(&(gCurFile->row[gCurFile->cursor.y]),
+                            gCurFile->cursor.x, c);
+        gCurFile->cursor.x++;
     }
 }
 
 void editorInsertNewline() {
     int i = 0;
 
-    if (E.cursor.x == 0) {
-        editorInsertRow(E.cursor.y, "", 0);
+    if (gCurFile->cursor.x == 0) {
+        editorInsertRow(gCurFile->cursor.y, "", 0);
     } else {
-        editorInsertRow(E.cursor.y + 1, "", 0);
-        EditorRow* curr_row = &(E.row[E.cursor.y]);
-        EditorRow* new_row = &(E.row[E.cursor.y + 1]);
+        editorInsertRow(gCurFile->cursor.y + 1, "", 0);
+        EditorRow* curr_row = &(gCurFile->row[gCurFile->cursor.y]);
+        EditorRow* new_row = &(gCurFile->row[gCurFile->cursor.y + 1]);
         if (CONVAR_GETINT(autoindent)) {
-            while (i < E.cursor.x &&
+            while (i < gCurFile->cursor.x &&
                    (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
                 i++;
             if (i != 0)
                 editorRowAppendString(new_row, curr_row->data, i);
-            if (curr_row->data[E.cursor.x - 1] == ':' ||
-                (curr_row->data[E.cursor.x - 1] == '{' &&
-                 curr_row->data[E.cursor.x] != '}')) {
+            if (curr_row->data[gCurFile->cursor.x - 1] == ':' ||
+                (curr_row->data[gCurFile->cursor.x - 1] == '{' &&
+                 curr_row->data[gCurFile->cursor.x] != '}')) {
                 if (CONVAR_GETINT(whitespace)) {
                     for (int j = 0; j < CONVAR_GETINT(tabsize); j++, i++)
                         editorRowAppendString(new_row, " ", 1);
@@ -117,31 +133,33 @@ void editorInsertNewline() {
                 }
             }
         }
-        editorRowAppendString(new_row, &(curr_row->data[E.cursor.x]),
-                              curr_row->size - E.cursor.x);
-        curr_row->size = E.cursor.x;
+        editorRowAppendString(new_row, &(curr_row->data[gCurFile->cursor.x]),
+                              curr_row->size - gCurFile->cursor.x);
+        curr_row->size = gCurFile->cursor.x;
         curr_row->data[curr_row->size] = '\0';
         editorUpdateRow(curr_row);
     }
-    E.cursor.y++;
-    E.cursor.x = i;
-    E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), i);
+    gCurFile->cursor.y++;
+    gCurFile->cursor.x = i;
+    gCurFile->sx = editorRowCxToRx(&(gCurFile->row[gCurFile->cursor.y]), i);
 }
 
 void editorDelChar() {
-    if (E.cursor.y == E.num_rows)
+    if (gCurFile->cursor.y == gCurFile->num_rows)
         return;
-    if (E.cursor.x == 0 && E.cursor.y == 0)
+    if (gCurFile->cursor.x == 0 && gCurFile->cursor.y == 0)
         return;
-    EditorRow* row = &(E.row[E.cursor.y]);
-    if (E.cursor.x > 0) {
-        editorRowDelChar(row, E.cursor.x - 1);
-        E.cursor.x--;
+    EditorRow* row = &(gCurFile->row[gCurFile->cursor.y]);
+    if (gCurFile->cursor.x > 0) {
+        editorRowDelChar(row, gCurFile->cursor.x - 1);
+        gCurFile->cursor.x--;
     } else {
-        E.cursor.x = E.row[E.cursor.y - 1].size;
-        editorRowAppendString(&(E.row[E.cursor.y - 1]), row->data, row->size);
-        editorDelRow(E.cursor.y);
-        E.cursor.y--;
+        gCurFile->cursor.x = gCurFile->row[gCurFile->cursor.y - 1].size;
+        editorRowAppendString(&(gCurFile->row[gCurFile->cursor.y - 1]),
+                              row->data, row->size);
+        editorDelRow(gCurFile->cursor.y);
+        gCurFile->cursor.y--;
     }
-    E.sx = editorRowCxToRx(&(E.row[E.cursor.y]), E.cursor.x);
+    gCurFile->sx = editorRowCxToRx(&(gCurFile->row[gCurFile->cursor.y]),
+                                   gCurFile->cursor.x);
 }

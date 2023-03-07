@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
         editorInsertRow(0, "", 0);
     }
 
-    E.loading = false;
+    gEditor.loading = false;
 
     while (true) {
         editorRefreshScreen();

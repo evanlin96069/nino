@@ -14,73 +14,78 @@
 #include "unicode.h"
 
 void editorScroll() {
-    E.rx = 0;
-    if (E.cursor.y < E.num_rows) {
-        E.rx = editorRowCxToRx(&E.row[E.cursor.y], E.cursor.x);
+    int cols = gEditor.screen_cols - (gCurFile->num_rows_digits + 1);
+    int rx = 0;
+    if (gCurFile->cursor.y < gCurFile->num_rows) {
+        rx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                             gCurFile->cursor.x);
     }
 
-    if (E.cursor.y < E.row_offset) {
-        E.row_offset = E.cursor.y;
+    if (gCurFile->cursor.y < gCurFile->row_offset) {
+        gCurFile->row_offset = gCurFile->cursor.y;
     }
-    if (E.cursor.y >= E.row_offset + E.rows) {
-        E.row_offset = E.cursor.y - E.rows + 1;
+    if (gCurFile->cursor.y >= gCurFile->row_offset + gEditor.display_rows) {
+        gCurFile->row_offset = gCurFile->cursor.y - gEditor.display_rows + 1;
     }
-    if (E.rx < E.col_offset) {
-        E.col_offset = E.rx;
+    if (rx < gCurFile->col_offset) {
+        gCurFile->col_offset = rx;
     }
-    if (E.rx >= E.col_offset + E.cols) {
-        E.col_offset = E.rx - E.cols + 1;
+    if (rx >= gCurFile->col_offset + cols) {
+        gCurFile->col_offset = rx - cols + 1;
     }
 }
 
 void editorDrawRows(abuf* ab) {
     EditorSelectRange range = {0};
-    if (E.cursor.is_selected)
+    if (gCurFile->cursor.is_selected)
         getSelectStartEnd(&range);
 
-    for (int i = E.row_offset; i < E.row_offset + E.rows; i++) {
-        if (i < E.num_rows) {
+    for (int i = gCurFile->row_offset;
+         i < gCurFile->row_offset + gEditor.display_rows; i++) {
+        if (i < gCurFile->num_rows) {
             char line_number[16];
             char buf[32];
-            if (i == E.cursor.y) {
-                colorToANSI(E.color_cfg.line_number[1], buf, 0);
+            if (i == gCurFile->cursor.y) {
+                colorToANSI(gEditor.color_cfg.line_number[1], buf, 0);
                 abufAppend(ab, buf);
-                colorToANSI(E.color_cfg.line_number[0], buf, 1);
+                colorToANSI(gEditor.color_cfg.line_number[0], buf, 1);
                 abufAppend(ab, buf);
             } else {
-                colorToANSI(E.color_cfg.line_number[0], buf, 0);
+                colorToANSI(gEditor.color_cfg.line_number[0], buf, 0);
                 abufAppend(ab, buf);
-                colorToANSI(E.color_cfg.line_number[1], buf, 1);
+                colorToANSI(gEditor.color_cfg.line_number[1], buf, 1);
                 abufAppend(ab, buf);
             }
             snprintf(line_number, sizeof(line_number), "%*d ",
-                     E.num_rows_digits, i + 1);
+                     gCurFile->num_rows_digits, i + 1);
             abufAppend(ab, line_number);
 
             abufAppend(ab, ANSI_CLEAR);
-            colorToANSI(E.color_cfg.bg, buf, 1);
+            colorToANSI(gEditor.color_cfg.bg, buf, 1);
             abufAppend(ab, buf);
 
-            int col_offset = editorRowRxToCx(&E.row[i], E.col_offset);
-            int len = E.row[i].size - col_offset;
+            int cols = gEditor.screen_cols - (gCurFile->num_rows_digits + 1);
+            int col_offset =
+                editorRowRxToCx(&gCurFile->row[i], gCurFile->col_offset);
+            int len = gCurFile->row[i].size - col_offset;
             len = (len < 0) ? 0 : len;
 
-            int rlen = E.row[i].rsize - E.col_offset;
-            rlen = (rlen > E.cols) ? E.cols : rlen;
-            rlen += E.col_offset;
+            int rlen = gCurFile->row[i].rsize - gCurFile->col_offset;
+            rlen = (rlen > cols) ? cols : rlen;
+            rlen += gCurFile->col_offset;
 
-            char* c = &E.row[i].data[col_offset];
-            unsigned char* hl = &(E.row[i].hl[col_offset]);
+            char* c = &gCurFile->row[i].data[col_offset];
+            unsigned char* hl = &(gCurFile->row[i].hl[col_offset]);
             unsigned char current_color = HL_NORMAL;
 
             bool in_select = false;
             bool has_bg = false;
 
-            colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
+            colorToANSI(gEditor.color_cfg.highlight[current_color], buf, 0);
             abufAppend(ab, buf);
 
             int j = 0;
-            int rx = E.col_offset;
+            int rx = gCurFile->col_offset;
             while (rx < rlen) {
                 if (iscntrl(c[j]) && c[j] != '\t') {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
@@ -88,31 +93,33 @@ void editorDrawRows(abuf* ab) {
                     abufAppendN(ab, &sym, 1);
 
                     abufAppend(ab, ANSI_CLEAR);
-                    colorToANSI(E.color_cfg.bg, buf, 1);
+                    colorToANSI(gEditor.color_cfg.bg, buf, 1);
                     abufAppend(ab, buf);
-                    colorToANSI(E.color_cfg.highlight[current_color], buf, 0);
+                    colorToANSI(gEditor.color_cfg.highlight[current_color], buf,
+                                0);
                     abufAppend(ab, buf);
 
                     rx++;
                     j++;
                 } else {
                     unsigned char color = hl[j];
-                    if (E.cursor.is_selected &&
+                    if (gCurFile->cursor.is_selected &&
                         isPosSelected(i, j + col_offset, range)) {
                         if (!in_select) {
                             in_select = true;
-                            colorToANSI(E.color_cfg.highlight[HL_SELECT], buf,
-                                        1);
+                            colorToANSI(gEditor.color_cfg.highlight[HL_SELECT],
+                                        buf, 1);
                             abufAppend(ab, buf);
                         }
                     } else {
                         // restore bg
                         if (color == HL_MATCH || color == HL_SPACE) {
-                            colorToANSI(E.color_cfg.highlight[color], buf, 1);
+                            colorToANSI(gEditor.color_cfg.highlight[color], buf,
+                                        1);
                             abufAppend(ab, buf);
                         } else if (in_select) {
                             in_select = false;
-                            colorToANSI(E.color_cfg.bg, buf, 1);
+                            colorToANSI(gEditor.color_cfg.bg, buf, 1);
                             abufAppend(ab, buf);
                         }
                     }
@@ -121,23 +128,24 @@ void editorDrawRows(abuf* ab) {
                         current_color = color;
                         if (color == HL_MATCH || color == HL_SPACE) {
                             has_bg = true;
-                            colorToANSI(E.color_cfg.highlight[HL_NORMAL], buf,
-                                        0);
+                            colorToANSI(gEditor.color_cfg.highlight[HL_NORMAL],
+                                        buf, 0);
                             abufAppend(ab, buf);
                             if (!in_select) {
-                                colorToANSI(E.color_cfg.highlight[color], buf,
-                                            1);
+                                colorToANSI(gEditor.color_cfg.highlight[color],
+                                            buf, 1);
                                 abufAppend(ab, buf);
                             }
                         } else {
                             if (has_bg) {
                                 has_bg = false;
                                 if (!in_select) {
-                                    colorToANSI(E.color_cfg.bg, buf, 1);
+                                    colorToANSI(gEditor.color_cfg.bg, buf, 1);
                                     abufAppend(ab, buf);
                                 }
                             }
-                            colorToANSI(E.color_cfg.highlight[color], buf, 0);
+                            colorToANSI(gEditor.color_cfg.highlight[color], buf,
+                                        0);
                             abufAppend(ab, buf);
                         }
                     }
@@ -166,14 +174,15 @@ void editorDrawRows(abuf* ab) {
                 }
             }
             // Add newline character when selected
-            if (E.cursor.is_selected && range.end_y > i && i >= range.start_y &&
-                E.row[i].rsize - E.col_offset < E.cols) {
-                colorToANSI(E.color_cfg.highlight[HL_SELECT], buf, 1);
+            if (gCurFile->cursor.is_selected && range.end_y > i &&
+                i >= range.start_y &&
+                gCurFile->row[i].rsize - gCurFile->col_offset < cols) {
+                colorToANSI(gEditor.color_cfg.highlight[HL_SELECT], buf, 1);
                 abufAppend(ab, buf);
                 abufAppend(ab, " ");
             }
             abufAppend(ab, ANSI_CLEAR);
-            colorToANSI(E.color_cfg.bg, buf, 1);
+            colorToANSI(gEditor.color_cfg.bg, buf, 1);
             abufAppend(ab, buf);
         }
         abufAppend(ab, "\x1b[K");
@@ -194,16 +203,20 @@ void editorRefreshScreen() {
 
     char buf[32];
     bool should_show_cursor = true;
-    if (E.state == EDIT_MODE) {
-        int row = (E.cursor.y - E.row_offset) + 2;
-        int col = (E.rx - E.col_offset) + 1 + E.num_rows_digits + 1;
-        if (row <= 1 || row > E.screen_rows - 2 || col <= 1 ||
-            col > E.screen_cols)
+    if (gEditor.state == EDIT_MODE) {
+        int row = (gCurFile->cursor.y - gCurFile->row_offset) + 2;
+        int col = (editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                                   gCurFile->cursor.x) -
+                   gCurFile->col_offset) +
+                  1 + gCurFile->num_rows_digits + 1;
+        if (row <= 1 || row > gEditor.screen_rows - 2 || col <= 1 ||
+            col > gEditor.screen_cols)
             should_show_cursor = false;
         else
             snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row, col);
     } else {
-        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.rows + 2, E.px + 1);
+        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.display_rows + 2,
+                 gEditor.px + 1);
     }
     abufAppend(&ab, buf);
 

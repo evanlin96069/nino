@@ -12,16 +12,17 @@ void editorGotoLine() {
         return;
     int line = atoi(query);
     if (line < 0) {
-        line = E.num_rows + 1 + line;
+        line = gCurFile->num_rows + 1 + line;
     }
 
-    if (line > 0 && line <= E.num_rows) {
-        E.cursor.x = 0;
-        E.sx = 0;
-        E.cursor.y = line - 1;
+    if (line > 0 && line <= gCurFile->num_rows) {
+        gCurFile->cursor.x = 0;
+        gCurFile->sx = 0;
+        gCurFile->cursor.y = line - 1;
         editorScroll();
     } else {
-        editorSetStatusMsg("Type a line number between 1 to %d.", E.num_rows);
+        editorSetStatusMsg("Type a line number between 1 to %d.",
+                           gCurFile->num_rows);
     }
 
     if (query) {

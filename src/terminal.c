@@ -21,15 +21,15 @@ void panic(char* file, int line, const char* s) {
 }
 
 static void disableRawMode() {
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &gEditor.orig_termios) == -1)
         PANIC("tcsetattr");
 }
 
 void enableRawMode() {
-    if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1)
+    if (tcgetattr(STDIN_FILENO, &gEditor.orig_termios) == -1)
         PANIC("tcgetattr");
 
-    struct termios raw = E.orig_termios;
+    struct termios raw = gEditor.orig_termios;
 
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
@@ -155,7 +155,7 @@ int editorReadKey(int* x, int* y) {
             return UNKNOWN;
 
         // Mouse input
-        if (seq[1] == '<' && E.mouse_mode) {
+        if (seq[1] == '<' && gEditor.mouse_mode) {
             int type;
             char m;
             sscanf(&seq[2], "%d;%d;%d%c", &type, x, y, &m);
@@ -249,15 +249,15 @@ void enableSwap() {
 void disableSwap() { UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8)); }
 
 void enableMouse() {
-    if (!E.mouse_mode &&
+    if (!gEditor.mouse_mode &&
         write(STDOUT_FILENO, "\x1b[?1002h\x1b[?1015h\x1b[?1006h", 24) == 24)
-        E.mouse_mode = true;
+        gEditor.mouse_mode = true;
 }
 
 void disableMouse() {
-    if (E.mouse_mode &&
+    if (gEditor.mouse_mode &&
         write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
-        E.mouse_mode = false;
+        gEditor.mouse_mode = false;
 }
 
 static void SIGWINCH_handler(int sig) {
@@ -273,11 +273,11 @@ void resizeWindow() {
     if (getWindowSize(&rows, &cols) == -1)
         PANIC("getWindowSize");
 
-    if (E.screen_rows != rows || E.screen_cols != cols) {
-        E.screen_rows = rows;
-        E.screen_cols = cols;
-        E.rows = rows - 3;
-        E.cols = cols - (E.num_rows_digits + 1);
+    if (gEditor.screen_rows != rows || gEditor.screen_cols != cols) {
+        gEditor.screen_rows = rows;
+        gEditor.screen_cols = cols;
+        // TODO: Don't hard coding rows
+        gEditor.display_rows = rows - 3;
         editorRefreshScreen();
     }
 }

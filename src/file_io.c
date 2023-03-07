@@ -17,18 +17,18 @@
 
 static char* editroRowsToString(int* len) {
     int total_len = 0;
-    for (int i = 0; i < E.num_rows; i++) {
-        total_len += E.row[i].size + 1;
+    for (int i = 0; i < gCurFile->num_rows; i++) {
+        total_len += gCurFile->row[i].size + 1;
     }
     // last line no newline
     *len = total_len - 1;
 
     char* buf = malloc_s(total_len);
     char* p = buf;
-    for (int i = 0; i < E.num_rows; i++) {
-        memcpy(p, E.row[i].data, E.row[i].size);
-        p += E.row[i].size;
-        if (i != E.num_rows - 1)
+    for (int i = 0; i < gCurFile->num_rows; i++) {
+        memcpy(p, gCurFile->row[i].data, gCurFile->row[i].size);
+        p += gCurFile->row[i].size;
+        if (i != gCurFile->num_rows - 1)
             *p = '\n';
         p++;
     }
@@ -44,14 +44,14 @@ bool editorOpen(char* filename) {
         return false;
     }
 
-    free(E.filename);
+    free(gCurFile->filename);
     size_t fnlen = strlen(filename) + 1;
-    E.filename = malloc_s(fnlen);
-    memcpy(E.filename, filename, fnlen);
+    gCurFile->filename = malloc_s(fnlen);
+    memcpy(gCurFile->filename, filename, fnlen);
     editorSelectSyntaxHighlight();
 
     if (errno == ENOENT) {
-        editorInsertRow(E.cursor.y, "", 0);
+        editorInsertRow(gCurFile->cursor.y, "", 0);
     } else {
         char* line = NULL;
         size_t cap = 0;
@@ -64,39 +64,39 @@ bool editorOpen(char* filename) {
                 end_nl = 1;
                 len--;
             }
-            editorInsertRow(E.num_rows, line, len);
+            editorInsertRow(gCurFile->num_rows, line, len);
         }
         if (end_nl) {
-            editorInsertRow(E.num_rows, "", 0);
+            editorInsertRow(gCurFile->num_rows, "", 0);
         }
         free(line);
         fclose(f);
     }
-    E.dirty = 0;
+    gCurFile->dirty = 0;
     return true;
 }
 
 void editorSave(int save_as) {
-    if (!E.filename || save_as) {
+    if (!gCurFile->filename || save_as) {
         char* filename = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
         if (!filename) {
             editorSetStatusMsg("Save aborted.");
             return;
         }
-        free(E.filename);
-        E.filename = filename;
+        free(gCurFile->filename);
+        gCurFile->filename = filename;
         editorSelectSyntaxHighlight();
     }
     int len;
     char* buf = editroRowsToString(&len);
 
-    int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+    int fd = open(gCurFile->filename, O_RDWR | O_CREAT, 0644);
     if (fd != -1) {
         if (ftruncate(fd, len) != -1) {
             if (write(fd, buf, len) == len) {
                 close(fd);
                 free(buf);
-                E.dirty = 0;
+                gCurFile->dirty = 0;
                 editorSetStatusMsg("%d bytes written to disk.", len);
                 return;
             }

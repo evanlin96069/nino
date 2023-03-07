@@ -23,11 +23,12 @@ CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smartcase.",
 
 CON_COMMAND(mouse, "Enable mouse mode.") {
     if (args.argc < 2) {
-        editorSetStatusMsg("mouse = %d - Enable mouse mode.", E.mouse_mode);
+        editorSetStatusMsg("mouse = %d - Enable mouse mode.",
+                           gEditor.mouse_mode);
         return;
     }
     bool mode = !!atoi(args.argv[1]);
-    if (E.mouse_mode != mode) {
+    if (gEditor.mouse_mode != mode) {
         if (mode)
             enableMouse();
         else
@@ -41,25 +42,25 @@ typedef struct {
 } ColorElement;
 
 static const ColorElement color_element_map[] = {
-    {"bg", &E.color_cfg.bg},
-    {"top.fg", &E.color_cfg.top_status[0]},
-    {"top.bg", &E.color_cfg.top_status[1]},
-    {"prompt.fg", &E.color_cfg.prompt[0]},
-    {"prompt.bg", &E.color_cfg.prompt[1]},
-    {"lineno.fg", &E.color_cfg.line_number[0]},
-    {"lineno.bg", &E.color_cfg.line_number[1]},
-    {"status.fg", &E.color_cfg.status[0]},
-    {"status.bg", &E.color_cfg.status[1]},
-    {"hl.normal", &E.color_cfg.highlight[HL_NORMAL]},
-    {"hl.comment", &E.color_cfg.highlight[HL_COMMENT]},
-    {"hl.keyword1", &E.color_cfg.highlight[HL_KEYWORD1]},
-    {"hl.keyword2", &E.color_cfg.highlight[HL_KEYWORD2]},
-    {"hl.keyword3", &E.color_cfg.highlight[HL_KEYWORD3]},
-    {"hl.string", &E.color_cfg.highlight[HL_STRING]},
-    {"hl.number", &E.color_cfg.highlight[HL_NUMBER]},
-    {"hl.match", &E.color_cfg.highlight[HL_MATCH]},
-    {"hl.select", &E.color_cfg.highlight[HL_SELECT]},
-    {"hl.space", &E.color_cfg.highlight[HL_SPACE]},
+    {"bg", &gEditor.color_cfg.bg},
+    {"top.fg", &gEditor.color_cfg.top_status[0]},
+    {"top.bg", &gEditor.color_cfg.top_status[1]},
+    {"prompt.fg", &gEditor.color_cfg.prompt[0]},
+    {"prompt.bg", &gEditor.color_cfg.prompt[1]},
+    {"lineno.fg", &gEditor.color_cfg.line_number[0]},
+    {"lineno.bg", &gEditor.color_cfg.line_number[1]},
+    {"status.fg", &gEditor.color_cfg.status[0]},
+    {"status.bg", &gEditor.color_cfg.status[1]},
+    {"hl.normal", &gEditor.color_cfg.highlight[HL_NORMAL]},
+    {"hl.comment", &gEditor.color_cfg.highlight[HL_COMMENT]},
+    {"hl.keyword1", &gEditor.color_cfg.highlight[HL_KEYWORD1]},
+    {"hl.keyword2", &gEditor.color_cfg.highlight[HL_KEYWORD2]},
+    {"hl.keyword3", &gEditor.color_cfg.highlight[HL_KEYWORD3]},
+    {"hl.string", &gEditor.color_cfg.highlight[HL_STRING]},
+    {"hl.number", &gEditor.color_cfg.highlight[HL_NUMBER]},
+    {"hl.match", &gEditor.color_cfg.highlight[HL_MATCH]},
+    {"hl.select", &gEditor.color_cfg.highlight[HL_SELECT]},
+    {"hl.space", &gEditor.color_cfg.highlight[HL_SPACE]},
 };
 
 CON_COMMAND(color, "Change the color of an element.") {
@@ -197,8 +198,8 @@ void editorSetting() {
         return;
 
     parseLine(query);
-    for (int i = 0; i < E.num_rows; i++) {
-        editorUpdateRow(&E.row[i]);
+    for (int i = 0; i < gCurFile->num_rows; i++) {
+        editorUpdateRow(&gCurFile->row[i]);
     }
 
     free(query);
@@ -211,9 +212,9 @@ void editorSetConVar(EditorConVar* thisptr, const char* string_val) {
 }
 
 static void registerConCmd(EditorConCmd* thisptr) {
-    EditorConCmd* curr = E.cvars;
+    EditorConCmd* curr = gEditor.cvars;
     if (!curr) {
-        E.cvars = thisptr;
+        gEditor.cvars = thisptr;
         return;
     }
 
@@ -241,7 +242,7 @@ void editorInitConVar(EditorConCmd* thisptr) {
 
 EditorConCmd* editorFindCmd(const char* name) {
     EditorConCmd* result = NULL;
-    EditorConCmd* curr = E.cvars;
+    EditorConCmd* curr = gEditor.cvars;
     while (curr) {
         if (strcmp(name, curr->name) == 0) {
             result = curr;

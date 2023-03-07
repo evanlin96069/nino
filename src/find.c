@@ -89,7 +89,7 @@ static void editorFindCallback(char* query, int key) {
         prev_query[len] = '\0';
 
         FindList* cur = &head;
-        for (int i = 0; i < E.num_rows; i++) {
+        for (int i = 0; i < gCurFile->num_rows; i++) {
             char* match = NULL;
             int col = 0;
             char* (*search_func)(const char*, const char*) = &strstr;
@@ -109,8 +109,9 @@ static void editorFindCallback(char* query, int key) {
                 }
             }
 
-            while ((match = (*search_func)(&E.row[i].data[col], query))) {
-                col = match - E.row[i].data;
+            while (
+                (match = (*search_func)(&gCurFile->row[i].data[col], query))) {
+                col = match - gCurFile->row[i].data;
                 FindList* node = malloc_s(sizeof(FindList));
 
                 node->prev = cur;
@@ -124,8 +125,9 @@ static void editorFindCallback(char* query, int key) {
                 total++;
                 if (!match_node) {
                     current++;
-                    if (((i == E.cursor.y && col >= E.cursor.x) ||
-                         i > E.cursor.y)) {
+                    if (((i == gCurFile->cursor.y &&
+                          col >= gCurFile->cursor.x) ||
+                         i > gCurFile->cursor.y)) {
                         match_node = cur;
                     }
                 }
@@ -162,18 +164,19 @@ static void editorFindCallback(char* query, int key) {
     }
     editorSetRStatusMsg("  %d of %d", current, total);
 
-    E.cursor.x = match_node->col;
-    E.cursor.y = match_node->row;
+    gCurFile->cursor.x = match_node->col;
+    gCurFile->cursor.y = match_node->row;
     editorScroll();
-    E.row_offset = E.cursor.y - E.rows / 2;
-    if (E.row_offset + E.rows > E.num_rows) {
-        E.row_offset = E.num_rows - E.rows;
+    gCurFile->row_offset = gCurFile->cursor.y - gEditor.display_rows / 2;
+    if (gCurFile->row_offset + gEditor.display_rows > gCurFile->num_rows) {
+        gCurFile->row_offset = gCurFile->num_rows - gEditor.display_rows;
     }
-    if (E.row_offset < 0) {
-        E.row_offset = 0;
+    if (gCurFile->row_offset < 0) {
+        gCurFile->row_offset = 0;
     }
 
-    unsigned char* match_pos = &(E.row[match_node->row].hl[match_node->col]);
+    unsigned char* match_pos =
+        &(gCurFile->row[match_node->row].hl[match_node->col]);
     saved_hl_len = len;
     saved_hl_pos = match_pos;
     saved_hl = malloc_s(len + 1);

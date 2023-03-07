@@ -27,11 +27,10 @@ static inline int getDigit(int n) {
 }
 
 static void editorUpdateNumRowsDigits() {
-    int old_digit = E.num_rows_digits;
-    int digits = getDigit(E.num_rows);
+    int old_digit = gCurFile->num_rows_digits;
+    int digits = getDigit(gCurFile->num_rows);
     if (old_digit != digits) {
-        E.num_rows_digits = digits;
-        E.cols = E.screen_cols - (E.num_rows_digits + 1);
+        gCurFile->num_rows_digits = digits;
     }
 }
 
@@ -41,28 +40,29 @@ void editorUpdateRow(EditorRow* row) {
 }
 
 void editorInsertRow(int at, const char* s, size_t len) {
-    if (at < 0 || at > E.num_rows)
+    if (at < 0 || at > gCurFile->num_rows)
         return;
 
-    E.row = realloc_s(E.row, sizeof(EditorRow) * (E.num_rows + 1));
-    memmove(&(E.row[at + 1]), &(E.row[at]),
-            sizeof(EditorRow) * (E.num_rows - at));
-    for (int i = at + 1; i <= E.num_rows; i++) {
-        E.row[i].idx++;
+    gCurFile->row =
+        realloc_s(gCurFile->row, sizeof(EditorRow) * (gCurFile->num_rows + 1));
+    memmove(&(gCurFile->row[at + 1]), &(gCurFile->row[at]),
+            sizeof(EditorRow) * (gCurFile->num_rows - at));
+    for (int i = at + 1; i <= gCurFile->num_rows; i++) {
+        gCurFile->row[i].idx++;
     }
 
-    E.row[at].idx = at;
+    gCurFile->row[at].idx = at;
 
-    E.row[at].size = len;
-    E.row[at].data = malloc_s(len + 1);
-    memcpy(E.row[at].data, s, len);
-    E.row[at].data[len] = '\0';
+    gCurFile->row[at].size = len;
+    gCurFile->row[at].data = malloc_s(len + 1);
+    memcpy(gCurFile->row[at].data, s, len);
+    gCurFile->row[at].data[len] = '\0';
 
-    E.row[at].hl = NULL;
-    E.row[at].hl_open_comment = 0;
-    editorUpdateRow(&(E.row[at]));
+    gCurFile->row[at].hl = NULL;
+    gCurFile->row[at].hl_open_comment = 0;
+    editorUpdateRow(&(gCurFile->row[at]));
 
-    E.num_rows++;
+    gCurFile->num_rows++;
 
     editorUpdateNumRowsDigits();
 }
@@ -73,15 +73,15 @@ void editorFreeRow(EditorRow* row) {
 }
 
 void editorDelRow(int at) {
-    if (at < 0 || at >= E.num_rows)
+    if (at < 0 || at >= gCurFile->num_rows)
         return;
-    editorFreeRow(&(E.row[at]));
-    memmove(&(E.row[at]), &(E.row[at + 1]),
-            sizeof(EditorRow) * (E.num_rows - at - 1));
-    for (int i = at; i < E.num_rows - 1; i++) {
-        E.row[i].idx--;
+    editorFreeRow(&(gCurFile->row[at]));
+    memmove(&(gCurFile->row[at]), &(gCurFile->row[at + 1]),
+            sizeof(EditorRow) * (gCurFile->num_rows - at - 1));
+    for (int i = at; i < gCurFile->num_rows - 1; i++) {
+        gCurFile->row[i].idx--;
     }
-    E.num_rows--;
+    gCurFile->num_rows--;
 
     editorUpdateNumRowsDigits();
 }
