@@ -1,29 +1,30 @@
 # nino
 
-![screenshot](docs/img/editor_screenshot.png)
+![screenshot](docs/img/editor_screenshot.jpg)
 
 A small terminal-based text editor written in C.
 
-I made this a while ago following [snaptoken's Build Your Own Text Editor tutorial](https://viewsourcecode.org/snaptoken/kilo/)
+Inspired by [kilo](https://github.com/antirez/kilo)
+and [snaptoken's Build Your Own Text Editor tutorial](https://viewsourcecode.org/snaptoken/kilo/).
 
-Also, see the original text editor the tutorial based on: [kilo](https://github.com/antirez/kilo)
+
+## Why?
+I'm not used to vim and I don't like nano either, so I make my own text editor.
+
 
 ## Features
 - Basic syntax highlight
-- Find
-- Line numbers
-- Auto indent
-- Auto bracket completion
-- Select text
-- Go to line number
-- Use whitespcae
+- Basic UTF-8 support
+- Multiple editor tabs
+- Automatic indentation and bracket completion
 - Mouse support
-- Configs
-- Cut, copy, and paste
-- Undo and redo
+- Cut, copy, and paste selected section
+- Multiple undo/redo
+- Search with smart case sensitivity
 
-## Quick Start
-### Linux
+## Installation
+Nino requires a sufficiently Unix-like C library and a C99 compiler.
+
 Build nino:
 ```
 git clone https://github.com/evanlin96069/nino.git
@@ -35,7 +36,7 @@ Install the [example](docs/example.ninorc) config:
 cp docs/example.ninorc ~/.ninorc
 ```
 
+
 ## Documentation
 - [Configs](docs/configs.md)
 - [Controls](docs/controls.md)
-
