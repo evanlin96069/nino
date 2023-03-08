@@ -327,10 +327,10 @@ static int getClickedFile(int x) {
 }
 
 void editorProcessKeypress() {
-    // Protect quiting unsaved current file
+    // Protect closing file with unsaved changes
+    static bool close_protect = true;
+    // Protect quiting program with unsaved files
     static bool quit_protect = true;
-    // Protect existing program with unsaved files
-    static bool exit_protect = true;
     static bool pressed = false;
     static int prev_x = 0;
     static int prev_y = 0;
@@ -369,9 +369,9 @@ void editorProcessKeypress() {
             editorCopyText(&action->added_text, action->added_range);
         } break;
 
-        // Close all files
-        case ALT_KEY(CTRL_KEY('w')): {
-            quit_protect = true;
+        // Quit editor
+        case CTRL_KEY('q'): {
+            close_protect = true;
             editorFreeAction(action);
             bool dirty = false;
             for (int i = 0; i < gEditor.file_count; i++) {
@@ -380,11 +380,10 @@ void editorProcessKeypress() {
                     break;
                 }
             }
-            if (dirty && exit_protect) {
+            if (dirty && quit_protect) {
                 editorSetStatusMsg(
-                    "Files have unsaved changes. Press ^W again to exit "
-                    "anyway.");
-                exit_protect = false;
+                    "Files have unsaved changes. Press ^Q again to quit anyway.");
+                quit_protect = false;
                 return;
             }
             editorFree();
@@ -392,20 +391,18 @@ void editorProcessKeypress() {
         }
 
         // Close current file
-        case CTRL_KEY('q'):
-            exit_protect = true;
+        case CTRL_KEY('w'):
+            quit_protect = true;
             editorFreeAction(action);
-            if (gCurFile->dirty && quit_protect) {
+            if (gCurFile->dirty && close_protect) {
                 editorSetStatusMsg(
-                    "File has unsaved changes. Press ^Q again to close file "
-                    "anyway.");
-                quit_protect = false;
+                    "File has unsaved changes. Press ^W again to close file anyway.");
+                close_protect = false;
                 return;
             }
             editorRemoveFile(gEditor.file_index);
-            if (gEditor.file_index != 0) {
+            if (gEditor.file_index == gEditor.file_count)
                 editorChangeToFile(gEditor.file_index - 1);
-            }
             return;
 
         // Save
@@ -1045,6 +1042,6 @@ void editorProcessKeypress() {
 
     if (should_scroll)
         editorScroll();
+    close_protect = true;
     quit_protect = true;
-    exit_protect = true;
 }
