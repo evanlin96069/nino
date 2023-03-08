@@ -141,7 +141,7 @@ int editorReadKey(int* x, int* y) {
         if (read(STDIN_FILENO, &seq[0], 1) != 1)
             return ESC;
         if (seq[0] != '[')
-            return seq[0];
+            return ALT_KEY(seq[0]);
         for (size_t i = 1; i < sizeof(seq) - 1; i++) {
             if (read(STDIN_FILENO, &seq[i], 1) != 1)
                 return UNKNOWN;

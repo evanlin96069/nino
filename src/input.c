@@ -18,12 +18,18 @@
 #include "terminal.h"
 #include "utils.h"
 
-static bool isValidMousePos(int x, int y) {
-    if (y < 1 || y >= gEditor.screen_rows - 2)
-        return false;
+static int getMousePosField(int x, int y) {
+    if (y < 0 || y >= gEditor.screen_rows)
+        return FIELD_ERROR;
+    if (y == 0)
+        return FIELD_TOP_STATUS;
+    if (y == gEditor.screen_rows - 1)
+        return FIELD_PROMPT;
+    if (y == gEditor.screen_rows - 2)
+        return FIELD_STATUS;
     if (x < gCurFile->num_rows_digits + 1)
-        return false;
-    return true;
+        return FIELD_LINE_NUMBER;
+    return FIELD_TEXT;
 }
 
 static bool mousePosToEditorPos(int* x, int* y) {
@@ -119,9 +125,10 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 scrollDown(3);
                 break;
 
-            case MOUSE_PRESSED:
-                if (!isValidMousePos(x, y)) {
-                    if (y == gEditor.screen_rows - 2 && x >= start) {
+            case MOUSE_PRESSED: {
+                int field = getMousePosField(x, y);
+                if (field == FIELD_PROMPT) {
+                    if (x >= start) {
                         size_t cx = x - start;
                         if (cx < buflen)
                             idx = cx;
@@ -131,11 +138,12 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     break;
                 }
 
-                if (mousePosToEditorPos(&x, &y)) {
+                if (field == FIELD_TEXT && mousePosToEditorPos(&x, &y)) {
                     gCurFile->cursor.y = y;
                     gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
                     gCurFile->sx = x;
                 }
+            }
                 // fall through
             case CTRL_KEY('q'):
             case ESC:
@@ -299,8 +307,30 @@ static char isCloseBracket(int key) {
     }
 }
 
+static int getClickedFile(int x) {
+    if (gEditor.loading)
+        return -1;
+
+    int len = 0;
+    for (int i = 0; i < gEditor.file_count; i++) {
+        if (len >= gEditor.screen_cols)
+            break;
+
+        const EditorFile* file = &gEditor.files[i];
+        len += strlen(file->filename ? file->filename : "Untitled") + 2;
+        if (file->dirty)
+            len++;
+        if (len > x)
+            return i;
+    }
+    return -1;
+}
+
 void editorProcessKeypress() {
+    // Protect quiting unsaved current file
     static bool quit_protect = true;
+    // Protect existing program with unsaved files
+    static bool exit_protect = true;
     static bool pressed = false;
     static int prev_x = 0;
     static int prev_y = 0;
@@ -339,11 +369,36 @@ void editorProcessKeypress() {
             editorCopyText(&action->added_text, action->added_range);
         } break;
 
+        // Close all files
+        case ALT_KEY(CTRL_KEY('w')): {
+            quit_protect = true;
+            editorFreeAction(action);
+            bool dirty = false;
+            for (int i = 0; i < gEditor.file_count; i++) {
+                if (gEditor.files[i].dirty) {
+                    dirty = true;
+                    break;
+                }
+            }
+            if (dirty && exit_protect) {
+                editorSetStatusMsg(
+                    "Files have unsaved changes. Press ^W again to exit "
+                    "anyway.");
+                exit_protect = false;
+                return;
+            }
+            editorFree();
+            exit(EXIT_SUCCESS);
+        }
+
+        // Close current file
         case CTRL_KEY('q'):
+            exit_protect = true;
             editorFreeAction(action);
             if (gCurFile->dirty && quit_protect) {
                 editorSetStatusMsg(
-                    "File has unsaved changes. Press ^Q again to quit anyway.");
+                    "File has unsaved changes. Press ^Q again to close file "
+                    "anyway.");
                 quit_protect = false;
                 return;
             }
@@ -353,12 +408,25 @@ void editorProcessKeypress() {
             }
             return;
 
+        // Save
         case CTRL_KEY('s'):
             should_scroll = false;
             if (gCurFile->dirty)
                 editorSave(gCurFile, 0);
             break;
 
+        // Save all
+        case ALT_KEY(CTRL_KEY('s')):
+            // Alt+Ctrl+S
+            should_scroll = false;
+            for (int i = 0; i < gEditor.file_count; i++) {
+                if (gEditor.files[i].dirty) {
+                    editorSave(&gEditor.files[i], 0);
+                }
+            }
+            break;
+
+        // Save as
         case CTRL_KEY('o'):
             should_scroll = false;
             editorSave(gCurFile, 1);
@@ -585,6 +653,30 @@ void editorProcessKeypress() {
             should_scroll = editorRedo();
             break;
 
+        // Previous file
+        case CTRL_KEY('['):
+            should_scroll = false;
+            if (gEditor.file_count < 2)
+                break;
+
+            if (gEditor.file_index == 0)
+                editorChangeToFile(gEditor.file_count - 1);
+            else
+                editorChangeToFile(gEditor.file_index - 1);
+            break;
+
+        // Next file
+        case CTRL_KEY(']'):
+            should_scroll = false;
+            if (gEditor.file_count < 2)
+                break;
+
+            if (gEditor.file_index == gEditor.file_count - 1)
+                editorChangeToFile(0);
+            else
+                editorChangeToFile(gEditor.file_index + 1);
+            break;
+
         case SHIFT_PAGE_UP:
         case SHIFT_PAGE_DOWN:
         case PAGE_UP:
@@ -799,9 +891,16 @@ void editorProcessKeypress() {
         } break;
 
         // Mouse input
-        case MOUSE_PRESSED:
-            if (!isValidMousePos(x, y))
+        case MOUSE_PRESSED: {
+            int field = getMousePosField(x, y);
+            if (field != FIELD_TEXT) {
+                should_scroll = false;
+                if (field == FIELD_TOP_STATUS) {
+                    editorChangeToFile(getClickedFile(x));
+                }
                 break;
+            }
+
             pressed = true;
             prev_x = x;
             prev_y = y;
@@ -816,11 +915,14 @@ void editorProcessKeypress() {
             gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
             gCurFile->sx = x;
             break;
+        }
 
         case MOUSE_RELEASED:
         case MOUSE_MOVE:
-            if (!pressed)
+            if (!pressed) {
+                should_scroll = false;
                 break;
+            }
 
             if (c == MOUSE_RELEASED) {
                 pressed = false;
@@ -828,7 +930,8 @@ void editorProcessKeypress() {
                     break;
             }
 
-            if (!isValidMousePos(x, y) || !mousePosToEditorPos(&x, &y))
+            if (getMousePosField(x, y) != FIELD_TEXT ||
+                !mousePosToEditorPos(&x, &y))
                 break;
 
             gCurFile->cursor.is_selected = true;
@@ -943,4 +1046,5 @@ void editorProcessKeypress() {
     if (should_scroll)
         editorScroll();
     quit_protect = true;
+    exit_protect = true;
 }

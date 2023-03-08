@@ -4,9 +4,13 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 ## File
 | Action | Keybinding |
 | - | - |
-| Quit | `Ctrl+Q` |
+| Close | `Ctrl+Q` |
+| Close All | `Alt+Ctrl+W` |
 | Save | `Ctrl+S` |
+| Save All | `Alt+Ctrl+S` |
 | Save As | `Ctrl+O` |
+| Previous Tab | `Ctrl+[` |
+| Next Tab | `Ctrl+]` |
 
 ## Configs
 | Action | Keybinding |

@@ -44,12 +44,14 @@ void editorDrawTopStatusBar(abuf* ab) {
             if (len >= gEditor.screen_cols)
                 break;
 
-            char buf[255] = {0};
             const EditorFile* file = &gEditor.files[i];
+
             bool is_current = (file == gCurFile);
             const char* effect = is_current ? ANSI_INVERT : ANSI_UNDERLINE;
-            const char* not_effect = is_current ? ANSI_NOT_INVERT : ANSI_NOT_UNDERLINE;
+            const char* not_effect =
+                is_current ? ANSI_NOT_INVERT : ANSI_NOT_UNDERLINE;
 
+            char buf[255] = {0};
             int buf_len =
                 snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
                          file->filename ? file->filename : "Untitled");

@@ -22,6 +22,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    editorChangeToFile(0);
     gEditor.loading = false;
 
     while (gEditor.file_count) {

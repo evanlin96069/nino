@@ -140,11 +140,11 @@ Color strToColor(const char *color) {
 
     int shift = 16;
     unsigned int hex = strtoul(color, NULL, 16);
-    result.r = (hex >> shift) & 0xff;
+    result.r = (hex >> shift) & 0xFF;
     shift -= 8;
-    result.g = (hex >> shift) & 0xff;
+    result.g = (hex >> shift) & 0xFF;
     shift -= 8;
-    result.b = (hex >> shift) & 0xff;
+    result.b = (hex >> shift) & 0xFF;
     return result;
 }
 

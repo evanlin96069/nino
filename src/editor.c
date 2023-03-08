@@ -76,7 +76,7 @@ int editorAddFile() {
 }
 
 void editorRemoveFile(int index) {
-    if (index > gEditor.file_count)
+    if (index < 0 || index > gEditor.file_count)
         return;
 
     EditorFile* file = &gEditor.files[index];
@@ -92,7 +92,7 @@ void editorRemoveFile(int index) {
 }
 
 void editorChangeToFile(int index) {
-    if (index >= gEditor.file_count)
+    if (index < 0 || index >= gEditor.file_count)
         return;
     gEditor.file_index = index;
     gCurFile = &gEditor.files[index];

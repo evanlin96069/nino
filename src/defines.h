@@ -5,7 +5,8 @@
 
 #include "file_types.h"
 
-#define CTRL_KEY(k) ((k)&0x1f)
+#define CTRL_KEY(k) ((k)&0x1F)
+#define ALT_KEY(k) ((k) | 0x1B00)
 
 #define UNUSED(x) (void)!(x)
 
@@ -80,6 +81,15 @@ enum EditorHighlight {
     HL_SELECT,
     HL_SPACE,
     HL_TYPE_COUNT,
+};
+
+enum EditorField {
+    FIELD_TOP_STATUS,
+    FIELD_TEXT,
+    FIELD_LINE_NUMBER,
+    FIELD_PROMPT,
+    FIELD_STATUS,
+    FIELD_ERROR,
 };
 
 #endif
