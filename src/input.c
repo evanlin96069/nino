@@ -326,14 +326,24 @@ static int getClickedFile(int x) {
     return -1;
 }
 
+bool moveMouse(int x, int y) {
+    if (getMousePosField(x, y) != FIELD_TEXT || !mousePosToEditorPos(&x, &y))
+        return false;
+    gCurFile->cursor.is_selected = true;
+    gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
+    gCurFile->cursor.y = y;
+    gCurFile->sx = x;
+    return true;
+}
+
 void editorProcessKeypress() {
     // Protect closing file with unsaved changes
     static bool close_protect = true;
     // Protect quiting program with unsaved files
     static bool quit_protect = true;
     static bool pressed = false;
-    static int prev_x = 0;
-    static int prev_y = 0;
+    static int curr_x = 0;
+    static int curr_y = 0;
 
     int x, y;
     int c = editorReadKey(&x, &y);
@@ -467,6 +477,7 @@ void editorProcessKeypress() {
             gCurFile->bracket_autocomplete = 0;
             break;
 
+        // Find
         case CTRL_KEY('f'):
             should_scroll = false;
             gCurFile->cursor.is_selected = false;
@@ -474,6 +485,7 @@ void editorProcessKeypress() {
             editorFind();
             break;
 
+        // Goto line
         case CTRL_KEY('g'):
             should_scroll = false;
             gCurFile->cursor.is_selected = false;
@@ -481,6 +493,7 @@ void editorProcessKeypress() {
             editorGotoLine();
             break;
 
+        // Prompt
         case CTRL_KEY('p'):
             should_scroll = false;
             gCurFile->cursor.is_selected = false;
@@ -901,8 +914,8 @@ void editorProcessKeypress() {
             }
 
             pressed = true;
-            prev_x = x;
-            prev_y = y;
+            curr_x = x;
+            curr_y = y;
 
             gCurFile->cursor.is_selected = false;
             gCurFile->bracket_autocomplete = 0;
@@ -923,20 +936,19 @@ void editorProcessKeypress() {
                 break;
             }
 
-            if (c == MOUSE_RELEASED) {
-                pressed = false;
-                if (x == prev_x && y == prev_y)
-                    break;
+            if (moveMouse(x, y)) {
+                curr_x = x;
+                curr_y = y;
             }
 
-            if (getMousePosField(x, y) != FIELD_TEXT ||
-                !mousePosToEditorPos(&x, &y))
-                break;
+            if (c == MOUSE_RELEASED) {
+                pressed = false;
+                if (gCurFile->cursor.x == gCurFile->cursor.select_x &&
+                    gCurFile->cursor.y == gCurFile->cursor.select_y) {
+                    gCurFile->cursor.is_selected = false;
+                }
+            }
 
-            gCurFile->cursor.is_selected = true;
-            gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
-            gCurFile->cursor.y = y;
-            gCurFile->sx = x;
             break;
 
         // Scroll up
@@ -944,6 +956,8 @@ void editorProcessKeypress() {
         case CTRL_UP:
             should_scroll = false;
             scrollUp(c == WHEEL_UP ? 3 : 1);
+            if (pressed)
+                moveMouse(curr_x, curr_y);
             break;
 
         // Scroll down
@@ -951,6 +965,8 @@ void editorProcessKeypress() {
         case CTRL_DOWN:
             should_scroll = false;
             scrollDown(c == WHEEL_DOWN ? 3 : 1);
+            if (pressed)
+                moveMouse(curr_x, curr_y);
             break;
 
         // Action: Input
