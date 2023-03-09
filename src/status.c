@@ -78,7 +78,6 @@ void editorDrawTopStatusBar(abuf* ab) {
     }
 
     abufAppend(ab, ANSI_CLEAR);
-    abufAppend(ab, "\r\n");
 }
 
 static void drawLeftRightMsg(abuf* ab, const char* left, const char* right) {
@@ -103,8 +102,26 @@ static void drawLeftRightMsg(abuf* ab, const char* left, const char* right) {
     }
 }
 
+void editorDrawPrompt(abuf* ab) {
+    char buf[32];
+
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.screen_rows - 1, 0);
+    abufAppend(ab, buf);
+
+    colorToANSI(gEditor.color_cfg.prompt[0], buf, 0);
+    abufAppend(ab, buf);
+    colorToANSI(gEditor.color_cfg.prompt[1], buf, 1);
+    abufAppend(ab, buf);
+
+    drawLeftRightMsg(ab, gEditor.status_msg[0], gEditor.status_msg[1]);
+}
+
 void editorDrawStatusBar(abuf* ab) {
     char buf[32];
+
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.screen_rows, 0);
+    abufAppend(ab, buf);
+
     colorToANSI(gEditor.color_cfg.status[0], buf, 0);
     abufAppend(ab, buf);
     colorToANSI(gEditor.color_cfg.status[1], buf, 1);
@@ -131,16 +148,4 @@ void editorDrawStatusBar(abuf* ab) {
 
     drawLeftRightMsg(ab, help_str, rstatus);
     abufAppend(ab, ANSI_CLEAR);
-}
-
-void editorDrawStatusMsgBar(abuf* ab) {
-    char buf[32];
-
-    colorToANSI(gEditor.color_cfg.prompt[0], buf, 0);
-    abufAppend(ab, buf);
-    colorToANSI(gEditor.color_cfg.prompt[1], buf, 1);
-    abufAppend(ab, buf);
-
-    drawLeftRightMsg(ab, gEditor.status_msg[0], gEditor.status_msg[1]);
-    abufAppend(ab, "\r\n");
 }

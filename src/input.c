@@ -382,7 +382,8 @@ void editorProcessKeypress() {
             }
             if (dirty && quit_protect) {
                 editorSetStatusMsg(
-                    "Files have unsaved changes. Press ^Q again to quit anyway.");
+                    "Files have unsaved changes. Press ^Q again to quit "
+                    "anyway.");
                 quit_protect = false;
                 return;
             }
@@ -396,7 +397,8 @@ void editorProcessKeypress() {
             editorFreeAction(action);
             if (gCurFile->dirty && close_protect) {
                 editorSetStatusMsg(
-                    "File has unsaved changes. Press ^W again to close file anyway.");
+                    "File has unsaved changes. Press ^W again to close file "
+                    "anyway.");
                 close_protect = false;
                 return;
             }

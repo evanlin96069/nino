@@ -6,7 +6,7 @@
 void editorSetStatusMsg(const char* fmt, ...);
 void editorSetRStatusMsg(const char* fmt, ...);
 void editorDrawTopStatusBar(abuf* ab);
+void editorDrawPrompt(abuf* ab);
 void editorDrawStatusBar(abuf* ab);
-void editorDrawStatusMsgBar(abuf* ab);
 
 #endif

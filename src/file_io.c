@@ -37,7 +37,7 @@ static char* editroRowsToString(EditorFile* file, int* len) {
 }
 
 bool editorOpen(EditorFile* file, char* filename) {
-    FILE* f = fopen(filename, "r+");
+    FILE* f = fopen(filename, "r");
 
     if (!f && errno != ENOENT) {
         editorSetStatusMsg("Can't load! I/O error: %s", strerror(errno));
