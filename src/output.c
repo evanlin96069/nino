@@ -42,9 +42,15 @@ void editorDrawRows(abuf* ab) {
 
     for (int i = gCurFile->row_offset, s_row = 2;
          i < gCurFile->row_offset + gEditor.display_rows; i++, s_row++) {
+        char buf[32];
+        bool is_row_full = false;
+        // Move cursor to the beginning of a row, in case the charater width
+        // is calculated incorrectly.
+        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", s_row, 0);
+        abufAppend(ab, buf);
+
         if (i < gCurFile->num_rows) {
             char line_number[16];
-            char buf[32];
             if (i == gCurFile->cursor.y) {
                 colorToANSI(gEditor.color_cfg.line_number[1], buf, 0);
                 abufAppend(ab, buf);
@@ -56,11 +62,6 @@ void editorDrawRows(abuf* ab) {
                 colorToANSI(gEditor.color_cfg.line_number[1], buf, 1);
                 abufAppend(ab, buf);
             }
-
-            // Move cursor to the beginning of a row, in case the charater width
-            // is calculated incorrectly.
-            snprintf(buf, sizeof(buf), "\x1b[%d;%dH", s_row, 0);
-            abufAppend(ab, buf);
 
             snprintf(line_number, sizeof(line_number), "%*d ",
                      gCurFile->num_rows_digits, i + 1);
@@ -77,7 +78,8 @@ void editorDrawRows(abuf* ab) {
             len = (len < 0) ? 0 : len;
 
             int rlen = gCurFile->row[i].rsize - gCurFile->col_offset;
-            rlen = (rlen > cols) ? cols : rlen;
+            is_row_full = (rlen > cols);
+            rlen = is_row_full ? cols : rlen;
             rlen += gCurFile->col_offset;
 
             char* c = &gCurFile->row[i].data[col_offset];
@@ -191,7 +193,10 @@ void editorDrawRows(abuf* ab) {
             colorToANSI(gEditor.color_cfg.bg, buf, 1);
             abufAppend(ab, buf);
         }
-        abufAppend(ab, "\x1b[K");
+
+        if (!is_row_full) {
+            abufAppend(ab, "\x1b[K");
+        }
     }
 }
 
