@@ -326,7 +326,7 @@ static int getClickedFile(int x) {
     return -1;
 }
 
-bool moveMouse(int x, int y) {
+static bool moveMouse(int x, int y) {
     if (getMousePosField(x, y) != FIELD_TEXT || !mousePosToEditorPos(&x, &y))
         return false;
     gCurFile->cursor.is_selected = true;
@@ -334,6 +334,13 @@ bool moveMouse(int x, int y) {
     gCurFile->cursor.y = y;
     gCurFile->sx = x;
     return true;
+}
+
+static int getRowStart(const EditorRow* row) {
+    int i = 0;
+    while (i < row->size && (row->data[i] == ' ' || row->data[i] == '\t'))
+        i++;
+    return i;
 }
 
 void editorProcessKeypress() {
@@ -442,14 +449,16 @@ void editorProcessKeypress() {
             break;
 
         case HOME_KEY:
-        case SHIFT_HOME:
-            if (gCurFile->cursor.x == 0)
-                break;
-            gCurFile->cursor.x = 0;
-            gCurFile->sx = 0;
+        case SHIFT_HOME: {
+            int start_x = getRowStart(&gCurFile->row[gCurFile->cursor.y]);
+            if (start_x == gCurFile->cursor.x)
+                start_x = 0;
+            gCurFile->cursor.x = start_x;
+            gCurFile->sx =
+                editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], start_x);
             gCurFile->cursor.is_selected = c == (SHIFT_HOME);
             gCurFile->bracket_autocomplete = 0;
-            break;
+        } break;
 
         case END_KEY:
         case SHIFT_END:
@@ -620,8 +629,9 @@ void editorProcessKeypress() {
             } else {
                 // Copy line
                 EditorSelectRange range = {
-                    0, gCurFile->cursor.y,
-                    gCurFile->row[gCurFile->cursor.y].size, gCurFile->cursor.y};
+                    getRowStart(&gCurFile->row[gCurFile->cursor.y]),
+                    gCurFile->cursor.y, gCurFile->row[gCurFile->cursor.y].size,
+                    gCurFile->cursor.y};
                 editorCopyText(&gEditor.clipboard, range);
             }
         } break;
@@ -943,12 +953,7 @@ void editorProcessKeypress() {
 
             if (c == MOUSE_RELEASED) {
                 pressed = false;
-                if (gCurFile->cursor.x == gCurFile->cursor.select_x &&
-                    gCurFile->cursor.y == gCurFile->cursor.select_y) {
-                    gCurFile->cursor.is_selected = false;
-                }
             }
-
             break;
 
         // Scroll up
@@ -1044,6 +1049,11 @@ void editorProcessKeypress() {
                 should_record_action = false;
             }
         } break;
+    }
+
+    if (gCurFile->cursor.x == gCurFile->cursor.select_x &&
+        gCurFile->cursor.y == gCurFile->cursor.select_y) {
+        gCurFile->cursor.is_selected = false;
     }
 
     if (!gCurFile->cursor.is_selected) {
