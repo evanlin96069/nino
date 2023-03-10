@@ -29,7 +29,7 @@ Build nino:
 ```
 git clone https://github.com/evanlin96069/nino.git
 cd nino
-sudo make install
+make && sudo make install
 ```
 Install the [example](docs/example.ninorc) config:
 ```

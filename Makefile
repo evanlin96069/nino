@@ -1,57 +1,71 @@
+.PHONY: all prep release debug clean format install uninstall
+
 # Compiler flags
-CC = gcc
-CFLAGS = -MMD -pedantic -std=gnu11 -Wall -Wextra
-RELEASE_CFLAGS = -Os
-DEBUG_CFLAGS = -g
+CC ?= gcc
+CFLAGS = -pedantic -std=gnu11 -Wall -Wextra
 
-# Directories
+# Project files
 SRCDIR = src
-OBJDIR = obj
-RELEASEDIR = release
-DEBUGDIR = debug
-INSTALLDIR = /usr/local/bin
-
-# File suffixes
 SOURCES = $(wildcard $(SRCDIR)/*.c)
-OBJECTS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
-DEPS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.d, $(SOURCES))
+OBJS = $(patsubst $(SRCDIR)/%.c, %.o, $(SOURCES))
+DEPS = $(patsubst $(SRCDIR)/%.c, %.d, $(SOURCES))
 EXE = nino
 
+# Install settings
+prefix ?= /usr/local
+exec_prefix ?= $(prefix)
+bindir ?= $(exec_prefix)/bin
+INSTALL = install
+
+# Release build settings
+RELDIR = release
+RELEXE = $(RELDIR)/$(EXE)
+RELOBJS = $(addprefix $(RELDIR)/, $(OBJS))
+RELDEPS = $(addprefix $(RELDIR)/, $(DEPS))
+RELCFLAGS = -O2
+
+# Debug build settings
+DBGDIR = debug
+DBGEXE = $(DBGDIR)/$(EXE)
+DBGOBJS = $(addprefix $(DBGDIR)/, $(OBJS))
+DBGDEPS = $(addprefix $(DBGDIR)/, $(DEPS))
+DBGCFLAGS = -Og -g3 -D_DEBUG
+
 # Default target
-all: release
+all: prep release
 
 # Release build
-release: CFLAGS += $(RELEASE_CFLAGS)
-release: $(OBJECTS)
-	$(CC) $(CFLAGS) -s $(OBJECTS) -o $(EXE)
+release: $(RELEXE)
+$(RELEXE): $(RELOBJS)
+	$(CC) $(CFLAGS) $(RELCFLAGS) -s -o $(RELEXE) $^
+$(RELDIR)/%.o: $(SRCDIR)/%.c
+	$(CC) -c -MMD $(CFLAGS) $(RELCFLAGS) -o $@ $<
 
 # Debug build
-debug: CFLAGS += $(DEBUG_CFLAGS)
-debug: $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) -o $(EXE)
+debug: $(DBGEXE)
+$(DBGEXE): $(DBGOBJS)
+	$(CC) $(CFLAGS) $(DBGCFLAGS) -o $(DBGEXE) $^
+$(DBGDIR)/%.o: $(SRCDIR)/%.c
+	$(CC) -c -MMD $(CFLAGS) $(DBGCFLAGS) -o $@ $<
 
-# Compile object files
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
-	@mkdir -p $(OBJDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+-include $(RELDEPS) $(DBGDEPS)
 
-# Include dependency files
--include $(DEPS)
-
-.PHONY: all clean remake format install
-
-# Rebuild all
-remake: clean all
+# Prepare
+prep:
+	@mkdir -p $(RELDIR) $(DBGDIR)
 
 # Clean target
 clean:
-	rm -f $(OBJECTS) $(DEPS) $(EXE)
+	rm -f $(RELEXE) $(RELDEPS) $(RELOBJS) $(DBGEXE) $(DBGDEPS) $(DBGOBJS)
 
 # Format all files
 format:
 	clang-format -i $(SRCDIR)/*.h $(SRCDIR)/*.c
 
 # Install target
-install: release
-	cp $(EXE) $(INSTALLDIR)
-	chmod +x $(INSTALLDIR)/$(EXE)
+install:
+	$(INSTALL) $(RELEXE) $(DESTDIR)$(bindir)/$(EXE)
+
+# Uninstall target
+uninstall:
+	rm -f $(DESTDIR)$(bindir)/$(EXE)
