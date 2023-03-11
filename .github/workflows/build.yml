@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup build environment
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Prepare directories
+        run: make prep
+
+      - name: Build release
+        run: make release
+
+      - name: Build debug
+        run: make debug
+
+      - name: Archive release binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: release
+          path: release/nino
+
+      - name: Archive debug binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug
+          path: debug/nino
