@@ -26,7 +26,9 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
 
     int prev_sep = 1;
     int in_string = 0;
-    int in_comment = (row->idx > 0 && file->row[row->idx - 1].hl_open_comment);
+    int row_index = (int)(row - file->row);
+    int in_comment =
+        (row_index > 0 && file->row[row_index - 1].hl_open_comment);
 
     int i = 0;
     while (i < row->size) {
@@ -122,8 +124,8 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
     }
     int changed = (row->hl_open_comment != in_comment);
     row->hl_open_comment = in_comment;
-    if (changed && row->idx + 1 < file->num_rows)
-        editorUpdateSyntax(file, &file->row[row->idx + 1]);
+    if (changed && row_index + 1 < file->num_rows)
+        editorUpdateSyntax(file, &file->row[row_index + 1]);
 
 update_trailing:
     if (CONVAR_GETINT(trailing)) {

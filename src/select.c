@@ -61,10 +61,7 @@ void editorDeleteText(EditorSelectRange range) {
         memmove(&(gCurFile->row[range.start_y + 1]),
                 &(gCurFile->row[range.end_y]),
                 sizeof(EditorRow) * (gCurFile->num_rows - range.end_y));
-        for (int i = range.start_y + 1; i < gCurFile->num_rows - removed_rows;
-             i++) {
-            gCurFile->row[i].idx -= removed_rows;
-        }
+
         gCurFile->num_rows -= removed_rows;
         gCurFile->cursor.y -= removed_rows;
 

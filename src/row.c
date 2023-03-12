@@ -26,14 +26,6 @@ static inline int getDigit(int n) {
     return 10;
 }
 
-static void editorUpdateNumRowsDigits() {
-    int old_digit = gCurFile->num_rows_digits;
-    int digits = getDigit(gCurFile->num_rows);
-    if (old_digit != digits) {
-        gCurFile->num_rows_digits = digits;
-    }
-}
-
 void editorUpdateRow(EditorFile* file, EditorRow* row) {
     row->rsize = editorRowCxToRx(row, row->size);
     editorUpdateSyntax(file, row);
@@ -47,11 +39,6 @@ void editorInsertRow(int at, const char* s, size_t len) {
         realloc_s(gCurFile->row, sizeof(EditorRow) * (gCurFile->num_rows + 1));
     memmove(&(gCurFile->row[at + 1]), &(gCurFile->row[at]),
             sizeof(EditorRow) * (gCurFile->num_rows - at));
-    for (int i = at + 1; i <= gCurFile->num_rows; i++) {
-        gCurFile->row[i].idx++;
-    }
-
-    gCurFile->row[at].idx = at;
 
     gCurFile->row[at].size = len;
     gCurFile->row[at].data = malloc_s(len + 1);
@@ -63,8 +50,7 @@ void editorInsertRow(int at, const char* s, size_t len) {
     editorUpdateRow(gCurFile, &gCurFile->row[at]);
 
     gCurFile->num_rows++;
-
-    editorUpdateNumRowsDigits();
+    gCurFile->num_rows_digits = getDigit(gCurFile->num_rows);
 }
 
 void editorFreeRow(EditorRow* row) {
@@ -78,12 +64,9 @@ void editorDelRow(int at) {
     editorFreeRow(&(gCurFile->row[at]));
     memmove(&(gCurFile->row[at]), &(gCurFile->row[at + 1]),
             sizeof(EditorRow) * (gCurFile->num_rows - at - 1));
-    for (int i = at; i < gCurFile->num_rows - 1; i++) {
-        gCurFile->row[i].idx--;
-    }
-    gCurFile->num_rows--;
 
-    editorUpdateNumRowsDigits();
+    gCurFile->num_rows--;
+    gCurFile->num_rows_digits = getDigit(gCurFile->num_rows);
 }
 
 void editorRowInsertChar(EditorRow* row, int at, int c) {

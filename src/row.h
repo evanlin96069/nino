@@ -8,7 +8,6 @@ struct EditorFile;
 typedef struct EditorFile EditorFile;
 
 typedef struct EditorRow {
-    int idx;
     int size;
     int rsize;
     char* data;
