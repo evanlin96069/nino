@@ -1,5 +1,7 @@
 # nino
 
+[![Build](https://github.com/evanlin96069/nino/actions/workflows/build.yml/badge.svg)](https://github.com/evanlin96069/nino/actions?query=branch%3Amaster)
+
 ![screenshot](docs/img/editor_screenshot.jpg)
 
 A small terminal-based text editor written in C.
