@@ -2,8 +2,10 @@ name: Build
 
 on:
   push:
-    branches:
-      - master
+    paths-ignore:
+        - '.github/*'
+        - '.gitignore'
+        - 'README.md'
 
 jobs:
   build:
