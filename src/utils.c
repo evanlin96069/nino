@@ -164,3 +164,23 @@ int isSeparator(char c) {
     return isspace(c) || c == '\0' ||
            strchr("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", c) != NULL;
 }
+
+int getDigit(int n) {
+    if (n < 10)
+        return 1;
+    if (n < 100)
+        return 2;
+    if (n < 1000)
+        return 3;
+    if (n < 10000000) {
+        if (n < 1000000) {
+            if (n < 10000)
+                return 4;
+            return 5 + (n >= 100000);
+        }
+        return 7;
+    }
+    if (n < 1000000000)
+        return 8 + (n >= 100000000);
+    return 10;
+}

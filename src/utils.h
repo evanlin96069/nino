@@ -48,4 +48,6 @@ int colorToANSI(Color color, char ansi[32], int is_bg);
 
 int isSeparator(char c);
 
+int getDigit(int n);
+
 #endif

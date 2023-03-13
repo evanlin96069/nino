@@ -36,7 +36,7 @@ void editorDrawTopStatusBar(abuf* ab) {
     int len = 0;
     if (gEditor.loading) {
         const char* loading_text = "Loading...";
-        int loading_text_len = sizeof(loading_text);
+        int loading_text_len = strlen(loading_text);
         abufAppendN(ab, loading_text, loading_text_len);
         len = loading_text_len;
     } else {

@@ -97,9 +97,4 @@ int editorAddFile();
 void editorRemoveFile(int index);
 void editorChangeToFile(int index);
 
-// Edit (move this somewhere else?)
-void editorInsertChar(int c);
-void editorInsertNewline();
-void editorDelChar();
-
 #endif

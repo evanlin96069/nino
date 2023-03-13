@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
 
     if (argc < 2) {
         editorChangeToFile(editorAddFile());
-        editorInsertRow(0, "", 0);
+        editorInsertRow(gCurFile, 0, "", 0);
     } else {
         for (int i = 1; i < argc; i++) {
             int index = editorAddFile();
@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
                 break;
             editorChangeToFile(index);
             if (!editorOpen(gCurFile, argv[i])) {
-                editorInsertRow(0, "", 0);
+                editorInsertRow(gCurFile, 0, "", 0);
             }
         }
     }

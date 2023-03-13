@@ -55,11 +55,10 @@ void editorDeleteText(EditorSelectRange range) {
 
     if (range.end_y - range.start_y > 1) {
         for (int i = range.start_y + 1; i < range.end_y; i++) {
-            editorFreeRow(&(gCurFile->row[i]));
+            editorFreeRow(&gCurFile->row[i]);
         }
         int removed_rows = range.end_y - range.start_y - 1;
-        memmove(&(gCurFile->row[range.start_y + 1]),
-                &(gCurFile->row[range.end_y]),
+        memmove(&gCurFile->row[range.start_y + 1], &gCurFile->row[range.end_y],
                 sizeof(EditorRow) * (gCurFile->num_rows - range.end_y));
 
         gCurFile->num_rows -= removed_rows;
@@ -144,11 +143,11 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
         CONVAR_GETINT(autoindent) = 0;
         editorInsertNewline();
         CONVAR_GETINT(autoindent) = auto_indent;
-        editorRowAppendString(&gCurFile->row[y], clipboard->data[0],
+        editorRowAppendString(gCurFile, &gCurFile->row[y], clipboard->data[0],
                               strlen(clipboard->data[0]));
         // Middle
         for (size_t i = 1; i < clipboard->size - 1; i++) {
-            editorInsertRow(y + i, clipboard->data[i],
+            editorInsertRow(gCurFile, y + i, clipboard->data[i],
                             strlen(clipboard->data[i]));
         }
         // Last line

@@ -219,7 +219,7 @@ void editorMoveCursor(int key) {
             if (gCurFile->cursor.y != 0) {
                 gCurFile->cursor.y--;
                 gCurFile->cursor.x = editorRowRxToCx(
-                    &(gCurFile->row[gCurFile->cursor.y]), gCurFile->sx);
+                    &gCurFile->row[gCurFile->cursor.y], gCurFile->sx);
             }
             break;
 
@@ -227,13 +227,13 @@ void editorMoveCursor(int key) {
             if (gCurFile->cursor.y + 1 < gCurFile->num_rows) {
                 gCurFile->cursor.y++;
                 gCurFile->cursor.x = editorRowRxToCx(
-                    &(gCurFile->row[gCurFile->cursor.y]), gCurFile->sx);
+                    &gCurFile->row[gCurFile->cursor.y], gCurFile->sx);
             }
             break;
     }
     row = (gCurFile->cursor.y >= gCurFile->num_rows)
               ? NULL
-              : &(gCurFile->row[gCurFile->cursor.y]);
+              : &gCurFile->row[gCurFile->cursor.y];
     int row_len = row ? row->size : 0;
     if (gCurFile->cursor.x > row_len) {
         gCurFile->cursor.x = row_len;
@@ -404,7 +404,9 @@ void editorProcessKeypress() {
                 quit_protect = false;
                 return;
             }
+#ifdef _DEBUG
             editorFree();
+#endif
             exit(EXIT_SUCCESS);
         }
 
@@ -576,8 +578,10 @@ void editorProcessKeypress() {
             if (should_delete_bracket)
                 editorMoveCursor(ARROW_LEFT);
 
-            char deleted_char =
-                gCurFile->row[gCurFile->cursor.y].data[gCurFile->cursor.x - 1];
+            char deleted_char = '\0';
+            if (gCurFile->cursor.x != 0)
+                deleted_char = gCurFile->row[gCurFile->cursor.y]
+                                   .data[gCurFile->cursor.x - 1];
             editorMoveCursor(ARROW_LEFT);
             if (CONVAR_GETINT(backspace) && deleted_char == ' ') {
                 bool should_delete_tab = true;
@@ -825,7 +829,7 @@ void editorProcessKeypress() {
             should_record_action = true;
             gCurFile->cursor.is_selected = false;
             action->old_cursor.is_selected = 0;
-            editorInsertRow(gCurFile->cursor.y,
+            editorInsertRow(gCurFile, gCurFile->cursor.y,
                             gCurFile->row[gCurFile->cursor.y].data,
                             gCurFile->row[gCurFile->cursor.y].size);
 

@@ -176,7 +176,7 @@ static void editorFindCallback(char* query, int key) {
     }
 
     unsigned char* match_pos =
-        &(gCurFile->row[match_node->row].hl[match_node->col]);
+        &gCurFile->row[match_node->row].hl[match_node->col];
     saved_hl_len = len;
     saved_hl_pos = match_pos;
     saved_hl = malloc_s(len + 1);

@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "file_io.h"
 
 #include <errno.h>
@@ -14,6 +16,7 @@
 #include "input.h"
 #include "row.h"
 #include "status.h"
+#include "utils.h"
 
 static char* editroRowsToString(EditorFile* file, int* len) {
     int total_len = 0;
@@ -51,23 +54,46 @@ bool editorOpen(EditorFile* file, char* filename) {
     editorSelectSyntaxHighlight(file);
 
     if (errno == ENOENT) {
-        editorInsertRow(file->cursor.y, "", 0);
+        editorInsertRow(file, file->cursor.y, "", 0);
     } else {
+        bool end_nl = true;
+        size_t at = 0;
+        size_t cap = 16;
+
         char* line = NULL;
-        size_t cap = 0;
+        size_t n = 0;
         ssize_t len;
-        int end_nl = 1;
-        while ((len = getline(&line, &cap, f)) != -1) {
-            end_nl = 0;
+
+        file->row = malloc_s(sizeof(EditorRow) * cap);
+
+        while ((len = getline(&line, &n, f)) != -1) {
+            end_nl = false;
             while (len > 0 &&
                    (line[len - 1] == '\n' || line[len - 1] == '\r')) {
-                end_nl = 1;
+                end_nl = true;
                 len--;
             }
-            editorInsertRow(file->num_rows, line, len);
+            // editorInsertRow but faster
+            if (at >= cap) {
+                cap *= 2;
+                file->row = realloc_s(file->row, sizeof(EditorRow) * cap);
+            }
+            file->row[at].size = len;
+            file->row[at].data = line;
+
+            file->row[at].hl = NULL;
+            file->row[at].hl_open_comment = 0;
+            editorUpdateRow(file, &file->row[at]);
+
+            line = NULL;
+            n = 0;
+            at++;
         }
+        file->row = realloc_s(file->row, sizeof(EditorRow) * at);
+        file->num_rows = at;
+        file->num_rows_digits = getDigit(gCurFile->num_rows);
         if (end_nl) {
-            editorInsertRow(file->num_rows, "", 0);
+            editorInsertRow(file, file->num_rows, "", 0);
         }
         free(line);
         fclose(f);

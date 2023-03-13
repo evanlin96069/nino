@@ -16,11 +16,17 @@ typedef struct EditorRow {
 } EditorRow;
 
 void editorUpdateRow(EditorFile* file, EditorRow* row);
-void editorInsertRow(int at, const char* s, size_t len);
+void editorInsertRow(EditorFile* file, int at, const char* s, size_t len);
 void editorFreeRow(EditorRow* row);
-void editorDelRow(int at);
-void editorRowInsertChar(EditorRow* row, int at, int c);
-void editorRowDelChar(EditorRow* row, int at);
-void editorRowAppendString(EditorRow* row, const char* s, size_t len);
+void editorDelRow(EditorFile* file, int at);
+void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c);
+void editorRowDelChar(EditorFile* file, EditorRow* row, int at);
+void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
+                           size_t len);
+
+// On gCurFile
+void editorInsertChar(int c);
+void editorInsertNewline();
+void editorDelChar();
 
 #endif
