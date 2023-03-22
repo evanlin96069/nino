@@ -21,8 +21,9 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
             sizeof(EditorRow) * (file->num_rows - at));
 
     file->row[at].size = len;
-    file->row[at].data = malloc_s(len);
+    file->row[at].data = malloc_s(len + 1);
     memcpy(file->row[at].data, s, len);
+    gCurFile->row[at].data[len] = '\0';
 
     file->row[at].hl = NULL;
     file->row[at].hl_open_comment = 0;
@@ -51,8 +52,8 @@ void editorDelRow(EditorFile* file, int at) {
 void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c) {
     if (at < 0 || at > row->size)
         at = row->size;
-    row->data = realloc_s(row->data, row->size + 1);
-    memmove(&row->data[at + 1], &row->data[at], row->size - at);
+    row->data = realloc_s(row->data, row->size + 2);
+    memmove(&row->data[at + 1], &row->data[at], row->size - at + 1);
     row->size++;
     row->data[at] = c;
     editorUpdateRow(file, row);
@@ -68,9 +69,10 @@ void editorRowDelChar(EditorFile* file, EditorRow* row, int at) {
 
 void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
                            size_t len) {
-    row->data = realloc_s(row->data, row->size + len);
+    row->data = realloc_s(row->data, row->size + len + 1);
     memcpy(&row->data[row->size], s, len);
     row->size += len;
+    row->data[row->size] = '\0';
     editorUpdateRow(file, row);
 }
 
@@ -125,6 +127,7 @@ void editorInsertNewline() {
                               &curr_row->data[gCurFile->cursor.x],
                               curr_row->size - gCurFile->cursor.x);
         curr_row->size = gCurFile->cursor.x;
+        curr_row->data[curr_row->size] = '\0';
         editorUpdateRow(gCurFile, curr_row);
     }
     gCurFile->cursor.y++;
