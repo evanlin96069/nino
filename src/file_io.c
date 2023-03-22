@@ -53,7 +53,7 @@ bool editorOpen(EditorFile* file, char* filename) {
     memcpy(file->filename, filename, fnlen);
     editorSelectSyntaxHighlight(file);
 
-    if (errno == ENOENT) {
+    if (!f && errno == ENOENT) {
         editorInsertRow(file, file->cursor.y, "", 0);
     } else {
         bool end_nl = true;
