@@ -278,7 +278,8 @@ void resizeWindow() {
         gEditor.screen_cols = cols;
         // TODO: Don't hard coding rows
         gEditor.display_rows = rows - 3;
-        editorRefreshScreen();
+        if (!gEditor.loading)
+            editorRefreshScreen();
     }
 }
 

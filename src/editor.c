@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "defines.h"
+#include "output.h"
 #include "row.h"
 #include "terminal.h"
 #include "utils.h"
@@ -49,6 +50,9 @@ void editorInit() {
     enableAutoResize();
 
     atexit(terminalExit);
+
+    // Draw loading
+    editorRefreshScreen();
 }
 
 void editorFree() {
