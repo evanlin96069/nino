@@ -107,7 +107,7 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                     keyword_type = HL_KEYWORD3;
                 }
                 if (!strncmp(&row->data[i], keywords[j], klen) &&
-                    isSeparator(row->data[i + klen])) {
+                    isNonIdentifierChar(row->data[i + klen])) {
                     memset(&row->hl[i], keyword_type, klen);
                     i += klen;
                     break;
@@ -119,7 +119,7 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                 continue;
             }
         }
-        prev_sep = isSeparator(c);
+        prev_sep = isNonIdentifierChar(c);
         i++;
     }
     int changed = (row->hl_open_comment != in_comment);

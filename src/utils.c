@@ -160,10 +160,19 @@ int colorToStr(Color color, char buf[8]) {
     return snprintf(buf, 8, "%02x%02x%02x", color.r, color.g, color.b);
 }
 
-int isSeparator(char c) {
-    return isspace(c) || c == '\0' ||
-           strchr("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", c) != NULL;
+int isSeparator(int c) {
+    return strchr("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", c) != NULL;
 }
+
+int isNonSeparator(int c) { return !isSeparator(c); }
+
+int isNonIdentifierChar(int c) {
+    return isspace(c) || c == '\0' || isSeparator(c);
+}
+
+int isIdentifierChar(int c) { return !isNonIdentifierChar(c); }
+
+int isNonSpace(int c) { return !isspace(c); }
 
 int getDigit(int n) {
     if (n < 10)

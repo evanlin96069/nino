@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "config.h"
@@ -143,8 +144,8 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
                     gCurFile->sx = x;
                 }
-            }
                 // fall through
+            }
             case CTRL_KEY('q'):
             case ESC:
                 editorSetStatusMsg("");
@@ -240,6 +241,20 @@ void editorMoveCursor(int key) {
     }
 }
 
+static int findNextCharIndex(EditorRow* row, int index, IsCharFunc isChar) {
+    while (index < row->size && !isChar(row->data[index])) {
+        index++;
+    }
+    return index;
+}
+
+static int findPrevCharIndex(EditorRow* row, int index, IsCharFunc isChar) {
+    while (index > 0 && !isChar(row->data[index - 1])) {
+        index--;
+    }
+    return index;
+}
+
 static void editorMoveCursorWordLeft() {
     if (gCurFile->cursor.x == 0) {
         if (gCurFile->cursor.y == 0)
@@ -248,14 +263,10 @@ static void editorMoveCursorWordLeft() {
     }
 
     EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
-    while (gCurFile->cursor.x > 0 &&
-           isSeparator(row->data[gCurFile->cursor.x - 1])) {
-        gCurFile->cursor.x--;
-    }
-    while (gCurFile->cursor.x > 0 &&
-           !isSeparator(row->data[gCurFile->cursor.x - 1])) {
-        gCurFile->cursor.x--;
-    }
+    gCurFile->cursor.x =
+        findPrevCharIndex(row, gCurFile->cursor.x, isIdentifierChar);
+    gCurFile->cursor.x =
+        findPrevCharIndex(row, gCurFile->cursor.x, isNonIdentifierChar);
     gCurFile->sx =
         editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
 }
@@ -269,14 +280,10 @@ static void editorMoveCursorWordRight() {
     }
 
     EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
-    while (gCurFile->cursor.x < row->size &&
-           isSeparator(row->data[gCurFile->cursor.x])) {
-        gCurFile->cursor.x++;
-    }
-    while (gCurFile->cursor.x < row->size &&
-           !isSeparator(row->data[gCurFile->cursor.x])) {
-        gCurFile->cursor.x++;
-    }
+    gCurFile->cursor.x =
+        findNextCharIndex(row, gCurFile->cursor.x, isIdentifierChar);
+    gCurFile->cursor.x =
+        findNextCharIndex(row, gCurFile->cursor.x, isNonIdentifierChar);
     gCurFile->sx =
         editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
 }
@@ -336,19 +343,15 @@ static bool moveMouse(int x, int y) {
     return true;
 }
 
-static int getRowStart(const EditorRow* row) {
-    int i = 0;
-    while (i < row->size && (row->data[i] == ' ' || row->data[i] == '\t'))
-        i++;
-    return i;
-}
-
 void editorProcessKeypress() {
     // Protect closing file with unsaved changes
     static bool close_protect = true;
     // Protect quiting program with unsaved files
     static bool quit_protect = true;
+
     static bool pressed = false;
+    static struct timeval prev_click_time = {0};
+    static int mouse_click = 0;
     static int curr_x = 0;
     static int curr_y = 0;
 
@@ -452,7 +455,8 @@ void editorProcessKeypress() {
 
         case HOME_KEY:
         case SHIFT_HOME: {
-            int start_x = getRowStart(&gCurFile->row[gCurFile->cursor.y]);
+            int start_x = findNextCharIndex(&gCurFile->row[gCurFile->cursor.y],
+                                            0, isNonSpace);
             if (start_x == gCurFile->cursor.x)
                 start_x = 0;
             gCurFile->cursor.x = start_x;
@@ -513,6 +517,7 @@ void editorProcessKeypress() {
             break;
 
         case CTRL_KEY('a'):
+        SELECT_ALL:
             if (gCurFile->num_rows == 1 && gCurFile->row[0].size == 0)
                 break;
             gCurFile->cursor.is_selected = true;
@@ -523,6 +528,8 @@ void editorProcessKeypress() {
                                            gCurFile->cursor.x);
             gCurFile->cursor.select_y = 0;
             gCurFile->cursor.select_x = 0;
+
+            should_scroll = false;
             break;
 
         // Action: Delete
@@ -633,7 +640,8 @@ void editorProcessKeypress() {
             } else {
                 // Copy line
                 EditorSelectRange range = {
-                    getRowStart(&gCurFile->row[gCurFile->cursor.y]),
+                    findNextCharIndex(&gCurFile->row[gCurFile->cursor.y], 0,
+                                      isNonSpace),
                     gCurFile->cursor.y, gCurFile->row[gCurFile->cursor.y].size,
                     gCurFile->cursor.y};
                 editorCopyText(&gEditor.clipboard, range);
@@ -921,42 +929,95 @@ void editorProcessKeypress() {
             int field = getMousePosField(x, y);
             if (field != FIELD_TEXT) {
                 should_scroll = false;
+                mouse_click = 0;
                 if (field == FIELD_TOP_STATUS) {
                     editorChangeToFile(getClickedFile(x));
                 }
                 break;
             }
 
+            struct timeval click_time;
+            gettimeofday(&click_time, NULL);
+            int64_t time_diff =
+                (click_time.tv_sec - prev_click_time.tv_sec) * 1000000 +
+                (click_time.tv_usec - prev_click_time.tv_usec);
+            if (x == curr_x && y == curr_y && time_diff / 1000 < 500) {
+                mouse_click++;
+            } else {
+                mouse_click = 1;
+            }
+            prev_click_time = click_time;
+
             pressed = true;
             curr_x = x;
             curr_y = y;
 
-            gCurFile->cursor.is_selected = false;
             gCurFile->bracket_autocomplete = 0;
 
             if (!mousePosToEditorPos(&x, &y))
                 break;
+            int cx = editorRowRxToCx(&gCurFile->row[y], x);
 
-            gCurFile->cursor.y = y;
-            gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
-            gCurFile->sx = x;
-            break;
-        }
+            switch (mouse_click % 4) {
+                case 1:
+                    // Mouse to pos
+                    gCurFile->cursor.is_selected = false;
+                    gCurFile->cursor.y = y;
+                    gCurFile->cursor.x = cx;
+                    gCurFile->sx = x;
+                    break;
+                case 2: {
+                    // Select word
+                    EditorRow* row = &gCurFile->row[y];
+                    if (row->size == 0)
+                        break;
+                    if (cx == row->size)
+                        cx--;
+
+                    IsCharFunc isChar;
+                    if (isspace(row->data[cx])) {
+                        isChar = isNonSpace;
+                    } else if (isIdentifierChar(row->data[cx])) {
+                        isChar = isNonIdentifierChar;
+                    } else {
+                        isChar = isNonSeparator;
+                    }
+                    gCurFile->cursor.select_x =
+                        findPrevCharIndex(row, cx, isChar);
+                    gCurFile->cursor.x = findNextCharIndex(row, cx, isChar);
+                    gCurFile->sx = editorRowCxToRx(row, gCurFile->cursor.x);
+                    gCurFile->cursor.is_selected = true;
+                } break;
+                case 3:
+                    // Select line
+                    if (gCurFile->cursor.y == gCurFile->num_rows - 1) {
+                        gCurFile->cursor.x =
+                            gCurFile->row[gCurFile->cursor.y].size;
+                        gCurFile->cursor.select_x = 0;
+                        gCurFile->sx = editorRowCxToRx(&gCurFile->row[y],
+                                                       gCurFile->cursor.x);
+                    } else {
+                        gCurFile->cursor.x = 0;
+                        gCurFile->cursor.y++;
+                        gCurFile->cursor.select_x = 0;
+                        gCurFile->sx = 0;
+                    }
+                    gCurFile->cursor.is_selected = true;
+                    break;
+                case 0:
+                    goto SELECT_ALL;
+            }
+        } break;
 
         case MOUSE_RELEASED:
-        case MOUSE_MOVE:
-            if (!pressed) {
-                should_scroll = false;
-                break;
-            }
+            should_scroll = false;
+            pressed = false;
+            break;
 
+        case MOUSE_MOVE:
             if (moveMouse(x, y)) {
                 curr_x = x;
                 curr_y = y;
-            }
-
-            if (c == MOUSE_RELEASED) {
-                pressed = false;
             }
             break;
 
@@ -1064,6 +1125,9 @@ void editorProcessKeypress() {
         gCurFile->cursor.select_x = gCurFile->cursor.x;
         gCurFile->cursor.select_y = gCurFile->cursor.y;
     }
+
+    if (c != MOUSE_PRESSED && c != MOUSE_RELEASED)
+        mouse_click = 0;
 
     if (should_record_action) {
         action->new_cursor = gCurFile->cursor;

@@ -46,7 +46,12 @@ Color strToColor(const char* color);
 int colorToStr(Color color, char buf[8]);
 int colorToANSI(Color color, char ansi[32], int is_bg);
 
-int isSeparator(char c);
+typedef int (*IsCharFunc)(int c);
+int isSeparator(int c);
+int isNonSeparator(int c);
+int isNonIdentifierChar(int c);
+int isIdentifierChar(int c);
+int isNonSpace(int c);
 
 int getDigit(int n);
 
