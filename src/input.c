@@ -650,17 +650,40 @@ void editorProcessKeypress() {
 
         // Action: Cut
         case CTRL_KEY('x'): {
-            if (!gCurFile->cursor.is_selected) {
-                // TODO: Add cut line
-                should_scroll = false;
+            if (gCurFile->num_rows == 1 && gCurFile->row[0].size == 0)
                 break;
-            }
 
             should_record_action = true;
+            editorFreeClipboardContent(&gEditor.clipboard);
 
+            if (!gCurFile->cursor.is_selected) {
+                // Copy line
+                EditorSelectRange range = {
+                    findNextCharIndex(&gCurFile->row[gCurFile->cursor.y], 0,
+                                      isNonSpace),
+                    gCurFile->cursor.y, gCurFile->row[gCurFile->cursor.y].size,
+                    gCurFile->cursor.y};
+                editorCopyText(&gEditor.clipboard, range);
+
+                // Delete line
+                range.start_x = 0;
+                if (gCurFile->num_rows != 1) {
+                    if (gCurFile->cursor.y == gCurFile->num_rows - 1) {
+                        range.start_y--;
+                        range.start_x = gCurFile->row[range.start_y].size;
+                    } else {
+                        range.end_y++;
+                        range.end_x = 0;
+                    }
+                }
+
+                action->deleted_range = range;
+                editorCopyText(&action->deleted_text, action->deleted_range);
+                editorDeleteText(action->deleted_range);
+                break;
+            }
             getSelectStartEnd(&action->deleted_range);
             editorCopyText(&action->deleted_text, action->deleted_range);
-            editorFreeClipboardContent(&gEditor.clipboard);
             editorCopyText(&gEditor.clipboard, action->deleted_range);
             editorDeleteText(action->deleted_range);
             gCurFile->cursor.is_selected = false;
