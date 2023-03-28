@@ -61,11 +61,14 @@ static void scrollDown(int dist) {
         gCurFile->row_offset = gCurFile->num_rows - gEditor.display_rows;
 }
 
+#define PROMPT_BUF_INIT_SIZE 64
+#define PROMPT_BUF_GROWTH_RATE 2.0f
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     int prev_state = gEditor.state;
     gEditor.state = state;
 
-    size_t bufsize = 128;
+    // TODO: Make prompt buffer a row
+    size_t bufsize = PROMPT_BUF_INIT_SIZE;
     char* buf = malloc_s(bufsize);
 
     size_t buflen = 0;
@@ -99,6 +102,31 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                         callback(buf, c);
                 }
                 break;
+
+            case CTRL_KEY('v'): {
+                if (!gEditor.clipboard.size)
+                    break;
+                // Only paste the first line
+                const char* paste_buf = gEditor.clipboard.data[0];
+                size_t paste_len = strlen(paste_buf);
+                if (paste_len == 0)
+                    break;
+
+                if (buflen + paste_len >= bufsize) {
+                    bufsize = buflen + paste_len + 1;
+                    bufsize *= PROMPT_BUF_GROWTH_RATE;
+                    buf = realloc_s(buf, bufsize);
+                }
+                memmove(&buf[idx + paste_len], &buf[idx], buflen - idx + 1);
+                memcpy(&buf[idx], paste_buf, paste_len);
+                buflen += paste_len;
+                idx += paste_len;
+
+                if (callback)
+                    callback(buf, c);
+
+                break;
+            }
 
             case HOME_KEY:
                 idx = 0;
@@ -168,12 +196,12 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             default:
                 if (isprint(c)) {
                     if (buflen == bufsize - 1) {
-                        bufsize *= 2;
+                        bufsize *= PROMPT_BUF_GROWTH_RATE;
                         buf = realloc_s(buf, bufsize);
                     }
-                    buflen++;
-                    memmove(&buf[idx + 1], &buf[idx], buflen - idx);
+                    memmove(&buf[idx + 1], &buf[idx], buflen - idx + 1);
                     buf[idx] = c;
+                    buflen++;
                     idx++;
                 }
 
