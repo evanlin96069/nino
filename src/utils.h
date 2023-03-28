@@ -38,9 +38,8 @@ void abufFree(abuf* ab);
 int editorRowPreviousUTF8(EditorRow* row, int cx);
 int editorRowNextUTF8(EditorRow* row, int cx);
 
-int editorRowCxToRx(EditorRow* row, int cx);
-int editorRowRxToCx(EditorRow* row, int rx);
-int editorRowSxToCx(EditorRow* row, int sx);
+int editorRowCxToRx(const EditorRow* row, int cx);
+int editorRowRxToCx(const EditorRow* row, int rx);
 
 Color strToColor(const char* color);
 int colorToStr(Color color, char buf[8]);

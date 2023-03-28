@@ -186,7 +186,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
 }
 
 void editorMoveCursor(int key) {
-    EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
+    const EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
     switch (key) {
         case ARROW_LEFT:
             if (gCurFile->cursor.x != 0) {
@@ -241,14 +241,14 @@ void editorMoveCursor(int key) {
     }
 }
 
-static int findNextCharIndex(EditorRow* row, int index, IsCharFunc isChar) {
+static int findNextCharIndex(const EditorRow* row, int index, IsCharFunc isChar) {
     while (index < row->size && !isChar(row->data[index])) {
         index++;
     }
     return index;
 }
 
-static int findPrevCharIndex(EditorRow* row, int index, IsCharFunc isChar) {
+static int findPrevCharIndex(const EditorRow* row, int index, IsCharFunc isChar) {
     while (index > 0 && !isChar(row->data[index - 1])) {
         index--;
     }
@@ -262,7 +262,7 @@ static void editorMoveCursorWordLeft() {
         editorMoveCursor(ARROW_LEFT);
     }
 
-    EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
+    const EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
     gCurFile->cursor.x =
         findPrevCharIndex(row, gCurFile->cursor.x, isIdentifierChar);
     gCurFile->cursor.x =
@@ -279,13 +279,21 @@ static void editorMoveCursorWordRight() {
         gCurFile->cursor.y++;
     }
 
-    EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
+    const EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
     gCurFile->cursor.x =
         findNextCharIndex(row, gCurFile->cursor.x, isIdentifierChar);
     gCurFile->cursor.x =
         findNextCharIndex(row, gCurFile->cursor.x, isNonIdentifierChar);
     gCurFile->sx =
         editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
+}
+
+static void editorSelectWord(const EditorRow* row, int cx, IsCharFunc is_char) {
+    gCurFile->cursor.select_x =
+        findPrevCharIndex(row, cx, is_char);
+    gCurFile->cursor.x = findNextCharIndex(row, cx, is_char);
+    gCurFile->sx = editorRowCxToRx(row, gCurFile->cursor.x);
+    gCurFile->cursor.is_selected = true;
 }
 
 static char isOpenBracket(int key) {
@@ -615,6 +623,7 @@ void editorProcessKeypress() {
         // Action: Cut
         case CTRL_KEY('x'): {
             if (!gCurFile->cursor.is_selected) {
+                // TODO: Add cut line
                 should_scroll = false;
                 break;
             }
@@ -686,6 +695,16 @@ void editorProcessKeypress() {
             gCurFile->bracket_autocomplete = 0;
             should_scroll = editorRedo();
             break;
+
+        // Select word
+        case CTRL_KEY('d'): {
+            const EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
+            if (!isIdentifierChar(row->data[gCurFile->cursor.x])) {
+                should_scroll = false;
+                break;
+            }
+            editorSelectWord(row, gCurFile->cursor.x, isNonIdentifierChar);
+        } break;
 
         // Previous file
         case CTRL_KEY('['):
@@ -968,25 +987,21 @@ void editorProcessKeypress() {
                     break;
                 case 2: {
                     // Select word
-                    EditorRow* row = &gCurFile->row[y];
+                    const EditorRow* row = &gCurFile->row[y];
                     if (row->size == 0)
                         break;
                     if (cx == row->size)
                         cx--;
 
-                    IsCharFunc isChar;
+                    IsCharFunc is_char;
                     if (isspace(row->data[cx])) {
-                        isChar = isNonSpace;
+                        is_char = isNonSpace;
                     } else if (isIdentifierChar(row->data[cx])) {
-                        isChar = isNonIdentifierChar;
+                        is_char = isNonIdentifierChar;
                     } else {
-                        isChar = isNonSeparator;
+                        is_char = isNonSeparator;
                     }
-                    gCurFile->cursor.select_x =
-                        findPrevCharIndex(row, cx, isChar);
-                    gCurFile->cursor.x = findNextCharIndex(row, cx, isChar);
-                    gCurFile->sx = editorRowCxToRx(row, gCurFile->cursor.x);
-                    gCurFile->cursor.is_selected = true;
+                    editorSelectWord(row, cx, is_char);
                 } break;
                 case 3:
                     // Select line

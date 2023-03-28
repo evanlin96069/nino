@@ -79,7 +79,7 @@ int editorRowPreviousUTF8(EditorRow *row, int cx) {
     return i - byte_size;
 }
 
-int editorRowCxToRx(EditorRow *row, int cx) {
+int editorRowCxToRx(const EditorRow *row, int cx) {
     int rx = 0;
     int i = 0;
     while (i < cx) {
@@ -99,7 +99,7 @@ int editorRowCxToRx(EditorRow *row, int cx) {
     return rx;
 }
 
-int editorRowRxToCx(EditorRow *row, int rx) {
+int editorRowRxToCx(const EditorRow *row, int rx) {
     int cur_rx = 0;
     int cx = 0;
     while (cx < row->size) {

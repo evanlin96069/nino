@@ -56,6 +56,7 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Action | Keybinding |
 | - | - |
 | Select All | `Ctrl+A` |
+| Select Word | `Ctrl+D` |
 | Select Move Up | `Shift+Up` |
 | Select Move Down | `Shift+Down` |
 | Select Move Right | `Shift+Right` |
