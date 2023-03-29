@@ -7,7 +7,6 @@
 #include "defines.h"
 #include "editor.h"
 #include "input.h"
-#include "output.h"
 #include "status.h"
 #include "terminal.h"
 #include "utils.h"
@@ -166,14 +165,8 @@ static void editorFindCallback(char* query, int key) {
 
     gCurFile->cursor.x = match_node->col;
     gCurFile->cursor.y = match_node->row;
-    editorScroll();
-    gCurFile->row_offset = gCurFile->cursor.y - gEditor.display_rows / 2;
-    if (gCurFile->row_offset + gEditor.display_rows > gCurFile->num_rows) {
-        gCurFile->row_offset = gCurFile->num_rows - gEditor.display_rows;
-    }
-    if (gCurFile->row_offset < 0) {
-        gCurFile->row_offset = 0;
-    }
+
+    editorScrollToCursorCenter();
 
     unsigned char* match_pos =
         &gCurFile->row[match_node->row].hl[match_node->col];

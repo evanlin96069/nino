@@ -13,28 +13,6 @@
 #include "status.h"
 #include "unicode.h"
 
-void editorScroll() {
-    int cols = gEditor.screen_cols - (gCurFile->num_rows_digits + 1);
-    int rx = 0;
-    if (gCurFile->cursor.y < gCurFile->num_rows) {
-        rx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                             gCurFile->cursor.x);
-    }
-
-    if (gCurFile->cursor.y < gCurFile->row_offset) {
-        gCurFile->row_offset = gCurFile->cursor.y;
-    }
-    if (gCurFile->cursor.y >= gCurFile->row_offset + gEditor.display_rows) {
-        gCurFile->row_offset = gCurFile->cursor.y - gEditor.display_rows + 1;
-    }
-    if (rx < gCurFile->col_offset) {
-        gCurFile->col_offset = rx;
-    }
-    if (rx >= gCurFile->col_offset + cols) {
-        gCurFile->col_offset = rx - cols + 1;
-    }
-}
-
 void editorDrawRows(abuf* ab) {
     EditorSelectRange range = {0};
     if (gCurFile->cursor.is_selected)

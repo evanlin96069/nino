@@ -19,6 +19,35 @@
 #include "terminal.h"
 #include "utils.h"
 
+void editorScrollToCursor() {
+    int cols = gEditor.screen_cols - (gCurFile->num_rows_digits + 1);
+    int rx = 0;
+    if (gCurFile->cursor.y < gCurFile->num_rows) {
+        rx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                             gCurFile->cursor.x);
+    }
+
+    if (gCurFile->cursor.y < gCurFile->row_offset) {
+        gCurFile->row_offset = gCurFile->cursor.y;
+    }
+    if (gCurFile->cursor.y >= gCurFile->row_offset + gEditor.display_rows) {
+        gCurFile->row_offset = gCurFile->cursor.y - gEditor.display_rows + 1;
+    }
+    if (rx < gCurFile->col_offset) {
+        gCurFile->col_offset = rx;
+    }
+    if (rx >= gCurFile->col_offset + cols) {
+        gCurFile->col_offset = rx - cols + 1;
+    }
+}
+
+void editorScrollToCursorCenter() {
+    gCurFile->row_offset = gCurFile->cursor.y - gEditor.display_rows / 2;
+    if (gCurFile->row_offset < 0) {
+        gCurFile->row_offset = 0;
+    }
+}
+
 static int getMousePosField(int x, int y) {
     if (y < 0 || y >= gEditor.screen_rows)
         return FIELD_ERROR;
@@ -33,18 +62,40 @@ static int getMousePosField(int x, int y) {
     return FIELD_TEXT;
 }
 
-static bool mousePosToEditorPos(int* x, int* y) {
+static void mousePosToEditorPos(int* x, int* y) {
     int row = gCurFile->row_offset + *y - 1;
-    if (row >= gCurFile->num_rows)
-        return false;
+    if (row < 0) {
+        *x = 0;
+        *y = 0;
+        return;
+    }
+    if (row >= gCurFile->num_rows) {
+        *y = gCurFile->num_rows - 1;
+        *x = gCurFile->row[*y].rsize;
+        return;
+    }
+
     int col = *x - gCurFile->num_rows_digits - 1 + gCurFile->col_offset;
-    if (col > gCurFile->row[row].rsize)
+    if (col < 0) {
+        col = 0;
+    } else if (col > gCurFile->row[row].rsize) {
         col = gCurFile->row[row].rsize;
+    }
+
     *x = col;
     *y = row;
-    return true;
 }
 
+void editorScroll(int dist) {
+    int line = gCurFile->row_offset + dist;
+    if (line < 0) {
+        line = 0;
+    } else if (line >= gCurFile->num_rows) {
+        line = gCurFile->num_rows - 1;
+    }
+    gCurFile->row_offset = line;
+}
+/*
 static void scrollUp(int dist) {
     if (gCurFile->row_offset - dist > 0)
         gCurFile->row_offset -= dist;
@@ -60,7 +111,7 @@ static void scrollDown(int dist) {
     else
         gCurFile->row_offset = gCurFile->num_rows - gEditor.display_rows;
 }
-
+*/
 #define PROMPT_BUF_INIT_SIZE 64
 #define PROMPT_BUF_GROWTH_RATE 2.0f
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
@@ -147,11 +198,11 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 break;
 
             case WHEEL_UP:
-                scrollUp(3);
+                editorScroll(-3);
                 break;
 
             case WHEEL_DOWN:
-                scrollDown(3);
+                editorScroll(3);
                 break;
 
             case MOUSE_PRESSED: {
@@ -167,7 +218,8 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     break;
                 }
 
-                if (field == FIELD_TEXT && mousePosToEditorPos(&x, &y)) {
+                if (field == FIELD_TEXT) {
+                    mousePosToEditorPos(&x, &y);
                     gCurFile->cursor.y = y;
                     gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
                     gCurFile->sx = x;
@@ -269,15 +321,17 @@ void editorMoveCursor(int key) {
     }
 }
 
-static int findNextCharIndex(const EditorRow* row, int index, IsCharFunc isChar) {
-    while (index < row->size && !isChar(row->data[index])) {
+static int findNextCharIndex(const EditorRow* row, int index,
+                             IsCharFunc is_char) {
+    while (index < row->size && !is_char(row->data[index])) {
         index++;
     }
     return index;
 }
 
-static int findPrevCharIndex(const EditorRow* row, int index, IsCharFunc isChar) {
-    while (index > 0 && !isChar(row->data[index - 1])) {
+static int findPrevCharIndex(const EditorRow* row, int index,
+                             IsCharFunc is_char) {
+    while (index > 0 && !is_char(row->data[index - 1])) {
         index--;
     }
     return index;
@@ -317,8 +371,7 @@ static void editorMoveCursorWordRight() {
 }
 
 static void editorSelectWord(const EditorRow* row, int cx, IsCharFunc is_char) {
-    gCurFile->cursor.select_x =
-        findPrevCharIndex(row, cx, is_char);
+    gCurFile->cursor.select_x = findPrevCharIndex(row, cx, is_char);
     gCurFile->cursor.x = findNextCharIndex(row, cx, is_char);
     gCurFile->sx = editorRowCxToRx(row, gCurFile->cursor.x);
     gCurFile->cursor.is_selected = true;
@@ -370,8 +423,9 @@ static int getClickedFile(int x) {
 }
 
 static bool moveMouse(int x, int y) {
-    if (getMousePosField(x, y) != FIELD_TEXT || !mousePosToEditorPos(&x, &y))
+    if (getMousePosField(x, y) != FIELD_TEXT)
         return false;
+    mousePosToEditorPos(&x, &y);
     gCurFile->cursor.is_selected = true;
     gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
     gCurFile->cursor.y = y;
@@ -1024,8 +1078,7 @@ void editorProcessKeypress() {
 
             gCurFile->bracket_autocomplete = 0;
 
-            if (!mousePosToEditorPos(&x, &y))
-                break;
+            mousePosToEditorPos(&x, &y);
             int cx = editorRowRxToCx(&gCurFile->row[y], x);
 
             switch (mouse_click % 4) {
@@ -1091,7 +1144,7 @@ void editorProcessKeypress() {
         case WHEEL_UP:
         case CTRL_UP:
             should_scroll = false;
-            scrollUp(c == WHEEL_UP ? 3 : 1);
+            editorScroll(-(c == WHEEL_UP ? 3 : 1));
             if (pressed)
                 moveMouse(curr_x, curr_y);
             break;
@@ -1100,7 +1153,7 @@ void editorProcessKeypress() {
         case WHEEL_DOWN:
         case CTRL_DOWN:
             should_scroll = false;
-            scrollDown(c == WHEEL_DOWN ? 3 : 1);
+            editorScroll(c == WHEEL_DOWN ? 3 : 1);
             if (pressed)
                 moveMouse(curr_x, curr_y);
             break;
@@ -1203,7 +1256,7 @@ void editorProcessKeypress() {
     }
 
     if (should_scroll)
-        editorScroll();
+        editorScrollToCursor();
     close_protect = true;
     quit_protect = true;
 }
