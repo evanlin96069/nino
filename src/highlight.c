@@ -33,7 +33,6 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
     int i = 0;
     while (i < row->size) {
         char c = row->data[i];
-        unsigned char prev_hl = i > 0 ? row->hl[i - 1] : HL_NORMAL;
 
         if (scs_len && !in_string && !in_comment) {
             if (!strncmp(&row->data[i], scs, scs_len)) {
@@ -83,10 +82,49 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
         }
 
         if (file->syntax->flags & HL_HIGHLIGHT_NUMBERS) {
-            if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
-                ((c == '.' || c == 'x' || c == 'X') && prev_hl == HL_NUMBER)) {
-                row->hl[i] = HL_NUMBER;
+            if ((isdigit(c) || c == '.') && prev_sep) {
+                int start = i;
                 i++;
+                if (c == '0') {
+                    if (row->data[i] == 'x' || row->data[i] == 'X') {
+                        // hex
+                        i++;
+                        while (isdigit(row->data[i]) ||
+                               (row->data[i] >= 'a' && row->data[i] <= 'f') ||
+                               (row->data[i] >= 'A' && row->data[i] <= 'F')) {
+                            i++;
+                        }
+                    } else if (row->data[i] >= '0' && row->data[i] <= '7') {
+                        // oct
+                        i++;
+                        while (row->data[i] >= '0' && row->data[i] <= '7') {
+                            i++;
+                        }
+                    } else if (row->data[i] == '.') {
+                        // float
+                        i++;
+                        while (isdigit(row->data[i])) {
+                            i++;
+                        }
+                    }
+                } else {
+                    while (isdigit(row->data[i])) {
+                        i++;
+                    }
+                    if (c != '.' && row->data[i] == '.') {
+                        i++;
+                        while (isdigit(row->data[i])) {
+                            i++;
+                        }
+                    }
+                }
+                if (c == '.' && i - start == 1)
+                    continue;
+
+                if (row->data[i] == 'f' || row->data[i] == 'F')
+                    i++;
+                if (isSeparator(row->data[i]) || isspace(row->data[i]))
+                    memset(&row->hl[start], HL_NUMBER, i - start);
                 prev_sep = 0;
                 continue;
             }
