@@ -190,7 +190,8 @@ void editorRefreshScreen() {
 
     editorDrawTopStatusBar(&ab);
     editorDrawRows(&ab);
-    editorDrawPrompt(&ab);
+    if (gEditor.state != EDIT_MODE)
+        editorDrawPrompt(&ab);
     editorDrawStatusBar(&ab);
 
     char buf[32];
@@ -201,13 +202,14 @@ void editorRefreshScreen() {
                                    gCurFile->cursor.x) -
                    gCurFile->col_offset) +
                   1 + gCurFile->num_rows_digits + 1;
-        if (row <= 1 || row > gEditor.screen_rows - 2 || col <= 1 ||
+        if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 1 ||
             col > gEditor.screen_cols)
             should_show_cursor = false;
         else
             snprintf(buf, sizeof(buf), "\x1b[%d;%dH", row, col);
     } else {
-        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.display_rows + 2,
+        // prompt
+        snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.screen_rows - 1,
                  gEditor.px + 1);
     }
     abufAppend(&ab, buf);

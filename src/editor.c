@@ -48,7 +48,6 @@ void editorInit() {
     editorInitCommands();
     editorLoadConfig();
 
-
     resizeWindow();
     enableAutoResize();
 

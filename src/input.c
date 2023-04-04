@@ -53,9 +53,9 @@ static int getMousePosField(int x, int y) {
         return FIELD_ERROR;
     if (y == 0)
         return FIELD_TOP_STATUS;
-    if (y == gEditor.screen_rows - 1)
-        return FIELD_PROMPT;
     if (y == gEditor.screen_rows - 2)
+        return (gEditor.state == EDIT_MODE) ? FIELD_TEXT : FIELD_PROMPT;
+    if (y == gEditor.screen_rows - 1)
         return FIELD_STATUS;
     if (x < gCurFile->num_rows_digits + 1)
         return FIELD_LINE_NUMBER;
@@ -95,27 +95,10 @@ void editorScroll(int dist) {
     }
     gCurFile->row_offset = line;
 }
-/*
-static void scrollUp(int dist) {
-    if (gCurFile->row_offset - dist > 0)
-        gCurFile->row_offset -= dist;
-    else
-        gCurFile->row_offset = 0;
-}
 
-static void scrollDown(int dist) {
-    if (gCurFile->row_offset + gEditor.display_rows + dist < gCurFile->num_rows)
-        gCurFile->row_offset += dist;
-    else if (gCurFile->num_rows - gEditor.display_rows < 0)
-        gCurFile->row_offset = 0;
-    else
-        gCurFile->row_offset = gCurFile->num_rows - gEditor.display_rows;
-}
-*/
 #define PROMPT_BUF_INIT_SIZE 64
 #define PROMPT_BUF_GROWTH_RATE 2.0f
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
-    int prev_state = gEditor.state;
     gEditor.state = state;
 
     // TODO: Make prompt buffer a row
@@ -216,9 +199,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                             idx = buflen;
                     }
                     break;
-                }
-
-                if (field == FIELD_TEXT) {
+                } else if (field == FIELD_TEXT) {
                     mousePosToEditorPos(&x, &y);
                     gCurFile->cursor.y = y;
                     gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
@@ -229,7 +210,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             case CTRL_KEY('q'):
             case ESC:
                 editorSetStatusMsg("");
-                gEditor.state = prev_state;
+                gEditor.state = EDIT_MODE;
                 if (callback)
                     callback(buf, c);
                 free(buf);
@@ -238,7 +219,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             case '\r':
                 if (buflen != 0) {
                     editorSetStatusMsg("");
-                    gEditor.state = prev_state;
+                    gEditor.state = EDIT_MODE;
                     if (callback)
                         callback(buf, c);
                     return buf;
