@@ -30,6 +30,8 @@ void editorInit() {
     gEditor.loading = true;
     gEditor.state = EDIT_MODE;
     gEditor.mouse_mode = false;
+    // Mouse mode default on
+    enableMouse();
 
     gEditor.px = 0;
 
@@ -45,6 +47,7 @@ void editorInit() {
 
     editorInitCommands();
     editorLoadConfig();
+
 
     resizeWindow();
     enableAutoResize();

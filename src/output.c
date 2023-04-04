@@ -29,7 +29,9 @@ void editorDrawRows(abuf* ab) {
 
         if (i < gCurFile->num_rows) {
             char line_number[16];
+            Color saved_bg = gEditor.color_cfg.bg;
             if (i == gCurFile->cursor.y) {
+                gEditor.color_cfg.bg = gEditor.color_cfg.cursor_line;
                 colorToANSI(gEditor.color_cfg.line_number[1], buf, 0);
                 abufAppend(ab, buf);
                 colorToANSI(gEditor.color_cfg.line_number[0], buf, 1);
@@ -159,6 +161,7 @@ void editorDrawRows(abuf* ab) {
                     }
                 }
             }
+
             // Add newline character when selected
             if (gCurFile->cursor.is_selected && range.end_y > i &&
                 i >= range.start_y &&
@@ -167,14 +170,15 @@ void editorDrawRows(abuf* ab) {
                 abufAppend(ab, buf);
                 abufAppend(ab, " ");
             }
-            abufAppend(ab, ANSI_CLEAR);
+            // abufAppend(ab, ANSI_CLEAR);
             colorToANSI(gEditor.color_cfg.bg, buf, 1);
             abufAppend(ab, buf);
+            gEditor.color_cfg.bg = saved_bg;
         }
-
-        if (!is_row_full) {
+        if (!is_row_full)
             abufAppend(ab, "\x1b[K");
-        }
+        colorToANSI(gEditor.color_cfg.bg, buf, 1);
+        abufAppend(ab, buf);
     }
 }
 

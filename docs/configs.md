@@ -5,15 +5,15 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | Name | Default | Description |
 | - | - | - |
 | `tabsize` | 4 | Tab size. |
-| `whitespace` | 0 | Use whitespace instead of tab. |
+| `whitespace` | 1 | Use whitespace instead of tab. |
 | `autoindent` | 0 | Enable auto indent. |
-| `backspace` | 0 | Use hungry backspace. |
+| `backspace` | 1 | Use hungry backspace. |
 | `bracket` | 0 | Use auto bracket completion. |
-| `trailing` | 0 | Highlight trailing spaces. |
-| `syntax` | 0 | Enable syntax highlight. |
+| `trailing` | 1 | Highlight trailing spaces. |
+| `syntax` | 1 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
-| `ignorecase` | 0 | Use case insensitive search. Set to 2 to use smartcase. |
-| `mouse` | 0 | Enable mouse mode. |
+| `ignorecase` | 2 | Use case insensitive search. Set to 2 to use smartcase. |
+| `mouse` | 1 | Enable mouse mode. |
 | `color` | cmd | Change the color of an element. |
 | `help` | cmd | Find help about a convar/concommand. |
 
@@ -24,15 +24,16 @@ When color code is `000000` it will be transparent.
 
 | Element | Default |
 | - | - |
-| `bg` | 000000 |
+| `bg` | 1e1e1e |
 | `top.fg` | e5e5e5 |
-| `top.bg` | 1c1c1c |
-| `prompt.fg` | e5e5e5
-| `prompt.bg` | 000000 |
-| `lineno.fg` | 7f7f7f |
-| `lineno.bg` | 000000 |
+| `top.bg` | 2d2d2d |
+| `prompt.fg` | e5e5e5 |
+| `prompt.bg` | 3c3c3c |
 | `status.fg` | e1dbef |
 | `status.bg` | 575068 |
+| `lineno.fg` | 7f7f7f |
+| `lineno.bg` | 1e1e1e |
+| `cursorline` | 282828 |
 | `hl.normal` | e5e5e5 |
 | `hl.comment` | 6a9955 |
 | `hl.keyword1` | c586c0 |

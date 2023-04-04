@@ -73,6 +73,7 @@ struct EditorColorScheme {
     Color prompt[2];
     Color status[2];
     Color line_number[2];
+    Color cursor_line;
     Color highlight[HL_TYPE_COUNT];
 };
 

@@ -11,15 +11,15 @@
 #include "terminal.h"
 
 CONVAR(tabsize, "Tab size.", "4");
-CONVAR(whitespace, "Use whitespace instead of tab.", "0");
+CONVAR(whitespace, "Use whitespace instead of tab.", "1");
 CONVAR(autoindent, "Enable auto indent.", "0");
-CONVAR(backspace, "Use hungry backspace.", "0");
+CONVAR(backspace, "Use hungry backspace.", "1");
 CONVAR(bracket, "Use auto bracket completion.", "0");
-CONVAR(trailing, "Highlight trailing spaces.", "0");
-CONVAR(syntax, "Enable syntax highlight.", "0");
+CONVAR(trailing, "Highlight trailing spaces.", "1");
+CONVAR(syntax, "Enable syntax highlight.", "1");
 CONVAR(helpinfo, "Show the help information.", "1");
 CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smartcase.",
-       "0");
+       "2");
 
 CON_COMMAND(mouse, "Enable mouse mode.") {
     if (args.argc < 2) {
@@ -47,10 +47,11 @@ static const ColorElement color_element_map[] = {
     {"top.bg", &gEditor.color_cfg.top_status[1]},
     {"prompt.fg", &gEditor.color_cfg.prompt[0]},
     {"prompt.bg", &gEditor.color_cfg.prompt[1]},
-    {"lineno.fg", &gEditor.color_cfg.line_number[0]},
-    {"lineno.bg", &gEditor.color_cfg.line_number[1]},
     {"status.fg", &gEditor.color_cfg.status[0]},
     {"status.bg", &gEditor.color_cfg.status[1]},
+    {"lineno.fg", &gEditor.color_cfg.line_number[0]},
+    {"lineno.bg", &gEditor.color_cfg.line_number[1]},
+    {"cursorline", &gEditor.color_cfg.cursor_line},
     {"hl.normal", &gEditor.color_cfg.highlight[HL_NORMAL]},
     {"hl.comment", &gEditor.color_cfg.highlight[HL_COMMENT]},
     {"hl.keyword1", &gEditor.color_cfg.highlight[HL_KEYWORD1]},
@@ -106,11 +107,12 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
 }
 
 const EditorColorScheme color_default = {
-    .bg = {0, 0, 0},
-    .top_status = {{229, 229, 229}, {28, 28, 28}},
-    .prompt = {{229, 229, 229}, {0, 0, 0}},
+    .bg = {30, 30, 30},
+    .top_status = {{229, 229, 229}, {45, 45, 45}},
+    .prompt = {{229, 229, 229}, {60, 60, 60}},
     .status = {{225, 219, 239}, {87, 80, 104}},
-    .line_number = {{127, 127, 127}, {0, 0, 0}},
+    .line_number = {{127, 127, 127}, {30, 30, 30}},
+    .cursor_line = {40, 40, 40},
     .highlight = {{229, 229, 229},
                   {106, 153, 85},
                   {197, 134, 192},
