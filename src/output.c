@@ -190,7 +190,7 @@ void editorRefreshScreen() {
 
     editorDrawTopStatusBar(&ab);
     editorDrawRows(&ab);
-    if (gEditor.state != EDIT_MODE)
+    if (gEditor.state != EDIT_MODE || *gEditor.status_msg[0] != '\0')
         editorDrawPrompt(&ab);
     editorDrawStatusBar(&ab);
 
