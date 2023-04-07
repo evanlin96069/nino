@@ -31,7 +31,9 @@ void editorDrawRows(abuf* ab) {
             char line_number[16];
             Color saved_bg = gEditor.color_cfg.bg;
             if (i == gCurFile->cursor.y) {
-                gEditor.color_cfg.bg = gEditor.color_cfg.cursor_line;
+                if (!gCurFile->cursor.is_selected)
+                    gEditor.color_cfg.bg = gEditor.color_cfg.cursor_line;
+
                 colorToANSI(gEditor.color_cfg.line_number[1], buf, 0);
                 abufAppend(ab, buf);
                 colorToANSI(gEditor.color_cfg.line_number[0], buf, 1);
