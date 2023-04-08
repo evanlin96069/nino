@@ -859,7 +859,7 @@ void editorProcessKeypress() {
             gCurFile->bracket_autocomplete = 0;
             while (gCurFile->cursor.y > 0) {
                 editorMoveCursor(ARROW_UP);
-                if (gCurFile->row[gCurFile->cursor.y].data[0] == '\0') {
+                if (gCurFile->row[gCurFile->cursor.y].size == 0) {
                     break;
                 }
             }
@@ -871,7 +871,7 @@ void editorProcessKeypress() {
             gCurFile->bracket_autocomplete = 0;
             while (gCurFile->cursor.y < gCurFile->num_rows - 1) {
                 editorMoveCursor(ARROW_DOWN);
-                if (gCurFile->row[gCurFile->cursor.y].data[0] == '\0') {
+                if (gCurFile->row[gCurFile->cursor.y].size == 0) {
                     break;
                 }
             }
@@ -1115,6 +1115,7 @@ void editorProcessKeypress() {
             break;
 
         case MOUSE_MOVE:
+            should_scroll = false;
             if (moveMouse(x, y)) {
                 curr_x = x;
                 curr_y = y;
