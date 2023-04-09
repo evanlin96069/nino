@@ -5,6 +5,7 @@ on:
     paths-ignore:
         - '.github/*'
         - '.gitignore'
+        - 'docs/*'
         - 'README.md'
 
 jobs:
