@@ -24,26 +24,34 @@ When color code is `000000` it will be transparent.
 
 | Element | Default |
 | - | - |
-| `bg` | 1e1e1e |
-| `top.fg` | e5e5e5 |
-| `top.bg` | 2d2d2d |
-| `prompt.fg` | e5e5e5 |
-| `prompt.bg` | 3c3c3c |
-| `status.fg` | e1dbef |
-| `status.bg` | 575068 |
-| `lineno.fg` | 7f7f7f |
-| `lineno.bg` | 1e1e1e |
-| `cursorline` | 282828 |
-| `hl.normal` | e5e5e5 |
-| `hl.comment` | 6a9955 |
-| `hl.keyword1` | c586c0 |
-| `hl.keyword2` | 569cd6 |
-| `hl.keyword3` | 4ec9b0 |
-| `hl.string` | ce9178 |
-| `hl.number` | b5cea8 |
-| `hl.match` | 592e14 |
-| `hl.select` | 264f78 |
-| `hl.space` | ff6464 |
+| `bg` | #1e1e1e |
+| `top.fg` | #e5e5e5 |
+| `top.bg` | #2d2d2d |
+| `top.tabs.fg` | #2d2d2d |
+| `top.tabs.bg` | #2d2d2d |
+| `top.select.fg` | #2d2d2d |
+| `top.select.bg` | #2d2d2d |
+| `prompt.fg` | #e5e5e5 |
+| `prompt.bg` | #3c3c3c |
+| `status.fg` | #e1dbef |
+| `status.bg` | #575068 |
+| `status.lang.fg` | #e1dbef |
+| `status.lang.bg` | #a96b21 |
+| `status.pos.fg` | #e1dbef |
+| `status.pos.bg` | #d98a2b |
+| `lineno.fg` | #7f7f7f |
+| `lineno.bg` | #1e1e1e |
+| `cursorline` | #282828 |
+| `hl.normal` | #e5e5e5 |
+| `hl.comment` | #6a9955 |
+| `hl.keyword1` | #c586c0 |
+| `hl.keyword2` | #569cd6 |
+| `hl.keyword3` | #4ec9b0 |
+| `hl.string` | #ce9178 |
+| `hl.number` | #b5cea8 |
+| `hl.match` | #592e14 |
+| `hl.select` | #264f78 |
+| `hl.space` | #ff6464 |
 
 ## Example
 An [example](example.ninorc) of `~/.ninorc`.

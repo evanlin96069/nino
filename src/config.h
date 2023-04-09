@@ -69,9 +69,9 @@ struct EditorConCmd {
 
 struct EditorColorScheme {
     Color bg;
-    Color top_status[2];
+    Color top_status[6];
     Color prompt[2];
-    Color status[2];
+    Color status[6];
     Color line_number[2];
     Color cursor_line;
     Color highlight[HL_TYPE_COUNT];

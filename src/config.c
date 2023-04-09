@@ -43,15 +43,30 @@ typedef struct {
 
 static const ColorElement color_element_map[] = {
     {"bg", &gEditor.color_cfg.bg},
+
     {"top.fg", &gEditor.color_cfg.top_status[0]},
     {"top.bg", &gEditor.color_cfg.top_status[1]},
+    {"top.tabs.fg", &gEditor.color_cfg.top_status[2]},
+    {"top.tabs.bg", &gEditor.color_cfg.top_status[3]},
+    {"top.select.fg", &gEditor.color_cfg.top_status[4]},
+    {"top.select.bg", &gEditor.color_cfg.top_status[5]},
+
     {"prompt.fg", &gEditor.color_cfg.prompt[0]},
     {"prompt.bg", &gEditor.color_cfg.prompt[1]},
+
+    // TODO: Customizable status bar
     {"status.fg", &gEditor.color_cfg.status[0]},
     {"status.bg", &gEditor.color_cfg.status[1]},
+    {"status.lang.fg", &gEditor.color_cfg.status[2]},
+    {"status.lang.bg", &gEditor.color_cfg.status[3]},
+    {"status.pos.fg", &gEditor.color_cfg.status[4]},
+    {"status.pos.bg", &gEditor.color_cfg.status[5]},
+
     {"lineno.fg", &gEditor.color_cfg.line_number[0]},
     {"lineno.bg", &gEditor.color_cfg.line_number[1]},
+
     {"cursorline", &gEditor.color_cfg.cursor_line},
+
     {"hl.normal", &gEditor.color_cfg.highlight[HL_NORMAL]},
     {"hl.comment", &gEditor.color_cfg.highlight[HL_COMMENT]},
     {"hl.keyword1", &gEditor.color_cfg.highlight[HL_KEYWORD1]},
@@ -108,9 +123,19 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
 
 const EditorColorScheme color_default = {
     .bg = {30, 30, 30},
-    .top_status = {{229, 229, 229}, {45, 45, 45}},
+    .top_status = {{229, 229, 229},
+                   {37, 37, 37},
+                   {150, 150, 150},
+                   {45, 45, 45},
+                   {229, 229, 229},
+                   {87, 80, 104}},
     .prompt = {{229, 229, 229}, {60, 60, 60}},
-    .status = {{225, 219, 239}, {87, 80, 104}},
+    .status = {{225, 219, 239},
+               {87, 80, 104},
+               {225, 219, 239},
+               {169, 107, 33},
+               {225, 219, 239},
+               {217, 138, 43}},
     .line_number = {{127, 127, 127}, {30, 30, 30}},
     .cursor_line = {40, 40, 40},
     .highlight = {{229, 229, 229},

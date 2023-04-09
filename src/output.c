@@ -34,15 +34,11 @@ void editorDrawRows(abuf* ab) {
                 if (!gCurFile->cursor.is_selected)
                     gEditor.color_cfg.bg = gEditor.color_cfg.cursor_line;
 
-                colorToANSI(gEditor.color_cfg.line_number[1], buf, 0);
-                abufAppend(ab, buf);
-                colorToANSI(gEditor.color_cfg.line_number[0], buf, 1);
-                abufAppend(ab, buf);
+                setColor(ab, gEditor.color_cfg.line_number[1], 0);
+                setColor(ab, gEditor.color_cfg.line_number[0], 1);
             } else {
-                colorToANSI(gEditor.color_cfg.line_number[0], buf, 0);
-                abufAppend(ab, buf);
-                colorToANSI(gEditor.color_cfg.line_number[1], buf, 1);
-                abufAppend(ab, buf);
+                setColor(ab, gEditor.color_cfg.line_number[0], 0);
+                setColor(ab, gEditor.color_cfg.line_number[1], 1);
             }
 
             snprintf(line_number, sizeof(line_number), "%*d ",
@@ -50,8 +46,7 @@ void editorDrawRows(abuf* ab) {
             abufAppend(ab, line_number);
 
             abufAppend(ab, ANSI_CLEAR);
-            colorToANSI(gEditor.color_cfg.bg, buf, 1);
-            abufAppend(ab, buf);
+            setColor(ab, gEditor.color_cfg.bg, 1);
 
             int cols = gEditor.screen_cols - (gCurFile->num_rows_digits + 1);
             int col_offset =
@@ -71,8 +66,7 @@ void editorDrawRows(abuf* ab) {
             bool in_select = false;
             bool has_bg = false;
 
-            colorToANSI(gEditor.color_cfg.highlight[current_color], buf, 0);
-            abufAppend(ab, buf);
+            setColor(ab, gEditor.color_cfg.highlight[current_color], 0);
 
             int j = 0;
             int rx = gCurFile->col_offset;
@@ -83,11 +77,8 @@ void editorDrawRows(abuf* ab) {
                     abufAppendN(ab, &sym, 1);
 
                     abufAppend(ab, ANSI_CLEAR);
-                    colorToANSI(gEditor.color_cfg.bg, buf, 1);
-                    abufAppend(ab, buf);
-                    colorToANSI(gEditor.color_cfg.highlight[current_color], buf,
-                                0);
-                    abufAppend(ab, buf);
+                    setColor(ab, gEditor.color_cfg.bg, 1);
+                    setColor(ab, gEditor.color_cfg.highlight[current_color], 0);
 
                     rx++;
                     j++;
@@ -97,20 +88,16 @@ void editorDrawRows(abuf* ab) {
                         isPosSelected(i, j + col_offset, range)) {
                         if (!in_select) {
                             in_select = true;
-                            colorToANSI(gEditor.color_cfg.highlight[HL_SELECT],
-                                        buf, 1);
-                            abufAppend(ab, buf);
+                            setColor(ab, gEditor.color_cfg.highlight[HL_SELECT],
+                                     1);
                         }
                     } else {
                         // restore bg
                         if (color == HL_MATCH || color == HL_SPACE) {
-                            colorToANSI(gEditor.color_cfg.highlight[color], buf,
-                                        1);
-                            abufAppend(ab, buf);
+                            setColor(ab, gEditor.color_cfg.highlight[color], 1);
                         } else if (in_select) {
                             in_select = false;
-                            colorToANSI(gEditor.color_cfg.bg, buf, 1);
-                            abufAppend(ab, buf);
+                            setColor(ab, gEditor.color_cfg.bg, 1);
                         }
                     }
 
@@ -118,25 +105,20 @@ void editorDrawRows(abuf* ab) {
                         current_color = color;
                         if (color == HL_MATCH || color == HL_SPACE) {
                             has_bg = true;
-                            colorToANSI(gEditor.color_cfg.highlight[HL_NORMAL],
-                                        buf, 0);
-                            abufAppend(ab, buf);
+                            setColor(ab, gEditor.color_cfg.highlight[HL_NORMAL],
+                                     0);
                             if (!in_select) {
-                                colorToANSI(gEditor.color_cfg.highlight[color],
-                                            buf, 1);
-                                abufAppend(ab, buf);
+                                setColor(ab, gEditor.color_cfg.highlight[color],
+                                         1);
                             }
                         } else {
                             if (has_bg) {
                                 has_bg = false;
                                 if (!in_select) {
-                                    colorToANSI(gEditor.color_cfg.bg, buf, 1);
-                                    abufAppend(ab, buf);
+                                    setColor(ab, gEditor.color_cfg.bg, 1);
                                 }
                             }
-                            colorToANSI(gEditor.color_cfg.highlight[color], buf,
-                                        0);
-                            abufAppend(ab, buf);
+                            setColor(ab, gEditor.color_cfg.highlight[color], 0);
                         }
                     }
                     if (c[j] == '\t') {
@@ -168,19 +150,15 @@ void editorDrawRows(abuf* ab) {
             if (gCurFile->cursor.is_selected && range.end_y > i &&
                 i >= range.start_y &&
                 gCurFile->row[i].rsize - gCurFile->col_offset < cols) {
-                colorToANSI(gEditor.color_cfg.highlight[HL_SELECT], buf, 1);
-                abufAppend(ab, buf);
+                setColor(ab, gEditor.color_cfg.highlight[HL_SELECT], 1);
                 abufAppend(ab, " ");
             }
-            // abufAppend(ab, ANSI_CLEAR);
-            colorToANSI(gEditor.color_cfg.bg, buf, 1);
-            abufAppend(ab, buf);
+            setColor(ab, gEditor.color_cfg.bg, 1);
             gEditor.color_cfg.bg = saved_bg;
         }
         if (!is_row_full)
             abufAppend(ab, "\x1b[K");
-        colorToANSI(gEditor.color_cfg.bg, buf, 1);
-        abufAppend(ab, buf);
+        setColor(ab, gEditor.color_cfg.bg, 1);
     }
 }
 

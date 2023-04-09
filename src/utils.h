@@ -43,7 +43,7 @@ int editorRowRxToCx(const EditorRow* row, int rx);
 
 Color strToColor(const char* color);
 int colorToStr(Color color, char buf[8]);
-int colorToANSI(Color color, char ansi[32], int is_bg);
+void setColor(abuf* ab, Color color, int is_bg);
 
 typedef int (*IsCharFunc)(int c);
 int isSeparator(int c);

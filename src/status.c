@@ -24,16 +24,14 @@ void editorSetRStatusMsg(const char* fmt, ...) {
 }
 
 void editorDrawTopStatusBar(abuf* ab) {
-    char buf[32];
-    colorToANSI(gEditor.color_cfg.top_status[0], buf, 0);
-    abufAppend(ab, buf);
-    colorToANSI(gEditor.color_cfg.top_status[1], buf, 1);
-    abufAppend(ab, buf);
-
     const char* right_buf = "  nino v" EDITOR_VERSION " ";
     int rlen = strlen(right_buf);
 
     int len = 0;
+
+    setColor(ab, gEditor.color_cfg.top_status[0], 0);
+    setColor(ab, gEditor.color_cfg.top_status[1], 1);
+
     if (gEditor.loading) {
         const char* loading_text = "Loading...";
         int loading_text_len = strlen(loading_text);
@@ -47,9 +45,13 @@ void editorDrawTopStatusBar(abuf* ab) {
             const EditorFile* file = &gEditor.files[i];
 
             bool is_current = (file == gCurFile);
-            const char* effect = is_current ? ANSI_INVERT : ANSI_UNDERLINE;
-            const char* not_effect =
-                is_current ? ANSI_NOT_INVERT : ANSI_NOT_UNDERLINE;
+            if (is_current) {
+                setColor(ab, gEditor.color_cfg.top_status[4], 0);
+                setColor(ab, gEditor.color_cfg.top_status[5], 1);
+            } else {
+                setColor(ab, gEditor.color_cfg.top_status[2], 0);
+                setColor(ab, gEditor.color_cfg.top_status[3], 1);
+            }
 
             char buf[255] = {0};
             int buf_len =
@@ -59,13 +61,13 @@ void editorDrawTopStatusBar(abuf* ab) {
                 buf_len = gEditor.screen_cols - len;
             }
 
-            abufAppend(ab, effect);
             abufAppendN(ab, buf, buf_len);
-            abufAppend(ab, not_effect);
-
             len += buf_len;
         }
     }
+
+    setColor(ab, gEditor.color_cfg.top_status[0], 0);
+    setColor(ab, gEditor.color_cfg.top_status[1], 1);
 
     while (len < gEditor.screen_cols) {
         if (gEditor.screen_cols - len == rlen) {
@@ -76,8 +78,6 @@ void editorDrawTopStatusBar(abuf* ab) {
             len++;
         }
     }
-
-    abufAppend(ab, ANSI_CLEAR);
 }
 
 static void drawLeftRightMsg(abuf* ab, const char* left, const char* right) {
@@ -108,10 +108,8 @@ void editorDrawPrompt(abuf* ab) {
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.screen_rows - 1, 0);
     abufAppend(ab, buf);
 
-    colorToANSI(gEditor.color_cfg.prompt[0], buf, 0);
-    abufAppend(ab, buf);
-    colorToANSI(gEditor.color_cfg.prompt[1], buf, 1);
-    abufAppend(ab, buf);
+    setColor(ab, gEditor.color_cfg.prompt[0], 0);
+    setColor(ab, gEditor.color_cfg.prompt[1], 1);
 
     drawLeftRightMsg(ab, gEditor.status_msg[0], gEditor.status_msg[1]);
 }
@@ -122,10 +120,8 @@ void editorDrawStatusBar(abuf* ab) {
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.screen_rows, 0);
     abufAppend(ab, buf);
 
-    colorToANSI(gEditor.color_cfg.status[0], buf, 0);
-    abufAppend(ab, buf);
-    colorToANSI(gEditor.color_cfg.status[1], buf, 1);
-    abufAppend(ab, buf);
+    setColor(ab, gEditor.color_cfg.status[0], 0);
+    setColor(ab, gEditor.color_cfg.status[1], 1);
 
     const char* help_str = "";
     const char* help_info[] = {
@@ -138,14 +134,40 @@ void editorDrawStatusBar(abuf* ab) {
     if (CONVAR_GETINT(helpinfo))
         help_str = help_info[gEditor.state];
 
-    char rstatus[64];
-    snprintf(rstatus, sizeof(rstatus), "  %s | Ln: %d, Col: %d  ",
-             gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text",
-             gCurFile->cursor.y + 1,
-             editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                             gCurFile->cursor.x) +
-                 1);
+    char lang[16];
+    char pos[64];
+    int len = strlen(help_str);
+    int lang_len, pos_len;
+    int rlen;
+    lang_len =
+        snprintf(lang, sizeof(lang), "  %s  ",
+                 gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text");
+    pos_len =
+        snprintf(pos, sizeof(pos), " Ln: %d, Col: %d  ", gCurFile->cursor.y + 1,
+                 editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                                 gCurFile->cursor.x) +
+                     1);
+    rlen = lang_len + pos_len;
 
-    drawLeftRightMsg(ab, help_str, rstatus);
-    abufAppend(ab, ANSI_CLEAR);
+    if (rlen > gEditor.screen_cols)
+        rlen = 0;
+    if (len + rlen > gEditor.screen_cols)
+        len = gEditor.screen_cols - rlen;
+
+    abufAppendN(ab, help_str, len);
+
+    while (len < gEditor.screen_cols) {
+        if (gEditor.screen_cols - len == rlen) {
+            setColor(ab, gEditor.color_cfg.status[2], 0);
+            setColor(ab, gEditor.color_cfg.status[3], 1);
+            abufAppendN(ab, lang, lang_len);
+            setColor(ab, gEditor.color_cfg.status[4], 0);
+            setColor(ab, gEditor.color_cfg.status[5], 1);
+            abufAppendN(ab, pos, pos_len);
+            break;
+        } else {
+            abufAppend(ab, " ");
+            len++;
+        }
+    }
 }
