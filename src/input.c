@@ -384,22 +384,51 @@ static char isCloseBracket(int key) {
     }
 }
 
-static int getClickedFile(int x) {
+static int handleTabClick(int x) {
     if (gEditor.loading)
         return -1;
 
+    bool has_more_files = false;
+    int tab_displayed = 0;
     int len = 0;
+    if (gEditor.tab_offset != 0) {
+        if (x == 0) {
+            gEditor.tab_offset--;
+            return -1;
+        }
+        len++;
+    }
+
     for (int i = 0; i < gEditor.file_count; i++) {
-        if (len >= gEditor.screen_cols)
-            break;
+        if (i < gEditor.tab_offset)
+            continue;
 
         const EditorFile* file = &gEditor.files[i];
-        len += strlen(file->filename ? file->filename : "Untitled") + 2;
+        int buf_len = strlen(file->filename ? file->filename : "Untitled") + 2;
+
         if (file->dirty)
-            len++;
+            buf_len++;
+
+        if (gEditor.screen_cols - len < buf_len ||
+            (i != gEditor.file_count - 1 &&
+             gEditor.screen_cols - len == buf_len)) {
+            has_more_files = true;
+            if (tab_displayed == 0) {
+                // Display at least one tab
+                buf_len = gEditor.screen_cols - len - 1;
+            } else {
+                break;
+            }
+        }
+
+        len += buf_len;
         if (len > x)
             return i;
+
+        tab_displayed++;
     }
+    if (has_more_files)
+        gEditor.tab_offset++;
     return -1;
 }
 
@@ -1036,7 +1065,7 @@ void editorProcessKeypress() {
                 should_scroll = false;
                 mouse_click = 0;
                 if (field == FIELD_TOP_STATUS) {
-                    editorChangeToFile(getClickedFile(x));
+                    editorChangeToFile(handleTabClick(x));
                 }
                 break;
             }
@@ -1124,6 +1153,13 @@ void editorProcessKeypress() {
 
         // Scroll up
         case WHEEL_UP:
+            if (y == 0) {
+                should_scroll = false;
+                if (gEditor.tab_offset != 0)
+                    gEditor.tab_offset--;
+                break;
+            }
+        // fall through
         case CTRL_UP:
             should_scroll = false;
             editorScroll(-(c == WHEEL_UP ? 3 : 1));
@@ -1133,6 +1169,12 @@ void editorProcessKeypress() {
 
         // Scroll down
         case WHEEL_DOWN:
+            if (y == 0) {
+                should_scroll = false;
+                handleTabClick(gEditor.screen_cols);
+                break;
+            }
+        // fall through
         case CTRL_DOWN:
             should_scroll = false;
             editorScroll(c == WHEEL_DOWN ? 3 : 1);

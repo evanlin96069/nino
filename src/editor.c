@@ -19,6 +19,8 @@ void editorInit() {
 
     gEditor.file_count = 0;
     gEditor.file_index = 0;
+    gEditor.tab_offset = 0;
+    gEditor.tab_displayed = 0;
 
     // Set current file to 0 before load
     editorInitFile(&gEditor.files[0]);
@@ -102,6 +104,11 @@ void editorChangeToFile(int index) {
         return;
     gEditor.file_index = index;
     gCurFile = &gEditor.files[index];
+
+    if (gEditor.tab_offset > index ||
+        gEditor.tab_offset + gEditor.tab_displayed <= index) {
+        gEditor.tab_offset = index;
+    }
 }
 
 void editorInitFile(EditorFile* file) {

@@ -9,7 +9,7 @@
 #include "row.h"
 #include "select.h"
 
-#define EDITOR_FILE_MAX_SLOT 10
+#define EDITOR_FILE_MAX_SLOT 32
 
 typedef struct EditorFile {
     // Cursor position
@@ -72,13 +72,15 @@ typedef struct Editor {
     // For restore termios when exit
     struct termios orig_termios;
 
-    // Button status message (left/right)
+    // Prompt message (left/right)
     char status_msg[2][64];
 
     // Files
     EditorFile files[EDITOR_FILE_MAX_SLOT];
     int file_count;
     int file_index;
+    int tab_offset;
+    int tab_displayed;
 } Editor;
 
 // Text editor

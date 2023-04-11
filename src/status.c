@@ -25,13 +25,19 @@ void editorSetRStatusMsg(const char* fmt, ...) {
 
 void editorDrawTopStatusBar(abuf* ab) {
     const char* right_buf = "  nino v" EDITOR_VERSION " ";
+    bool has_more_files = false;
     int rlen = strlen(right_buf);
-
     int len = 0;
 
     setColor(ab, gEditor.color_cfg.top_status[0], 0);
     setColor(ab, gEditor.color_cfg.top_status[1], 1);
 
+    if (gEditor.tab_offset != 0) {
+        abufAppendN(ab, "<", 1);
+        len++;
+    }
+
+    gEditor.tab_displayed = 0;
     if (gEditor.loading) {
         const char* loading_text = "Loading...";
         int loading_text_len = strlen(loading_text);
@@ -39,8 +45,8 @@ void editorDrawTopStatusBar(abuf* ab) {
         len = loading_text_len;
     } else {
         for (int i = 0; i < gEditor.file_count; i++) {
-            if (len >= gEditor.screen_cols)
-                break;
+            if (i < gEditor.tab_offset)
+                continue;
 
             const EditorFile* file = &gEditor.files[i];
 
@@ -57,17 +63,32 @@ void editorDrawTopStatusBar(abuf* ab) {
             int buf_len =
                 snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
                          file->filename ? file->filename : "Untitled");
-            if (gEditor.screen_cols - len < buf_len) {
-                buf_len = gEditor.screen_cols - len;
+
+            if (gEditor.screen_cols - len < buf_len ||
+                (i != gEditor.file_count - 1 &&
+                 gEditor.screen_cols - len == buf_len)) {
+                has_more_files = true;
+                if (gEditor.tab_displayed == 0) {
+                    // Display at least one tab
+                    buf_len = gEditor.screen_cols - len - 1;
+                } else {
+                    break;
+                }
             }
 
             abufAppendN(ab, buf, buf_len);
             len += buf_len;
+            gEditor.tab_displayed++;
         }
     }
 
     setColor(ab, gEditor.color_cfg.top_status[0], 0);
     setColor(ab, gEditor.color_cfg.top_status[1], 1);
+
+    if (has_more_files) {
+        abufAppendN(ab, ">", 1);
+        len++;
+    }
 
     while (len < gEditor.screen_cols) {
         if (gEditor.screen_cols - len == rlen) {
