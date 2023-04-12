@@ -23,7 +23,7 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
     file->row[at].size = len;
     file->row[at].data = malloc_s(len + 1);
     memcpy(file->row[at].data, s, len);
-    gCurFile->row[at].data[len] = '\0';
+    file->row[at].data[len] = '\0';
 
     file->row[at].hl = NULL;
     file->row[at].hl_open_comment = 0;

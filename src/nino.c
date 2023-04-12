@@ -6,23 +6,25 @@
 
 int main(int argc, char* argv[]) {
     editorInit();
+    EditorFile file;
 
-    if (argc < 2) {
-        editorChangeToFile(editorAddFile());
-        editorInsertRow(gCurFile, 0, "", 0);
-    } else {
+    if (argc > 1) {
         for (int i = 1; i < argc; i++) {
-            int index = editorAddFile();
-            if (index == -1)
-                break;
-            editorChangeToFile(index);
-            if (!editorOpen(gCurFile, argv[i])) {
-                editorInsertRow(gCurFile, 0, "", 0);
+            if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT)
+                    break;
+            editorInitFile(&file);
+            if (editorOpen(&file, argv[i])) {
+                editorAddFile(&file);
             }
         }
     }
 
-    editorChangeToFile(0);
+    if (gEditor.file_count == 0) {
+        editorInitFile(&file);
+        editorInsertRow(gCurFile, 0, "", 0);
+        editorAddFile(&file);
+    }
+
     gEditor.loading = false;
 
     while (gEditor.file_count) {

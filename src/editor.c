@@ -75,11 +75,10 @@ void editorFreeFile(EditorFile* file) {
     free(file->filename);
 }
 
-int editorAddFile() {
+int editorAddFile(EditorFile* file) {
     if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT)
         return -1;
-    EditorFile* file = &gEditor.files[gEditor.file_count++];
-    editorInitFile(file);
+    gEditor.files[gEditor.file_count++] = *file;
     return gEditor.file_count - 1;
 }
 
@@ -130,6 +129,7 @@ void editorInitFile(EditorFile* file) {
 
     file->dirty = 0;
     file->filename = NULL;
+    file->file_inode = 0;
 
     file->row = NULL;
 

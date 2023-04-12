@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "defines.h"
@@ -17,6 +17,15 @@
 #include "row.h"
 #include "status.h"
 #include "utils.h"
+
+static int isFileOpened(ino_t inode) {
+    for (int i = 0; i < gEditor.file_count; i++) {
+        if (gEditor.files[i].file_inode == inode) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 static char* editroRowsToString(EditorFile* file, int* len) {
     int total_len = 0;
@@ -39,18 +48,38 @@ static char* editroRowsToString(EditorFile* file, int* len) {
     return buf;
 }
 
-bool editorOpen(EditorFile* file, char* filename) {
-    FILE* f = fopen(filename, "r");
+bool editorOpen(EditorFile* file, const char* path) {
+    struct stat file_info;
+    if (lstat(path, &file_info) != -1) {
+        if (S_ISDIR(file_info.st_mode)) {
+            // TODO: Add file explorer
+            editorSetStatusMsg("Can't load! \"%s\" is a directory.", path);
+            return false;
+        }
 
+        if (!S_ISREG(file_info.st_mode)) {
+            editorSetStatusMsg("Can't load! \"%s\" is not a regular file.", path);
+            return false;
+        }
+
+        if (isFileOpened(file_info.st_ino) != -1) {
+            return false;
+        }
+
+        file->file_inode = file_info.st_ino;
+    }
+
+    FILE* f = fopen(path, "r");
     if (!f && errno != ENOENT) {
         editorSetStatusMsg("Can't load! I/O error: %s", strerror(errno));
         return false;
     }
 
+
     free(file->filename);
-    size_t fnlen = strlen(filename) + 1;
+    size_t fnlen = strlen(path) + 1;
     file->filename = malloc_s(fnlen);
-    memcpy(file->filename, filename, fnlen);
+    memcpy(file->filename, path, fnlen);
     editorSelectSyntaxHighlight(file);
 
     if (!f && errno == ENOENT) {
@@ -91,7 +120,7 @@ bool editorOpen(EditorFile* file, char* filename) {
         }
         file->row = realloc_s(file->row, sizeof(EditorRow) * at);
         file->num_rows = at;
-        file->num_rows_digits = getDigit(gCurFile->num_rows);
+        file->num_rows_digits = getDigit(file->num_rows);
         if (end_nl) {
             editorInsertRow(file, file->num_rows, "", 0);
         }

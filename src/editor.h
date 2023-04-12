@@ -2,6 +2,7 @@
 #define EDITOR_H
 
 #include <termios.h>
+#include <sys/types.h>
 
 #include "action.h"
 #include "config.h"
@@ -32,6 +33,7 @@ typedef struct EditorFile {
     // File info
     int dirty;
     char* filename;
+    ino_t file_inode;
 
     // Text buffers
     EditorRow* row;
@@ -95,7 +97,7 @@ void editorFree();
 void editorFreeFile(EditorFile* file);
 
 // Multiple files control
-int editorAddFile();
+int editorAddFile(EditorFile* file);
 void editorRemoveFile(int index);
 void editorChangeToFile(int index);
 
