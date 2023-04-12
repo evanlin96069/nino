@@ -58,7 +58,8 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
 
         if (!S_ISREG(file_info.st_mode)) {
-            editorSetStatusMsg("Can't load! \"%s\" is not a regular file.", path);
+            editorSetStatusMsg("Can't load! \"%s\" is not a regular file.",
+                               path);
             return false;
         }
 
@@ -74,7 +75,6 @@ bool editorOpen(EditorFile* file, const char* path) {
         editorSetStatusMsg("Can't load! I/O error: %s", strerror(errno));
         return false;
     }
-
 
     free(file->filename);
     size_t fnlen = strlen(path) + 1;

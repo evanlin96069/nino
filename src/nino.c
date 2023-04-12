@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "editor.h"
 #include "file_io.h"
 #include "input.h"
@@ -6,13 +8,13 @@
 
 int main(int argc, char* argv[]) {
     editorInit();
-    EditorFile file;
+    EditorFile file = {0};
 
     if (argc > 1) {
         for (int i = 1; i < argc; i++) {
             if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT)
-                    break;
-            editorInitFile(&file);
+                break;
+            memset(&file, 0, sizeof(EditorFile));
             if (editorOpen(&file, argv[i])) {
                 editorAddFile(&file);
             }
@@ -20,7 +22,6 @@ int main(int argc, char* argv[]) {
     }
 
     if (gEditor.file_count == 0) {
-        editorInitFile(&file);
         editorInsertRow(gCurFile, 0, "", 0);
         editorAddFile(&file);
     }

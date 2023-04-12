@@ -1,8 +1,8 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
-#include <termios.h>
 #include <sys/types.h>
+#include <termios.h>
 
 #include "action.h"
 #include "config.h"
@@ -92,7 +92,6 @@ extern Editor gEditor;
 extern EditorFile* gCurFile;
 
 void editorInit();
-void editorInitFile(EditorFile* file);
 void editorFree();
 void editorFreeFile(EditorFile* file);
 

@@ -22,10 +22,6 @@ void editorInit() {
     gEditor.tab_offset = 0;
     gEditor.tab_displayed = 0;
 
-    // Set current file to 0 before load
-    editorInitFile(&gEditor.files[0]);
-    gCurFile = &gEditor.files[0];
-
     gEditor.screen_rows = 0;
     gEditor.screen_cols = 0;
 
@@ -56,6 +52,8 @@ void editorInit() {
     atexit(terminalExit);
 
     // Draw loading
+    memset(&gEditor.files[0], 0, sizeof(EditorFile));
+    gCurFile = &gEditor.files[0];
     editorRefreshScreen();
 }
 
@@ -78,7 +76,12 @@ void editorFreeFile(EditorFile* file) {
 int editorAddFile(EditorFile* file) {
     if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT)
         return -1;
-    gEditor.files[gEditor.file_count++] = *file;
+    EditorFile* current = &gEditor.files[gEditor.file_count];
+
+    *current = *file;
+    current->action_current = &current->action_head;
+
+    gEditor.file_count++;
     return gEditor.file_count - 1;
 }
 
@@ -108,35 +111,4 @@ void editorChangeToFile(int index) {
         gEditor.tab_offset + gEditor.tab_displayed <= index) {
         gEditor.tab_offset = index;
     }
-}
-
-void editorInitFile(EditorFile* file) {
-    file->cursor.x = 0;
-    file->cursor.y = 0;
-    file->cursor.is_selected = false;
-    file->cursor.select_x = 0;
-    file->cursor.select_y = 0;
-
-    file->sx = 0;
-
-    file->bracket_autocomplete = 0;
-
-    file->row_offset = 0;
-    file->col_offset = 0;
-
-    file->num_rows = 0;
-    file->num_rows_digits = 0;
-
-    file->dirty = 0;
-    file->filename = NULL;
-    file->file_inode = 0;
-
-    file->row = NULL;
-
-    file->syntax = 0;
-
-    file->action_head.action = NULL;
-    file->action_head.next = NULL;
-    file->action_head.prev = NULL;
-    file->action_current = &file->action_head;
 }
