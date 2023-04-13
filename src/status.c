@@ -151,6 +151,7 @@ void editorDrawStatusBar(abuf* ab) {
         " ^Q: Cancel  Up: back  Down: Next",
         " ^Q: Cancel",
         " ^Q: Cancel",
+        " ^Q: Cancel",
     };
     if (CONVAR_GETINT(helpinfo))
         help_str = help_info[gEditor.state];

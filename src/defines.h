@@ -67,6 +67,7 @@ enum EditorState {
     FIND_MODE,
     GOTO_LINE_MODE,
     SETTING_MODE,
+    OPEN_FILE_MODE,
 };
 
 enum EditorHighlight {

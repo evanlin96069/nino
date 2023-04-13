@@ -6,9 +6,10 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | - | - |
 | Quit | `Ctrl+Q` |
 | Close Tab | `Ctrl+W` |
+| Open File | `Ctrl+O` |
 | Save | `Ctrl+S` |
 | Save All | `Alt+Ctrl+S` |
-| Save As | `Ctrl+O` |
+| Save As | `Ctrl+N` |
 | Previous Tab | `Ctrl+[` |
 | Next Tab | `Ctrl+]` |
 

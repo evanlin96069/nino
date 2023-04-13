@@ -10,10 +10,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "defines.h"
 #include "editor.h"
 #include "highlight.h"
 #include "input.h"
+#include "output.h"
 #include "row.h"
 #include "status.h"
 #include "utils.h"
@@ -64,6 +64,7 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
 
         if (isFileOpened(file_info.st_ino) != -1) {
+            editorSetStatusMsg("\"%s\" already opened.", path);
             return false;
         }
 
@@ -160,4 +161,26 @@ void editorSave(EditorFile* file, int save_as) {
     }
     free(buf);
     editorSetStatusMsg("Can't save! I/O error: %s", strerror(errno));
+}
+
+void editorOpenFilePrompt() {
+    if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
+        editorSetStatusMsg("Reached max file slots! Cannot open more files.",
+                           strerror(errno));
+        return;
+    }
+
+    char* path = editorPrompt("Open file: %s", OPEN_FILE_MODE, NULL);
+    if (!path)
+        return;
+
+    EditorFile file = {0};
+    if (editorOpen(&file, path)) {
+        int index = editorAddFile(&file);
+        // hack: refresh screen to update gEditor.tab_displayed
+        editorRefreshScreen();
+        editorChangeToFile(index);
+    }
+
+    free(path);
 }
