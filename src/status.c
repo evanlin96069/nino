@@ -27,7 +27,9 @@ void editorDrawTopStatusBar(abuf* ab) {
     const char* right_buf = "  nino v" EDITOR_VERSION " ";
     bool has_more_files = false;
     int rlen = strlen(right_buf);
-    int len = 0;
+    int len = gEditor.explorer_width;
+
+    gotoXY(ab, 1, gEditor.explorer_width + 1);
 
     setColor(ab, gEditor.color_cfg.top_status[0], 0);
     setColor(ab, gEditor.color_cfg.top_status[1], 1);
@@ -124,10 +126,7 @@ static void drawLeftRightMsg(abuf* ab, const char* left, const char* right) {
 }
 
 void editorDrawPrompt(abuf* ab) {
-    char buf[32];
-
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.screen_rows - 1, 0);
-    abufAppend(ab, buf);
+    gotoXY(ab, gEditor.screen_rows - 1, 0);
 
     setColor(ab, gEditor.color_cfg.prompt[0], 0);
     setColor(ab, gEditor.color_cfg.prompt[1], 1);
@@ -136,10 +135,7 @@ void editorDrawPrompt(abuf* ab) {
 }
 
 void editorDrawStatusBar(abuf* ab) {
-    char buf[32];
-
-    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", gEditor.screen_rows, 0);
-    abufAppend(ab, buf);
+    gotoXY(ab, gEditor.screen_rows, 0);
 
     setColor(ab, gEditor.color_cfg.status[0], 0);
     setColor(ab, gEditor.color_cfg.status[1], 1);

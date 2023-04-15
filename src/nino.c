@@ -22,8 +22,8 @@ int main(int argc, char* argv[]) {
     }
 
     if (gEditor.file_count == 0) {
-        editorInsertRow(gCurFile, 0, "", 0);
         editorAddFile(&file);
+        editorInsertRow(gCurFile, 0, "", 0);
     }
 
     gEditor.loading = false;

@@ -160,6 +160,12 @@ void setColor(abuf *ab, Color color, int is_bg) {
     abufAppendN(ab, buf, len);
 }
 
+void gotoXY(abuf *ab, int x, int y) {
+    char buf[32];
+    int len = snprintf(buf, sizeof(buf), "\x1b[%d;%dH", x, y);
+    abufAppendN(ab, buf, len);
+}
+
 int colorToStr(Color color, char buf[8]) {
     return snprintf(buf, 8, "%02x%02x%02x", color.r, color.g, color.b);
 }

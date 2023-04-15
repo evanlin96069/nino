@@ -20,7 +20,8 @@
 #include "utils.h"
 
 void editorScrollToCursor() {
-    int cols = gEditor.screen_cols - (gCurFile->num_rows_digits + 1);
+    int cols = gEditor.screen_cols - gEditor.explorer_width -
+               (gCurFile->num_rows_digits + 1);
     int rx = 0;
     if (gCurFile->cursor.y < gCurFile->num_rows) {
         rx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
@@ -53,12 +54,14 @@ int getMousePosField(int x, int y) {
         return FIELD_ERROR;
     if (y == 0)
         return FIELD_TOP_STATUS;
-    if (y == gEditor.screen_rows - 2)
-        return (gEditor.state == EDIT_MODE) ? FIELD_TEXT : FIELD_PROMPT;
+    if (y == gEditor.screen_rows - 2 && gEditor.state != EDIT_MODE)
+        return FIELD_PROMPT;
     if (y == gEditor.screen_rows - 1)
         return FIELD_STATUS;
-    if (x < gCurFile->num_rows_digits + 1)
-        return FIELD_LINE_NUMBER;
+    if (x < gEditor.explorer_width)
+        return FIELD_EXPLORER;
+    if (x < gEditor.explorer_width + gCurFile->num_rows_digits + 1)
+        return FIELD_LINENO;
     return FIELD_TEXT;
 }
 
@@ -75,7 +78,8 @@ void mousePosToEditorPos(int* x, int* y) {
         return;
     }
 
-    int col = *x - gCurFile->num_rows_digits - 1 + gCurFile->col_offset;
+    int col = *x - gEditor.explorer_width - gCurFile->num_rows_digits - 1 +
+              gCurFile->col_offset;
     if (col < 0) {
         col = 0;
     } else if (col > gCurFile->row[row].rsize) {
@@ -238,9 +242,12 @@ static int handleTabClick(int x) {
     if (gEditor.loading)
         return -1;
 
+    if (x < gEditor.explorer_width)
+        return -1;
+
     bool has_more_files = false;
     int tab_displayed = 0;
-    int len = 0;
+    int len = gEditor.explorer_width;
     if (gEditor.tab_offset != 0) {
         if (x == 0) {
             gEditor.tab_offset--;
@@ -922,6 +929,21 @@ void editorProcessKeypress() {
                 mouse_click = 0;
                 if (field == FIELD_TOP_STATUS) {
                     editorChangeToFile(handleTabClick(x));
+                } else if (field == FIELD_EXPLORER) {
+                    if (y > gEditor.explorer_last_line - gEditor.explorer_offset)
+                        break;
+                    EditorExplorerNode* node = editorExplorerSearch(y - 1 + gEditor.explorer_offset);
+                    EditorFile file = {0};
+                    if (!node)
+                        break;
+                    if (node->is_directory) {
+                        node->is_open ^= 1;
+                    } else if (editorOpen(&file, node->filename)) {
+                        int index = editorAddFile(&file);
+                        // hack: refresh screen to update gEditor.tab_displayed
+                        editorRefreshScreen();
+                        editorChangeToFile(index);
+                    }
                 }
                 break;
             }
@@ -1008,13 +1030,24 @@ void editorProcessKeypress() {
             break;
 
         // Scroll up
-        case WHEEL_UP:
-            if (y == 0) {
-                should_scroll = false;
-                if (gEditor.tab_offset != 0)
-                    gEditor.tab_offset--;
+        case WHEEL_UP: {
+            int field = getMousePosField(x, y);
+            should_scroll = false;
+            if (field != FIELD_TEXT && field != FIELD_LINENO) {
+                if (field == FIELD_TOP_STATUS) {
+                    if (gEditor.tab_offset > 0)
+                        gEditor.tab_offset--;
+                } else if (field == FIELD_EXPLORER) {
+                    if (gEditor.explorer_offset > 0) {
+                        gEditor.explorer_offset =
+                            (gEditor.explorer_offset - 3)
+                                ? (gEditor.explorer_offset - 3)
+                                : 0;
+                    }
+                }
                 break;
             }
+        }
         // fall through
         case CTRL_UP:
             should_scroll = false;
@@ -1024,12 +1057,18 @@ void editorProcessKeypress() {
             break;
 
         // Scroll down
-        case WHEEL_DOWN:
-            if (y == 0) {
-                should_scroll = false;
-                handleTabClick(gEditor.screen_cols);
+        case WHEEL_DOWN: {
+            int field = getMousePosField(x, y);
+            should_scroll = false;
+            if (field != FIELD_TEXT && field != FIELD_LINENO) {
+                if (field == FIELD_TOP_STATUS) {
+                    handleTabClick(gEditor.screen_cols);
+                } else if (field == FIELD_EXPLORER && gEditor.explorer_last_line - gEditor.explorer_offset > gEditor.display_rows) {
+                    gEditor.explorer_offset += 3;
+                }
                 break;
             }
+        }
         // fall through
         case CTRL_DOWN:
             should_scroll = false;

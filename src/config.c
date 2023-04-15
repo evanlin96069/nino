@@ -51,6 +51,11 @@ static const ColorElement color_element_map[] = {
     {"top.select.fg", &gEditor.color_cfg.top_status[4]},
     {"top.select.bg", &gEditor.color_cfg.top_status[5]},
 
+    {"explorer.bg", &gEditor.color_cfg.explorer[0]},
+    {"explorer.select", &gEditor.color_cfg.explorer[1]},
+    {"explorer.directory", &gEditor.color_cfg.explorer[2]},
+    {"explorer.file", &gEditor.color_cfg.explorer[3]},
+
     {"prompt.fg", &gEditor.color_cfg.prompt[0]},
     {"prompt.bg", &gEditor.color_cfg.prompt[1]},
 
@@ -129,6 +134,10 @@ const EditorColorScheme color_default = {
                    {45, 45, 45},
                    {229, 229, 229},
                    {87, 80, 104}},
+    .explorer = {{37, 37, 37},
+                   {87, 80, 104},
+                   {236, 193, 132},
+                   {229, 229, 229}},
     .prompt = {{229, 229, 229}, {60, 60, 60}},
     .status = {{225, 219, 239},
                {87, 80, 104},

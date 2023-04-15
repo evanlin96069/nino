@@ -45,6 +45,8 @@ Color strToColor(const char* color);
 int colorToStr(Color color, char buf[8]);
 void setColor(abuf* ab, Color color, int is_bg);
 
+void gotoXY(abuf* ab, int x, int y);
+
 typedef int (*IsCharFunc)(int c);
 int isSeparator(int c);
 int isNonSeparator(int c);

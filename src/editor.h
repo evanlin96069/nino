@@ -6,6 +6,7 @@
 
 #include "action.h"
 #include "config.h"
+#include "file_io.h"
 #include "file_types.h"
 #include "row.h"
 #include "select.h"
@@ -83,6 +84,13 @@ typedef struct Editor {
     int file_index;
     int tab_offset;
     int tab_displayed;
+
+    // File explorer
+    float explorer_percentage;  // screen percentage
+    int explorer_width;
+    int explorer_offset;
+    int explorer_last_line;  // Last displayed line
+    EditorExplorerNode* explorer_node;
 } Editor;
 
 // Text editor

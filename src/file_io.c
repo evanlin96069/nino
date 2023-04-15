@@ -2,6 +2,7 @@
 
 #include "file_io.h"
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -52,8 +53,11 @@ bool editorOpen(EditorFile* file, const char* path) {
     struct stat file_info;
     if (lstat(path, &file_info) != -1) {
         if (S_ISDIR(file_info.st_mode)) {
-            // TODO: Add file explorer
-            editorSetStatusMsg("Can't load! \"%s\" is a directory.", path);
+            if (gEditor.explorer_node)
+                editorExplorerFree(gEditor.explorer_node);
+            gEditor.explorer_node = editorExplorerCreate(path);
+            gEditor.explorer_node->is_open = true;
+            gEditor.explorer_offset = 0;
             return false;
         }
 
@@ -63,8 +67,9 @@ bool editorOpen(EditorFile* file, const char* path) {
             return false;
         }
 
-        if (isFileOpened(file_info.st_ino) != -1) {
-            editorSetStatusMsg("\"%s\" already opened.", path);
+        int open_index = isFileOpened(file_info.st_ino);
+        if (open_index != -1) {
+            editorChangeToFile(open_index);
             return false;
         }
 
@@ -183,4 +188,127 @@ void editorOpenFilePrompt() {
     }
 
     free(path);
+}
+
+static void insertExplorerNode(EditorExplorerNode* node,
+                               EditorExplorerNodeData* data) {
+    size_t i;
+    data->nodes =
+        realloc_s(data->nodes, (data->count + 1) * sizeof(EditorExplorerNode*));
+
+    for (i = 0; i < data->count; i++) {
+        if (strcmp(data->nodes[i]->filename, node->filename) > 0) {
+            memcpy(&data->nodes[i + 1], &data->nodes[i],
+                   (data->count - i) * sizeof(EditorExplorerNode*));
+            break;
+        }
+    }
+
+    data->nodes[i] = node;
+    data->count++;
+}
+
+EditorExplorerNode* editorExplorerCreate(const char* path) {
+    struct stat file_info;
+    if (lstat(path, &file_info) == -1)
+        return NULL;
+
+    EditorExplorerNode* node = malloc_s(sizeof(EditorExplorerNode));
+
+    int len = strlen(path);
+    node->filename = malloc_s(len + 1);
+    snprintf(node->filename, len + 1, "%s", path);
+
+    node->is_directory = S_ISDIR(file_info.st_mode);
+    node->is_open = false;
+    node->loaded = false;
+    node->dir.count = 0;
+    node->dir.nodes = NULL;
+    node->file.count = 0;
+    node->file.nodes = NULL;
+
+    return node;
+}
+
+void editorExplorerLoadNode(EditorExplorerNode* node) {
+    if (!node->is_directory)
+        return;
+
+    DIR* dir;
+    if ((dir = opendir(node->filename)) == NULL)
+        return;
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        char entry_path[4096];
+        snprintf(entry_path, sizeof(entry_path), "%s/%s", node->filename, entry->d_name);
+
+        EditorExplorerNode* child = editorExplorerCreate(entry_path);
+        if (!child)
+            continue;
+
+        if (child->is_directory) {
+            insertExplorerNode(child, &node->dir);
+        } else {
+            insertExplorerNode(child, &node->file);
+        }
+    }
+
+    node->loaded = true;
+    closedir(dir);
+}
+
+
+static EditorExplorerNode* walkNode(EditorExplorerNode* node, int* line, int index) {
+    if (!node)
+        return NULL;
+
+    if (*line == index)
+        return node;
+    (*line)++;
+
+    EditorExplorerNode* result = NULL;
+    if (node->is_directory && node->is_open) {
+        for (size_t i = 0; i < node->dir.count; i++) {
+            if ((result = walkNode(node->dir.nodes[i], line, index)))
+                return result;
+        }
+
+        for (size_t i = 0; i < node->file.count; i++) {
+            if ((result = walkNode(node->file.nodes[i], line, index)))
+                return result;
+        }
+    }
+    return NULL;
+}
+
+EditorExplorerNode* editorExplorerSearch(int index) {
+    if (index < 0)
+        return NULL;
+    int line = 0;
+    return walkNode(gEditor.explorer_node, &line, index + 1);
+}
+
+void editorExplorerFree(EditorExplorerNode* node) {
+    if (!node)
+        return;
+
+    if (node->is_directory) {
+        for (size_t i = 0; i < node->dir.count; i++) {
+            editorExplorerFree(node->dir.nodes[i]);
+        }
+
+        for (size_t i = 0; i < node->file.count; i++) {
+            editorExplorerFree(node->file.nodes[i]);
+        }
+
+        free(node->dir.nodes);
+        free(node->file.nodes);
+    }
+
+    free(node->filename);
+    free(node);
 }

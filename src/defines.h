@@ -87,9 +87,10 @@ enum EditorHighlight {
 enum EditorField {
     FIELD_TOP_STATUS,
     FIELD_TEXT,
-    FIELD_LINE_NUMBER,
+    FIELD_LINENO,
     FIELD_PROMPT,
     FIELD_STATUS,
+    FIELD_EXPLORER,
     FIELD_ERROR,
 };
 

@@ -70,6 +70,7 @@ struct EditorConCmd {
 struct EditorColorScheme {
     Color bg;
     Color top_status[6];
+    Color explorer[4];
     Color prompt[2];
     Color status[6];
     Color line_number[2];
