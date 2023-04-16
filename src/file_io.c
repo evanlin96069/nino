@@ -58,6 +58,8 @@ bool editorOpen(EditorFile* file, const char* path) {
             gEditor.explorer_node = editorExplorerCreate(path);
             gEditor.explorer_node->is_open = true;
             gEditor.explorer_offset = 0;
+            gEditor.explorer_last_line = 0;
+            gEditor.explorer_select = 0;
             return false;
         }
 

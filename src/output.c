@@ -224,16 +224,24 @@ void editorDrawFileExplorer(abuf* ab) {
     explorer_buf = malloc_s(gEditor.explorer_width + 1);
     gotoXY(ab, 1, 1);
 
-    setColor(ab, gEditor.color_cfg.explorer[0], 1);
     setColor(ab, gEditor.color_cfg.explorer[3], 0);
+    setColor(ab, gEditor.color_cfg.explorer[0], 1);
+
     snprintf(explorer_buf, gEditor.explorer_width + 1, " EXPLORER%*s",
              gEditor.explorer_width, "");
+    if (gEditor.explorer_focus)
+        abufAppend(ab, ANSI_UNDERLINE);
     abufAppendN(ab, explorer_buf, gEditor.explorer_width);
+    abufAppend(ab, ANSI_NOT_UNDERLINE);
 
     int line = 0;
     editorDrawExplorerNode(ab, gEditor.explorer_node, &line, 0);
     gEditor.explorer_last_line = line;
     memset(explorer_buf, ' ', gEditor.explorer_width);
+
+    setColor(ab, gEditor.color_cfg.explorer[0], 1);
+    setColor(ab, gEditor.color_cfg.explorer[3], 0);
+
     while (line <= gEditor.explorer_offset + gEditor.display_rows) {
         gotoXY(ab, line - gEditor.explorer_offset + 1, 1);
         abufAppendN(ab, explorer_buf, gEditor.explorer_width);
@@ -273,6 +281,9 @@ void editorRefreshScreen() {
         // prompt
         gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
     }
+
+    if (gEditor.explorer_focus)
+        should_show_cursor = false;
 
     if (should_show_cursor)
         abufAppend(&ab, "\x1b[?25h");

@@ -86,6 +86,7 @@ typedef struct Editor {
     int tab_displayed;
 
     // File explorer
+    bool explorer_focus;
     int explorer_prefer_width;
     int explorer_width;
     int explorer_offset;

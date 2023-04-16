@@ -26,6 +26,9 @@ int main(int argc, char* argv[]) {
         editorInsertRow(gCurFile, 0, "", 0);
     }
 
+    if (gEditor.explorer_node == NULL)
+        gEditor.explorer_width = 0;
+
     gEditor.loading = false;
 
     while (gEditor.file_count) {

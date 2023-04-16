@@ -43,9 +43,7 @@ void editorInit() {
     gEditor.status_msg[0][0] = '\0';
     gEditor.status_msg[1][0] = '\0';
 
-    gEditor.explorer_offset = 0;
-    gEditor.explorer_last_line = 0;
-    gEditor.explorer_select = -1;
+    gEditor.explorer_focus = false;
     gEditor.explorer_node = NULL;
 
     editorInitCommands();
