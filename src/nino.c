@@ -22,8 +22,12 @@ int main(int argc, char* argv[]) {
     }
 
     if (gEditor.file_count == 0) {
-        editorAddFile(&file);
-        editorInsertRow(gCurFile, 0, "", 0);
+        if (gEditor.explorer_node) {
+            gEditor.explorer_focus = true;
+        } else {
+            editorAddFile(&file);
+            editorInsertRow(gCurFile, 0, "", 0);
+        }
     }
 
     if (gEditor.explorer_node == NULL)
@@ -31,7 +35,7 @@ int main(int argc, char* argv[]) {
 
     gEditor.loading = false;
 
-    while (gEditor.file_count) {
+    while (gEditor.file_count || gEditor.explorer_node) {
         editorRefreshScreen();
         editorProcessKeypress();
     }

@@ -89,19 +89,36 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
                 gEditor.explorer_focus = false;
                 return false;
             }
+
             if (x == gEditor.explorer_width - 1) {
                 return false;
             }
+
+            if (y == 0) {
+                gEditor.explorer_focus = true;
+                break;
+            }
+
             if (y > gEditor.explorer_last_line - gEditor.explorer_offset)
                 break;
             gEditor.explorer_select = y + gEditor.explorer_offset;
             editorExplorerNodeClicked();
             break;
 
-        case MOUSE_MOVE:
         case CTRL_KEY('q'):
+            if (gEditor.file_count == 0) {
+#ifdef _DEBUG
+                editorFree();
+#endif
+                exit(EXIT_SUCCESS);
+            }
+            return false;
+
+        case MOUSE_MOVE:
         case CTRL_KEY('w'):
         case CTRL_KEY('b'):
+        case CTRL_KEY('['):
+        case CTRL_KEY(']'):
             return false;
 
         case CTRL_KEY('e'):
@@ -411,6 +428,11 @@ void editorProcessKeypress() {
     if (gEditor.explorer_focus && editorExplorerProcessKeypress(c, x, y))
         return;
 
+    if (gEditor.file_count == 0) {
+        gEditor.explorer_focus = true;
+        return;
+    }
+
     bool should_scroll = true;
 
     editorSetStatusMsg("");
@@ -478,6 +500,8 @@ void editorProcessKeypress() {
                 return;
             }
             editorRemoveFile(gEditor.file_index);
+            if (gEditor.file_count == 0)
+                gEditor.explorer_focus = true;
             if (gEditor.file_index == gEditor.file_count)
                 editorChangeToFile(gEditor.file_index - 1);
             return;
