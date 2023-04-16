@@ -163,14 +163,16 @@ void editorDrawRows(abuf* ab) {
 
 char* explorer_buf = NULL;
 
-static void drawFileName(abuf* ab, const char* icon, const char* path, int depth) {
+static void drawFileName(abuf* ab, const char* icon, const char* path,
+                         int depth) {
     if (!explorer_buf)
         return;
 
     const char* filename = strrchr(path, '/');
     filename = filename ? filename + 1 : path;
 
-    snprintf(explorer_buf, gEditor.explorer_width + 1, "%*s%s%s%*s", depth * 2, "", icon, filename, gEditor.explorer_width, "");
+    snprintf(explorer_buf, gEditor.explorer_width + 1, "%*s%s%s%*s", depth * 2,
+             "", icon, filename, gEditor.explorer_width, "");
     abufAppendN(ab, explorer_buf, gEditor.explorer_width);
 }
 
@@ -184,7 +186,11 @@ void editorDrawExplorerNode(abuf* ab, EditorExplorerNode* node, int* line,
     if (*line > gEditor.explorer_offset) {
         gotoXY(ab, *line - gEditor.explorer_offset + 1, 1);
 
-        setColor(ab, gEditor.color_cfg.explorer[0], 1);
+        if (*line == gEditor.explorer_select)
+            setColor(ab, gEditor.color_cfg.explorer[1], 1);
+        else
+            setColor(ab, gEditor.color_cfg.explorer[0], 1);
+
         const char* icon = "  ";
         if (node->is_directory) {
             setColor(ab, gEditor.color_cfg.explorer[2], 0);
@@ -220,7 +226,8 @@ void editorDrawFileExplorer(abuf* ab) {
 
     setColor(ab, gEditor.color_cfg.explorer[0], 1);
     setColor(ab, gEditor.color_cfg.explorer[3], 0);
-    snprintf(explorer_buf, gEditor.explorer_width + 1, " EXPLORER%*s", gEditor.explorer_width, "");
+    snprintf(explorer_buf, gEditor.explorer_width + 1, " EXPLORER%*s",
+             gEditor.explorer_width, "");
     abufAppendN(ab, explorer_buf, gEditor.explorer_width);
 
     int line = 0;

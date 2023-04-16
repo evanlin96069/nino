@@ -249,7 +249,7 @@ static int handleTabClick(int x) {
     int tab_displayed = 0;
     int len = gEditor.explorer_width;
     if (gEditor.tab_offset != 0) {
-        if (x == 0) {
+        if (x == gEditor.explorer_width) {
             gEditor.tab_offset--;
             return -1;
         }
@@ -311,6 +311,7 @@ void editorProcessKeypress() {
     static int mouse_click = 0;
     static int curr_x = 0;
     static int curr_y = 0;
+    static bool pressed_explorer = false;
 
     int x, y;
     int c = editorReadKey(&x, &y);
@@ -414,6 +415,17 @@ void editorProcessKeypress() {
         case CTRL_KEY('o'):
             should_scroll = false;
             editorOpenFilePrompt();
+            break;
+
+        case CTRL_KEY('b'):
+            should_scroll = false;
+            if (gEditor.explorer_width == 0) {
+                gEditor.explorer_width = gEditor.explorer_prefer_width
+                                             ? gEditor.explorer_prefer_width
+                                             : gEditor.screen_cols * 0.2f;
+            } else {
+                gEditor.explorer_width = 0;
+            }
             break;
 
         case HOME_KEY:
@@ -930,9 +942,16 @@ void editorProcessKeypress() {
                 if (field == FIELD_TOP_STATUS) {
                     editorChangeToFile(handleTabClick(x));
                 } else if (field == FIELD_EXPLORER) {
-                    if (y > gEditor.explorer_last_line - gEditor.explorer_offset)
+                    if (x == gEditor.explorer_width - 1) {
+                        pressed_explorer = true;
                         break;
-                    EditorExplorerNode* node = editorExplorerSearch(y - 1 + gEditor.explorer_offset);
+                    }
+                    if (y >
+                        gEditor.explorer_last_line - gEditor.explorer_offset)
+                        break;
+                    gEditor.explorer_select = y + gEditor.explorer_offset;
+                    EditorExplorerNode* node =
+                        editorExplorerSearch(gEditor.explorer_select - 1);
                     EditorFile file = {0};
                     if (!node)
                         break;
@@ -1019,11 +1038,14 @@ void editorProcessKeypress() {
         case MOUSE_RELEASED:
             should_scroll = false;
             pressed = false;
+            pressed_explorer = false;
             break;
 
         case MOUSE_MOVE:
             should_scroll = false;
-            if (moveMouse(x, y)) {
+            if (pressed_explorer) {
+                gEditor.explorer_width = gEditor.explorer_prefer_width = x;
+            } else if (moveMouse(x, y)) {
                 curr_x = x;
                 curr_y = y;
             }
@@ -1063,7 +1085,10 @@ void editorProcessKeypress() {
             if (field != FIELD_TEXT && field != FIELD_LINENO) {
                 if (field == FIELD_TOP_STATUS) {
                     handleTabClick(gEditor.screen_cols);
-                } else if (field == FIELD_EXPLORER && gEditor.explorer_last_line - gEditor.explorer_offset > gEditor.display_rows) {
+                } else if (field == FIELD_EXPLORER &&
+                           gEditor.explorer_last_line -
+                                   gEditor.explorer_offset >
+                               gEditor.display_rows) {
                     gEditor.explorer_offset += 3;
                 }
                 break;

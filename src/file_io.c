@@ -244,7 +244,8 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
             continue;
 
         char entry_path[4096];
-        snprintf(entry_path, sizeof(entry_path), "%s/%s", node->filename, entry->d_name);
+        snprintf(entry_path, sizeof(entry_path), "%s/%s", node->filename,
+                 entry->d_name);
 
         EditorExplorerNode* child = editorExplorerCreate(entry_path);
         if (!child)
@@ -261,8 +262,8 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
     closedir(dir);
 }
 
-
-static EditorExplorerNode* walkNode(EditorExplorerNode* node, int* line, int index) {
+static EditorExplorerNode* walkNode(EditorExplorerNode* node, int* line,
+                                    int index) {
     if (!node)
         return NULL;
 

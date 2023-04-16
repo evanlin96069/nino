@@ -14,7 +14,7 @@ typedef struct EditorExplorerNode {
     char* filename;
     bool is_directory;
     bool is_open;  // Is directory open in the explorer
-    bool loaded;  // Is directory loaded
+    bool loaded;   // Is directory loaded
     size_t dir_count;
     EditorExplorerNodeData dir;
     EditorExplorerNodeData file;

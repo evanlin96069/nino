@@ -43,15 +43,18 @@ void editorInit() {
     gEditor.status_msg[0][0] = '\0';
     gEditor.status_msg[1][0] = '\0';
 
-    gEditor.explorer_percentage = 0.2f;
     gEditor.explorer_offset = 0;
     gEditor.explorer_last_line = 0;
+    gEditor.explorer_select = -1;
     gEditor.explorer_node = NULL;
 
     editorInitCommands();
     editorLoadConfig();
 
     resizeWindow();
+    gEditor.explorer_prefer_width = gEditor.explorer_width =
+        gEditor.screen_cols * 0.2f;
+
     enableAutoResize();
 
     atexit(terminalExit);
