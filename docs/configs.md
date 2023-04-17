@@ -35,6 +35,7 @@ When color code is `000000` it will be transparent.
 | `explorer.select` | `575068` |
 | `explorer.directory` | `ecc184` |
 | `explorer.file` | `e5e5e5` |
+| `explorer.focus` | `2d2d2d` |
 | `prompt.fg` | `e5e5e5` |
 | `prompt.bg` | `3c3c3c` |
 | `status.fg` | `e1dbef` |

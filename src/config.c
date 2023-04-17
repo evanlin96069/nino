@@ -55,6 +55,7 @@ static const ColorElement color_element_map[] = {
     {"explorer.select", &gEditor.color_cfg.explorer[1]},
     {"explorer.directory", &gEditor.color_cfg.explorer[2]},
     {"explorer.file", &gEditor.color_cfg.explorer[3]},
+    {"explorer.focus", &gEditor.color_cfg.explorer[4]},
 
     {"prompt.fg", &gEditor.color_cfg.prompt[0]},
     {"prompt.bg", &gEditor.color_cfg.prompt[1]},
@@ -128,38 +129,56 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
 
 const EditorColorScheme color_default = {
     .bg = {30, 30, 30},
-    .top_status = {{229, 229, 229},
-                   {37, 37, 37},
-                   {150, 150, 150},
-                   {45, 45, 45},
-                   {229, 229, 229},
-                   {87, 80, 104}},
+    .top_status =
+        {
+            {229, 229, 229},
+            {37, 37, 37},
+            {150, 150, 150},
+            {45, 45, 45},
+            {229, 229, 229},
+            {87, 80, 104},
+        },
     .explorer =
         {
             {37, 37, 37},
             {87, 80, 104},
             {236, 193, 132},
             {229, 229, 229},
+            {45, 45, 45},
         },
-    .prompt = {{229, 229, 229}, {60, 60, 60}},
-    .status = {{225, 219, 239},
-               {87, 80, 104},
-               {225, 219, 239},
-               {169, 107, 33},
-               {225, 219, 239},
-               {217, 138, 43}},
-    .line_number = {{127, 127, 127}, {30, 30, 30}},
+    .prompt =
+        {
+            {229, 229, 229},
+            {60, 60, 60},
+        },
+    .status =
+        {
+            {225, 219, 239},
+            {87, 80, 104},
+            {225, 219, 239},
+            {169, 107, 33},
+            {225, 219, 239},
+            {217, 138, 43},
+        },
+    .line_number =
+        {
+            {127, 127, 127},
+            {30, 30, 30},
+        },
     .cursor_line = {40, 40, 40},
-    .highlight = {{229, 229, 229},
-                  {106, 153, 85},
-                  {197, 134, 192},
-                  {86, 156, 214},
-                  {78, 201, 176},
-                  {206, 145, 120},
-                  {181, 206, 168},
-                  {89, 46, 20},
-                  {38, 79, 120},
-                  {255, 100, 100}},
+    .highlight =
+        {
+            {229, 229, 229},
+            {106, 153, 85},
+            {197, 134, 192},
+            {86, 156, 214},
+            {78, 201, 176},
+            {206, 145, 120},
+            {181, 206, 168},
+            {89, 46, 20},
+            {38, 79, 120},
+            {255, 100, 100},
+        },
 };
 
 static void cvarCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {

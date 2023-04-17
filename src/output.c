@@ -224,14 +224,14 @@ void editorDrawFileExplorer(abuf* ab) {
     gotoXY(ab, 1, 1);
 
     setColor(ab, gEditor.color_cfg.explorer[3], 0);
-    setColor(ab, gEditor.color_cfg.explorer[0], 1);
+    if (gEditor.explorer_focus)
+        setColor(ab, gEditor.color_cfg.explorer[4], 1);
+    else
+        setColor(ab, gEditor.color_cfg.explorer[0], 1);
 
     snprintf(explorer_buf, gEditor.explorer_width + 1, " EXPLORER%*s",
              gEditor.explorer_width, "");
-    if (gEditor.explorer_focus)
-        abufAppend(ab, ANSI_UNDERLINE);
     abufAppendN(ab, explorer_buf, gEditor.explorer_width);
-    abufAppend(ab, ANSI_NOT_UNDERLINE);
 
     int line = 0;
     editorDrawExplorerNode(ab, gEditor.explorer_node, &line, 0);

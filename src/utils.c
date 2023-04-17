@@ -204,7 +204,7 @@ int getDigit(int n) {
     return 10;
 }
 
-const char* getBaseName(const char* path) {
-    const char* name = strrchr(path, '/');
+const char *getBaseName(const char *path) {
+    const char *name = strrchr(path, '/');
     return name ? name + 1 : path;
 }
