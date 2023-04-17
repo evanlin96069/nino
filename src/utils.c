@@ -203,3 +203,8 @@ int getDigit(int n) {
         return 8 + (n >= 100000000);
     return 10;
 }
+
+const char* getBaseName(const char* path) {
+    const char* name = strrchr(path, '/');
+    return name ? name + 1 : path;
+}

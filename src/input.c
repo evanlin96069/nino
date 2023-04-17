@@ -370,7 +370,8 @@ static int handleTabClick(int x) {
             continue;
 
         const EditorFile* file = &gEditor.files[i];
-        int buf_len = strlen(file->filename ? file->filename : "Untitled") + 2;
+        const char* filename = file->filename ? getBaseName(file->filename) : "Untitled";
+        int buf_len = strlen(filename) + 2;
 
         if (file->dirty)
             buf_len++;

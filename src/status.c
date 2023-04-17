@@ -62,9 +62,10 @@ void editorDrawTopStatusBar(abuf* ab) {
             }
 
             char buf[255] = {0};
+            const char* filename = file->filename ? getBaseName(file->filename) : "Untitled";
             int buf_len =
                 snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
-                         file->filename ? file->filename : "Untitled");
+                         filename);
 
             if (gEditor.screen_cols - len < buf_len ||
                 (i != gEditor.file_count - 1 &&

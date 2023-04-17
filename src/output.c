@@ -168,8 +168,7 @@ static void drawFileName(abuf* ab, const char* icon, const char* path,
     if (!explorer_buf)
         return;
 
-    const char* filename = strrchr(path, '/');
-    filename = filename ? filename + 1 : path;
+    const char* filename = getBaseName(path);
 
     snprintf(explorer_buf, gEditor.explorer_width + 1, "%*s%s%s%*s", depth * 2,
              "", icon, filename, gEditor.explorer_width, "");
