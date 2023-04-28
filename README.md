@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/evanlin96069/nino/actions/workflows/build.yml/badge.svg)](https://github.com/evanlin96069/nino/actions?query=branch%3Amaster)
 
-![screenshot](docs/img/editor_screenshot.jpg)
+![screenshot](docs/img/nino_v0.0.3.png)
 
 A small terminal-based text editor written in C.
 
@@ -23,6 +23,7 @@ I'm not used to vim and I don't like nano either, so I make my own text editor.
 - Cut, copy, and paste selected section
 - Multiple undo/redo
 - Search with smart case sensitivity
+- File explorer
 
 ## Installation
 Nino requires a sufficiently Unix-like C library and a C99 compiler.
