@@ -190,7 +190,7 @@ void editorDrawExplorerNode(abuf* ab, EditorExplorerNode* node, int* line,
         else
             setColor(ab, gEditor.color_cfg.explorer[0], 1);
 
-        const char* icon = "  ";
+        const char* icon = "";
         if (node->is_directory) {
             setColor(ab, gEditor.color_cfg.explorer[2], 0);
             icon = node->is_open ? "v " : "> ";
