@@ -208,3 +208,14 @@ const char *getBaseName(const char *path) {
     const char *name = strrchr(path, '/');
     return name ? name + 1 : path;
 }
+
+char *getDirName(char *path) {
+    char *name = strchr(path, '/');
+    if (!name) {
+        name = path;
+        *name = '.';
+        name++;
+    }
+    *name = '\0';
+    return path;
+}

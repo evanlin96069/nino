@@ -80,7 +80,7 @@ bool editorOpen(EditorFile* file, const char* path) {
 
     FILE* f = fopen(path, "r");
     if (!f && errno != ENOENT) {
-        editorSetStatusMsg("Can't load! I/O error: %s", strerror(errno));
+        editorSetStatusMsg("Can't load \"%s\"! %s", path, strerror(errno));
         return false;
     }
 
@@ -91,6 +91,20 @@ bool editorOpen(EditorFile* file, const char* path) {
     editorSelectSyntaxHighlight(file);
 
     if (!f && errno == ENOENT) {
+        // file doesn't exist
+        char parent_dir[PATH_MAX];
+        snprintf(parent_dir, sizeof(parent_dir), "%s", path);
+        getDirName(parent_dir);
+        if (access(parent_dir, F_OK) != 0) {
+            editorSetStatusMsg("Can't create \"%s\"! %s", path,
+                               strerror(errno));
+            return false;
+        }
+        if (access(parent_dir, W_OK) != 0) {
+            editorSetStatusMsg("Can't write to \"%s\"! %s", path,
+                               strerror(errno));
+            return false;
+        }
         editorInsertRow(file, file->cursor.y, "", 0);
     } else {
         bool end_nl = true;
@@ -167,7 +181,8 @@ void editorSave(EditorFile* file, int save_as) {
         close(fd);
     }
     free(buf);
-    editorSetStatusMsg("Can't save! I/O error: %s", strerror(errno));
+    editorSetStatusMsg("Can't save \"%s\"! %s", file->filename,
+                       strerror(errno));
 }
 
 void editorOpenFilePrompt() {
@@ -245,7 +260,7 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
 
-        char entry_path[4096];
+        char entry_path[PATH_MAX];
         snprintf(entry_path, sizeof(entry_path), "%s/%s", node->filename,
                  entry->d_name);
 

@@ -57,5 +57,6 @@ int isNonSpace(int c);
 int getDigit(int n);
 
 const char* getBaseName(const char* path);
+char* getDirName(char* path);
 
 #endif
