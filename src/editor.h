@@ -43,7 +43,7 @@ typedef struct EditorFile {
     const EditorSyntax* syntax;
 
     // Undo redo
-    EditorActionList action_head;
+    EditorActionList* action_head;
     EditorActionList* action_current;
 } EditorFile;
 

@@ -6,7 +6,7 @@
 #include "terminal.h"
 
 bool editorUndo() {
-    if (gCurFile->action_current == &gCurFile->action_head)
+    if (gCurFile->action_current == gCurFile->action_head)
         return false;
 
     editorDeleteText(gCurFile->action_current->action->added_range);
@@ -43,9 +43,9 @@ void editorAppendAction(EditorAction* action) {
 
     gCurFile->dirty++;
 
-    if (gCurFile->action_current == &gCurFile->action_head) {
-        gCurFile->action_head.next = node;
-        node->prev = &gCurFile->action_head;
+    if (gCurFile->action_current == gCurFile->action_head) {
+        gCurFile->action_head->next = node;
+        node->prev = gCurFile->action_head;
         gCurFile->action_current = node;
         return;
     }

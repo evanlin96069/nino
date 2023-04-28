@@ -122,7 +122,8 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
             return false;
 
         case CTRL_KEY('e'):
-            gEditor.explorer_focus = false;
+            if (gEditor.file_count != 0)
+                gEditor.explorer_focus = false;
             break;
     }
     return true;

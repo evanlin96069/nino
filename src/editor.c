@@ -75,7 +75,7 @@ void editorFreeFile(EditorFile* file) {
     for (int i = 0; i < file->num_rows; i++) {
         editorFreeRow(&file->row[i]);
     }
-    editorFreeActionList(file->action_head.next);
+    editorFreeActionList(file->action_head);
     free(file->row);
     free(file->filename);
 }
@@ -86,7 +86,8 @@ int editorAddFile(EditorFile* file) {
     EditorFile* current = &gEditor.files[gEditor.file_count];
 
     *current = *file;
-    current->action_current = &current->action_head;
+    current->action_head = calloc_s(1, sizeof(EditorActionList));
+    current->action_current = current->action_head;
 
     gEditor.file_count++;
     return gEditor.file_count - 1;
