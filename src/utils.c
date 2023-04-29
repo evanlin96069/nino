@@ -210,7 +210,7 @@ const char *getBaseName(const char *path) {
 }
 
 char *getDirName(char *path) {
-    char *name = strchr(path, '/');
+    char *name = strrchr(path, '/');
     if (!name) {
         name = path;
         *name = '.';
