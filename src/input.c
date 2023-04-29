@@ -45,6 +45,14 @@ static void editorExplorerScrollToSelect() {
         gEditor.explorer_offset = 0;
 }
 
+static inline void editorExplorerShow() {
+    if (gEditor.explorer_width == 0) {
+        gEditor.explorer_width = gEditor.explorer_prefer_width
+                                     ? gEditor.explorer_prefer_width
+                                     : gEditor.screen_cols * 0.2f;
+    }
+}
+
 static bool editorExplorerProcessKeypress(int c, int x, int y) {
     switch (c) {
         case WHEEL_UP:
@@ -122,8 +130,9 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
             return false;
 
         case CTRL_KEY('e'):
-            if (gEditor.file_count != 0)
+            if (gEditor.file_count != 0) {
                 gEditor.explorer_focus = false;
+            }
             break;
     }
     return true;
@@ -503,8 +512,11 @@ void editorProcessKeypress() {
                 return;
             }
             editorRemoveFile(gEditor.file_index);
-            if (gEditor.file_count == 0)
+            if (gEditor.file_count == 0) {
                 gEditor.explorer_focus = true;
+                editorExplorerShow();
+            }
+
             if (gEditor.file_index == gEditor.file_count)
                 editorChangeToFile(gEditor.file_index - 1);
             return;
@@ -543,9 +555,7 @@ void editorProcessKeypress() {
         case CTRL_KEY('b'):
             should_scroll = false;
             if (gEditor.explorer_width == 0) {
-                gEditor.explorer_width = gEditor.explorer_prefer_width
-                                             ? gEditor.explorer_prefer_width
-                                             : gEditor.screen_cols * 0.2f;
+                editorExplorerShow();
             } else {
                 gEditor.explorer_width = 0;
                 gEditor.explorer_focus = false;
@@ -556,11 +566,7 @@ void editorProcessKeypress() {
         case CTRL_KEY('e'):
             should_scroll = false;
             gEditor.explorer_focus = true;
-            if (gEditor.explorer_width == 0) {
-                gEditor.explorer_width = gEditor.explorer_prefer_width
-                                             ? gEditor.explorer_prefer_width
-                                             : gEditor.screen_cols * 0.2f;
-            }
+            editorExplorerShow();
             break;
 
         case HOME_KEY:
