@@ -123,6 +123,7 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
             return false;
 
         case MOUSE_MOVE:
+        case SCROLL_RELEASED:
         case CTRL_KEY('w'):
         case CTRL_KEY('b'):
         case CTRL_KEY('['):
@@ -421,9 +422,25 @@ static bool moveMouse(int x, int y) {
     return true;
 }
 
+static void editorCloseFile(int index) {
+    if (index < 0 || index > gEditor.file_count)
+        return;
+
+    editorRemoveFile(index);
+    if (gEditor.file_count == 0) {
+        gEditor.explorer_focus = true;
+        editorExplorerShow();
+    }
+
+    if (index < gEditor.file_index ||
+        (gEditor.file_index == index && index == gEditor.file_count)) {
+        editorChangeToFile(gEditor.file_index - 1);
+    }
+}
+
 void editorProcessKeypress() {
     // Protect closing file with unsaved changes
-    static bool close_protect = true;
+    static int close_protect = -1;
     // Protect quiting program with unsaved files
     static bool quit_protect = true;
 
@@ -478,7 +495,7 @@ void editorProcessKeypress() {
 
         // Quit editor
         case CTRL_KEY('q'): {
-            close_protect = true;
+            close_protect = -1;
             editorFreeAction(action);
             bool dirty = false;
             for (int i = 0; i < gEditor.file_count; i++) {
@@ -501,25 +518,19 @@ void editorProcessKeypress() {
         }
 
         // Close current file
-        case CTRL_KEY('w'):
+        case CTRL_KEY('w'): {
             quit_protect = true;
             editorFreeAction(action);
-            if (gCurFile->dirty && close_protect) {
+            if (gCurFile->dirty && close_protect != gEditor.file_index) {
                 editorSetStatusMsg(
                     "File has unsaved changes. Press ^W again to close file "
                     "anyway.");
-                close_protect = false;
+                close_protect = gEditor.file_index;
                 return;
             }
-            editorRemoveFile(gEditor.file_index);
-            if (gEditor.file_count == 0) {
-                gEditor.explorer_focus = true;
-                editorExplorerShow();
-            }
-
-            if (gEditor.file_index == gEditor.file_count)
-                editorChangeToFile(gEditor.file_index - 1);
+            editorCloseFile(gEditor.file_index);
             return;
+        }
 
         // Save
         case CTRL_KEY('s'):
@@ -1222,6 +1233,13 @@ void editorProcessKeypress() {
                 moveMouse(curr_x, curr_y);
             break;
 
+        // Close tab
+        case SCROLL_RELEASED:
+            should_scroll = false;
+            if (getMousePosField(x, y) == FIELD_TOP_STATUS)
+                editorCloseFile(handleTabClick(x));
+            break;
+
         // Action: Input
         default: {
             if (c == UNKNOWN ||
@@ -1321,6 +1339,6 @@ void editorProcessKeypress() {
 
     if (should_scroll)
         editorScrollToCursor();
-    close_protect = true;
+    close_protect = -1;
     quit_protect = true;
 }
