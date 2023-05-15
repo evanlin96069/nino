@@ -17,15 +17,17 @@ extern EditorConCmd cvar_trailing;
 extern EditorConCmd cvar_syntax;
 extern EditorConCmd cvar_helpinfo;
 extern EditorConCmd cvar_ignorecase;
+extern EditorConCmd cvar_mouse;
 
 typedef struct EditorColorScheme EditorColorScheme;
 
 extern const EditorColorScheme color_default;
 
-#define CONVAR(_name, _help_string, _default_string)          \
-    EditorConCmd cvar_##_name = {.name = #_name,              \
-                                 .help_string = _help_string, \
-                                 .cvar = {.default_string = _default_string}}
+#define CONVAR(_name, _help_string, _default_string, _callback) \
+    EditorConCmd cvar_##_name = {                               \
+        .name = #_name,                                         \
+        .help_string = _help_string,                            \
+        .cvar = {.default_string = _default_string, .callback = _callback}}
 
 #define CON_COMMAND(_name, _help_string)                        \
     static void _name##_callback(EditorConCmdArgs args);        \
@@ -49,11 +51,13 @@ typedef struct EditorConCmdArgs {
 } EditorConCmdArgs;
 
 typedef void (*CommandCallback)(EditorConCmdArgs args);
+typedef void (*ConVarCallback)();
 
 typedef struct EditorConVar {
     const char* default_string;
     char string_val[COMMAND_MAX_LENGTH];
     int int_val;
+    ConVarCallback callback;
 } EditorConVar;
 
 struct EditorConCmd {

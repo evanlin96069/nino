@@ -10,24 +10,32 @@
 #include "status.h"
 #include "terminal.h"
 
-CONVAR(tabsize, "Tab size.", "4");
-CONVAR(whitespace, "Use whitespace instead of tab.", "1");
-CONVAR(autoindent, "Enable auto indent.", "0");
-CONVAR(backspace, "Use hungry backspace.", "1");
-CONVAR(bracket, "Use auto bracket completion.", "0");
-CONVAR(trailing, "Highlight trailing spaces.", "1");
-CONVAR(syntax, "Enable syntax highlight.", "1");
-CONVAR(helpinfo, "Show the help information.", "1");
-CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smartcase.",
-       "2");
+static void cvarSyntaxCallback(void);
+static void cvarMouseCallback(void);
 
-CON_COMMAND(mouse, "Enable mouse mode.") {
-    if (args.argc < 2) {
-        editorSetStatusMsg("mouse = %d - Enable mouse mode.",
-                           gEditor.mouse_mode);
-        return;
+CONVAR(tabsize, "Tab size.", "4", NULL);
+CONVAR(whitespace, "Use whitespace instead of tab.", "1", NULL);
+CONVAR(autoindent, "Enable auto indent.", "0", NULL);
+CONVAR(backspace, "Use hungry backspace.", "1", NULL);
+CONVAR(bracket, "Use auto bracket completion.", "0", NULL);
+CONVAR(trailing, "Highlight trailing spaces.", "1", cvarSyntaxCallback);
+CONVAR(syntax, "Enable syntax highlight.", "1", cvarSyntaxCallback);
+CONVAR(helpinfo, "Show the help information.", "1", NULL);
+CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smartcase.",
+       "2", NULL);
+CONVAR(mouse, "Enable mouse mode.", "1", cvarMouseCallback);
+
+static void cvarSyntaxCallback(void) {
+    // Reload all
+    for (int i = 0; i < gEditor.file_count; i++) {
+        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
+            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
+        }
     }
-    bool mode = !!atoi(args.argv[1]);
+}
+
+static void cvarMouseCallback(void) {
+    bool mode = CONVAR_GETINT(mouse);
     if (gEditor.mouse_mode != mode) {
         if (mode)
             enableMouse();
@@ -181,7 +189,7 @@ const EditorColorScheme color_default = {
         },
 };
 
-static void cvarCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
+static void ConVarCmdCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
     if (args.argc < 2) {
         editorSetStatusMsg("%s = %s - %s", thisptr->name,
                            thisptr->cvar.string_val, thisptr->help_string);
@@ -215,7 +223,7 @@ static void parseLine(char* line) {
     if (cmd->has_callback)
         cmd->callback(args);
     else
-        cvarCallback(cmd, args);
+        ConVarCmdCallback(cmd, args);
 }
 
 void editorInitCommands() {
@@ -228,8 +236,8 @@ void editorInitCommands() {
     INIT_CONVAR(syntax);
     INIT_CONVAR(helpinfo);
     INIT_CONVAR(ignorecase);
+    INIT_CONVAR(mouse);
 
-    INIT_CONCOMMAND(mouse);
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(help);
 }
@@ -256,13 +264,6 @@ void editorSetting() {
         return;
 
     parseLine(query);
-    // TODO: only update when actully needed
-    for (int i = 0; i < gEditor.file_count; i++) {
-        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
-            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
-        }
-    }
-
     free(query);
 }
 
@@ -270,6 +271,10 @@ void editorSetConVar(EditorConVar* thisptr, const char* string_val) {
     strncpy(thisptr->string_val, string_val, COMMAND_MAX_LENGTH);
     thisptr->string_val[COMMAND_MAX_LENGTH - 1] = '\0';
     thisptr->int_val = atoi(string_val);
+
+    if (thisptr->callback) {
+        thisptr->callback();
+    }
 }
 
 static void registerConCmd(EditorConCmd* thisptr) {
