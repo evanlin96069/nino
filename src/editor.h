@@ -2,7 +2,6 @@
 #define EDITOR_H
 
 #include <sys/types.h>
-#include <termios.h>
 
 #include "action.h"
 #include "config.h"
@@ -12,6 +11,15 @@
 #include "select.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
+
+#ifdef _WIN32
+
+#include <Windows.h>
+
+extern HANDLE hStdin;
+extern HANDLE hStdout;
+
+#endif
 
 typedef struct EditorFile {
     // Cursor position
@@ -71,9 +79,6 @@ typedef struct Editor {
 
     // ConCmd linked list
     EditorConCmd* cvars;
-
-    // For restore termios when exit
-    struct termios orig_termios;
 
     // Prompt message (left/right)
     char status_msg[2][64];

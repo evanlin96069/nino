@@ -31,6 +31,8 @@ void* malloc_s(size_t size);
 void* calloc_s(size_t n, size_t size);
 void* realloc_s(void* ptr, size_t size);
 
+int osRead(char* buf, int n);
+
 void abufAppend(abuf* ab, const char* s);
 void abufAppendN(abuf* ab, const char* s, size_t n);
 void abufFree(abuf* ab);

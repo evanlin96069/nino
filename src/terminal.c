@@ -7,12 +7,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 
 #include "defines.h"
 #include "editor.h"
 #include "output.h"
+
+#ifdef _WIN32
+#include <io.h>
+static DWORD orig_in_mode;
+static DWORD orig_out_mode;
+#else
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+
+static struct termios orig_termios;
+#endif
 
 void panic(char* file, int line, const char* s) {
     terminalExit();
@@ -21,15 +31,39 @@ void panic(char* file, int line, const char* s) {
 }
 
 static void disableRawMode() {
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &gEditor.orig_termios) == -1)
+#ifdef _WIN32
+    SetConsoleMode(hStdin, orig_in_mode);
+    SetConsoleMode(hStdout, orig_out_mode);
+#else
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
         PANIC("tcsetattr");
+#endif
 }
 
 void enableRawMode() {
-    if (tcgetattr(STDIN_FILENO, &gEditor.orig_termios) == -1)
+#ifdef _WIN32
+    DWORD mode = 0;
+
+    if (!GetConsoleMode(hStdin, &mode))
+        PANIC("GetConsoleMode(hStdin)");
+    orig_in_mode = mode;
+    mode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
+    mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+    if (!SetConsoleMode(hStdin, mode))
+        PANIC("SetConsoleMode(hStdin)");
+
+    if (!GetConsoleMode(hStdout, &mode))
+        PANIC("GetConsoleMode(hStdout)");
+    orig_out_mode = mode;
+    mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
+    if (!SetConsoleMode(hStdout, mode))
+        PANIC("SetConsoleMode(hStdout)");
+#else
+    if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
         PANIC("tcgetattr");
 
-    struct termios raw = gEditor.orig_termios;
+    struct termios raw = orig_termios;
 
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
@@ -40,6 +74,7 @@ void enableRawMode() {
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
         PANIC("tcsetattr");
+#endif
 }
 
 typedef struct {
@@ -128,22 +163,24 @@ int editorReadKey(int* x, int* y) {
     int nread;
     char c;
 
-    *x = *y = 0;
+    *x = 0;
+    *y = 0;
 
-    while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
-        if (nread == -1 && errno != EAGAIN)
+    while ((nread = osRead(&c, 1)) != 1) {
+        if (nread == -1 && errno != EAGAIN) {
             PANIC("read");
+        }
     }
 
     if (c == ESC) {
         char seq[16] = {0};
         bool success = false;
-        if (read(STDIN_FILENO, &seq[0], 1) != 1)
+        if (osRead(&seq[0], 1) != 1)
             return ESC;
         if (seq[0] != '[')
             return ALT_KEY(seq[0]);
         for (size_t i = 1; i < sizeof(seq) - 1; i++) {
-            if (read(STDIN_FILENO, &seq[i], 1) != 1)
+            if (osRead(&seq[i], 1) != 1)
                 return UNKNOWN;
             if (isupper(seq[i]) || seq[i] == 'm' || seq[i] == '~') {
                 success = true;
@@ -196,6 +233,18 @@ int editorReadKey(int* x, int* y) {
     return c;
 }
 
+#ifdef _WIN32
+int getWindowSize(int* rows, int* cols) {
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+    if (GetConsoleScreenBufferInfo(hStdout, &csbi)) {
+        *cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        *rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+        return 0;
+    }
+    return -1;
+}
+#else
 static int getCursorPos(int* rows, int* cols) {
     char buf[32];
     size_t i = 0;
@@ -204,7 +253,7 @@ static int getCursorPos(int* rows, int* cols) {
         return -1;
 
     while (i < sizeof(buf) - 1) {
-        if (read(STDIN_FILENO, &buf[i], 1) != 1)
+        if (osRead(&buf[i], 1) != 1)
             break;
         if (buf[i] == 'R')
             break;
@@ -231,6 +280,7 @@ int getWindowSize(int* rows, int* cols) {
         return 0;
     }
 }
+#endif
 
 static void SIGSEGV_handler(int sig) {
     if (sig != SIGSEGV)
@@ -260,6 +310,7 @@ void disableMouse() {
         gEditor.mouse_mode = false;
 }
 
+#ifndef _WIN32
 static void SIGWINCH_handler(int sig) {
     if (sig != SIGWINCH)
         return;
@@ -267,6 +318,7 @@ static void SIGWINCH_handler(int sig) {
 }
 
 void enableAutoResize() { signal(SIGWINCH, SIGWINCH_handler); }
+#endif
 
 void resizeWindow() {
     int rows, cols;

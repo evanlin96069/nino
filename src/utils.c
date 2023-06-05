@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "defines.h"
 #include "editor.h"
@@ -29,6 +30,16 @@ void *realloc_s(void *ptr, size_t size) {
     if (!ptr && size != 0)
         PANIC("realloc");
     return ptr;
+}
+
+int osRead(char *buf, int n) {
+#ifdef _WIN32
+    DWORD nread = 0;
+    ReadConsoleA(hStdin, buf, n, &nread, NULL);
+    return (int)nread;
+#else
+    return read(STDIN_FILENO, buf, n);
+#endif
 }
 
 void abufAppend(abuf *ab, const char *s) { abufAppendN(ab, s, strlen(s)); }
@@ -204,13 +215,19 @@ int getDigit(int n) {
     return 10;
 }
 
+#ifdef _WIN32
+#define PATH_SEPARATOR '\\'
+#else
+#define PATH_SEPARATOR '/'
+#endif
+
 const char *getBaseName(const char *path) {
-    const char *name = strrchr(path, '/');
+    const char *name = strrchr(path, PATH_SEPARATOR);
     return name ? name + 1 : path;
 }
 
 char *getDirName(char *path) {
-    char *name = strrchr(path, '/');
+    char *name = strrchr(path, PATH_SEPARATOR);
     if (!name) {
         name = path;
         *name = '.';

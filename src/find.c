@@ -27,6 +27,29 @@ static void findListFree(FindList* thisptr) {
     }
 }
 
+#ifdef _WIN32
+static char* strcasestr(const char* str, const char* sub_str) {
+    // O(n*m), but should be ok
+    if (*sub_str == '\0')
+        return (char*)str;
+
+    while (*str != '\0') {
+        const char* s = str;
+        const char* sub = sub_str;
+        while (tolower(*s) == tolower(*sub)) {
+            s++;
+            sub++;
+            if (*sub == '\0') {
+                return (char*)str;
+            }
+        }
+        str++;
+    }
+
+    return NULL;
+}
+#endif
+
 static void editorFindCallback(char* query, int key) {
     static char* prev_query = NULL;
     static FindList head = {.prev = NULL, .next = NULL};

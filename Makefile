@@ -1,7 +1,18 @@
 .PHONY: all prep release debug clean format install uninstall
 
+# Platform detection
+ifeq ($(OS),Windows_NT)
+    EXE_EXT = .exe
+	mkdir = mkdir $(subst /,\,$(1)) > nul 2>&1 || (exit 0)
+	rm = $(wordlist 2,65535,$(foreach FILE,$(subst /,\,$(1)),& del $(FILE) > nul 2>&1)) || (exit 0)
+else
+    EXE_EXT =
+	mkdir = mkdir -p $(1)
+	rm = rm $(1) > /dev/null 2>&1 || true
+endif
+
 # Compiler flags
-CC ?= gcc
+CC = gcc
 CFLAGS = -pedantic -std=gnu11 -Wall -Wextra
 
 # Project files
@@ -9,7 +20,7 @@ SRCDIR = src
 SOURCES = $(wildcard $(SRCDIR)/*.c)
 OBJS = $(patsubst $(SRCDIR)/%.c, %.o, $(SOURCES))
 DEPS = $(patsubst $(SRCDIR)/%.c, %.d, $(SOURCES))
-EXE = nino
+EXE = nino$(EXE_EXT)
 
 # Install settings
 prefix ?= /usr/local
@@ -52,11 +63,12 @@ $(DBGDIR)/%.o: $(SRCDIR)/%.c
 
 # Prepare
 prep:
-	@mkdir -p $(RELDIR) $(DBGDIR)
+	$(call mkdir, $(RELDIR))
+	$(call mkdir, $(DBGDIR))
 
 # Clean target
 clean:
-	rm -f $(RELEXE) $(RELDEPS) $(RELOBJS) $(DBGEXE) $(DBGDEPS) $(DBGOBJS)
+	$(call rm, $(RELEXE) $(RELDEPS) $(RELOBJS) $(DBGEXE) $(DBGDEPS) $(DBGOBJS))
 
 # Format all files
 format:
@@ -65,7 +77,3 @@ format:
 # Install target
 install:
 	$(INSTALL) $(RELEXE) $(DESTDIR)$(bindir)/$(EXE)
-
-# Uninstall target
-uninstall:
-	rm -f $(DESTDIR)$(bindir)/$(EXE)

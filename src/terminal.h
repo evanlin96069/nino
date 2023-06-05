@@ -11,7 +11,11 @@ void enableSwap();
 void disableSwap();
 void enableMouse();
 void disableMouse();
+
+#ifndef _WIN32
 void enableAutoResize();
+#endif
+
 void resizeWindow();
 void terminalExit();
 

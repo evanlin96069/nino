@@ -5,7 +5,9 @@
 
 #include "file_types.h"
 
+#ifndef PATH_MAX
 #define PATH_MAX 4096
+#endif
 
 #define CTRL_KEY(k) ((k)&0x1F)
 #define ALT_KEY(k) ((k) | 0x1B00)

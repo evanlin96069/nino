@@ -10,10 +10,24 @@
 #include "terminal.h"
 #include "utils.h"
 
+#ifdef _WIN32
+HANDLE hStdin = INVALID_HANDLE_VALUE;
+HANDLE hStdout = INVALID_HANDLE_VALUE;
+#endif
+
 Editor gEditor;
 EditorFile* gCurFile;
 
 void editorInit() {
+#ifdef _WIN32
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE)
+        PANIC("GetStdHandle(STD_INPUT_HANDLE)");
+    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hStdout == INVALID_HANDLE_VALUE)
+        PANIC("GetStdHandle(STD_OUTPUT_HANDLE)");
+#endif
+
     enableRawMode();
     enableSwap();
 
@@ -53,7 +67,9 @@ void editorInit() {
     gEditor.explorer_prefer_width = gEditor.explorer_width =
         gEditor.screen_cols * 0.2f;
 
+#ifndef _WIN32
     enableAutoResize();
+#endif
 
     atexit(terminalExit);
 

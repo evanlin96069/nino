@@ -2,14 +2,20 @@
 
 #include "file_io.h"
 
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+#include <io.h>
+#define ftruncate _chsize_s
+#else
+#include <dirent.h>
 #include <unistd.h>
+#endif
 
 #include "editor.h"
 #include "highlight.h"
@@ -20,11 +26,16 @@
 #include "utils.h"
 
 static int isFileOpened(ino_t inode) {
+#ifdef _WIN32
+    // TODO: Fix Windows build
+    UNUSED(inode);
+#else
     for (int i = 0; i < gEditor.file_count; i++) {
         if (gEditor.files[i].file_inode == inode) {
             return i;
         }
     }
+#endif
     return -1;
 }
 
@@ -49,9 +60,51 @@ static char* editroRowsToString(EditorFile* file, int* len) {
     return buf;
 }
 
+#ifdef _WIN32
+static int64_t getline(char** lineptr, size_t* n, FILE* stream) {
+    char* buf = NULL;
+    char* p = buf;
+    size_t size;
+    int c;
+    const size_t buf_size = 128;
+
+    if (!lineptr || !stream || !n)
+        return -1;
+
+    buf = *lineptr;
+    size = *n;
+
+    c = fgetc(stream);
+    if (c == EOF)
+        return -1;
+
+    if (!buf) {
+        buf = malloc_s(buf_size);
+        size = buf_size;
+    }
+    p = buf;
+    while (c != EOF) {
+        if ((size_t)(p - buf) > (size - 1)) {
+            size = size + buf_size;
+            buf = realloc_s(buf, size);
+        }
+        *p++ = c;
+        if (c == '\n')
+            break;
+        c = fgetc(stream);
+    }
+
+    *p++ = '\0';
+    *lineptr = buf;
+    *n = size;
+
+    return p - buf - 1;
+}
+#endif
+
 bool editorOpen(EditorFile* file, const char* path) {
     struct stat file_info;
-    if (lstat(path, &file_info) != -1) {
+    if (stat(path, &file_info) != -1) {
         if (S_ISDIR(file_info.st_mode)) {
             if (gEditor.explorer_node)
                 editorExplorerFree(gEditor.explorer_node);
@@ -95,12 +148,12 @@ bool editorOpen(EditorFile* file, const char* path) {
         char parent_dir[PATH_MAX];
         snprintf(parent_dir, sizeof(parent_dir), "%s", path);
         getDirName(parent_dir);
-        if (access(parent_dir, F_OK) != 0) {
+        if (access(parent_dir, 0) != 0) {  // F_OK
             editorSetStatusMsg("Can't create \"%s\"! %s", path,
                                strerror(errno));
             return false;
         }
-        if (access(parent_dir, W_OK) != 0) {
+        if (access(parent_dir, 2) != 0) {  // W_OK
             editorSetStatusMsg("Can't write to \"%s\"! %s", path,
                                strerror(errno));
             return false;
@@ -113,7 +166,7 @@ bool editorOpen(EditorFile* file, const char* path) {
 
         char* line = NULL;
         size_t n = 0;
-        ssize_t len;
+        int64_t len;
 
         file->row = malloc_s(sizeof(EditorRow) * cap);
 
@@ -227,7 +280,7 @@ static void insertExplorerNode(EditorExplorerNode* node,
 
 EditorExplorerNode* editorExplorerCreate(const char* path) {
     struct stat file_info;
-    if (lstat(path, &file_info) == -1)
+    if (stat(path, &file_info) == -1)
         return NULL;
 
     EditorExplorerNode* node = malloc_s(sizeof(EditorExplorerNode));
@@ -251,6 +304,37 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
     if (!node->is_directory)
         return;
 
+#ifdef _WIN32
+    WIN32_FIND_DATAA find_data;
+    HANDLE find_handle;
+
+    char entry_path[PATH_MAX];
+    snprintf(entry_path, sizeof(entry_path), "%s\\*", node->filename);
+
+    if ((find_handle = FindFirstFileA(entry_path, &find_data)) ==
+        INVALID_HANDLE_VALUE)
+        return;
+
+    do {
+        if (strcmp(find_data.cFileName, ".") == 0 ||
+            strcmp(find_data.cFileName, "..") == 0)
+            continue;
+
+        snprintf(entry_path, sizeof(entry_path), "%s\\%s", node->filename,
+                 find_data.cFileName);
+
+        EditorExplorerNode* child = editorExplorerCreate(entry_path);
+        if (!child)
+            continue;
+
+        if (child->is_directory) {
+            insertExplorerNode(child, &node->dir);
+        } else {
+            insertExplorerNode(child, &node->file);
+        }
+    } while (FindNextFileA(find_handle, &find_data));
+    FindClose(find_handle);
+#else
     DIR* dir;
     if ((dir = opendir(node->filename)) == NULL)
         return;
@@ -274,9 +358,9 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
             insertExplorerNode(child, &node->file);
         }
     }
-
-    node->loaded = true;
     closedir(dir);
+#endif
+    node->loaded = true;
 }
 
 static EditorExplorerNode* walkNode(EditorExplorerNode* node, int* line,
