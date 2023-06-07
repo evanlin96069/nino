@@ -26,6 +26,7 @@ I'm not used to vim and I don't like nano either, so I make my own text editor.
 - File explorer
 
 ## Installation
+### Linux
 Nino requires a sufficiently Unix-like C library and a C99 compiler.
 
 Build nino:
@@ -39,6 +40,10 @@ Install the [example](docs/example.ninorc) config:
 cp docs/example.ninorc ~/.ninorc
 ```
 
+### Windows
+Use Mingw-w64.
+
+Run `make` and get `nino.exe` in the `release` folder
 
 ## Documentation
 - [Configs](docs/configs.md)
