@@ -42,7 +42,11 @@ typedef struct EditorFile {
     // File info
     int dirty;
     char* filename;
+#ifdef _WIN32
+    BY_HANDLE_FILE_INFORMATION file_info;
+#else
     ino_t file_inode;
+#endif
 
     // Text buffers
     EditorRow* row;

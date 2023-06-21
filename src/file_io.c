@@ -25,19 +25,29 @@
 #include "status.h"
 #include "utils.h"
 
-static int isFileOpened(ino_t inode) {
 #ifdef _WIN32
-    // TODO: Fix Windows build
-    UNUSED(inode);
+static int isFileOpened(BY_HANDLE_FILE_INFORMATION fileInfo) {
+    for (int i = 0; i < gEditor.file_count; i++) {
+        const BY_HANDLE_FILE_INFORMATION* cur_file =
+            &gEditor.files[i].file_info;
+        if (cur_file->dwVolumeSerialNumber == fileInfo.dwVolumeSerialNumber &&
+            cur_file->nFileIndexHigh == fileInfo.nFileIndexHigh &&
+            cur_file->nFileIndexLow == fileInfo.nFileIndexLow) {
+            return i;
+        }
+    }
+    return -1;
+}
 #else
+static int isFileOpened(ino_t inode) {
     for (int i = 0; i < gEditor.file_count; i++) {
         if (gEditor.files[i].file_inode == inode) {
             return i;
         }
     }
-#endif
     return -1;
 }
+#endif
 
 static char* editroRowsToString(EditorFile* file, int* len) {
     int total_len = 0;
@@ -121,14 +131,30 @@ bool editorOpen(EditorFile* file, const char* path) {
                                path);
             return false;
         }
+#ifdef _WIN32
+        HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL,
+                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hFile == INVALID_HANDLE_VALUE) {
+            CloseHandle(hFile);
+            return false;
+        }
 
+        BY_HANDLE_FILE_INFORMATION fileInfo;
+        if (!GetFileInformationByHandle(hFile, &fileInfo)) {
+            CloseHandle(hFile);
+            return false;
+        }
+
+        int open_index = isFileOpened(fileInfo);
+        file->file_info = fileInfo;
+#else
         int open_index = isFileOpened(file_info.st_ino);
+        file->file_inode = file_info.st_ino;
+#endif
         if (open_index != -1) {
             editorChangeToFile(open_index);
             return false;
         }
-
-        file->file_inode = file_info.st_ino;
     }
 
     FILE* f = fopen(path, "r");
