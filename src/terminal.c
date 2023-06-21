@@ -166,6 +166,11 @@ int editorReadKey(int* x, int* y) {
     *x = 0;
     *y = 0;
 
+#ifdef _WIN32
+    // TODO: Detect window resize event
+    resizeWindow();
+#endif
+
     while ((nread = osRead(&c, 1)) != 1) {
         if (nread == -1 && errno != EAGAIN) {
             PANIC("read");
