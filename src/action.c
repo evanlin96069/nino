@@ -5,7 +5,7 @@
 #include "editor.h"
 #include "terminal.h"
 
-bool editorUndo() {
+bool editorUndo(void) {
     if (gCurFile->action_current == gCurFile->action_head)
         return false;
 
@@ -19,7 +19,7 @@ bool editorUndo() {
     return true;
 }
 
-bool editorRedo() {
+bool editorRedo(void) {
     if (!gCurFile->action_current->next)
         return false;
 

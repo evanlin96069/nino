@@ -110,8 +110,8 @@ extern Editor gEditor;
 // Current file
 extern EditorFile* gCurFile;
 
-void editorInit();
-void editorFree();
+void editorInit(void);
+void editorFree(void);
 void editorFreeFile(EditorFile* file);
 
 // Multiple files control

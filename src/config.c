@@ -226,7 +226,7 @@ static void parseLine(char* line) {
         ConVarCmdCallback(cmd, args);
 }
 
-void editorInitCommands() {
+void editorInitCommands(void) {
     INIT_CONVAR(tabsize);
     INIT_CONVAR(whitespace);
     INIT_CONVAR(autoindent);
@@ -242,7 +242,7 @@ void editorInitCommands() {
     INIT_CONCOMMAND(help);
 }
 
-void editorLoadConfig() {
+void editorLoadConfig(void) {
     char path[256] = {0};
     snprintf(path, sizeof(path), "%s/.ninorc", getenv("HOME"));
     FILE* fp = fopen(path, "r");
@@ -257,7 +257,7 @@ void editorLoadConfig() {
     fclose(fp);
 }
 
-void editorSetting() {
+void editorSetting(void) {
     char* query = editorPrompt("Config: %s", SETTING_MODE, NULL);
     if (query == NULL)
         return;

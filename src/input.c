@@ -19,7 +19,7 @@
 #include "terminal.h"
 #include "utils.h"
 
-static void editorExplorerNodeClicked() {
+static void editorExplorerNodeClicked(void) {
     EditorExplorerNode* node =
         editorExplorerSearch(gEditor.explorer_select - 1);
     EditorFile file = {0};
@@ -35,7 +35,7 @@ static void editorExplorerNodeClicked() {
     }
 }
 
-static void editorExplorerScrollToSelect() {
+static void editorExplorerScrollToSelect(void) {
     if (gEditor.explorer_offset > gEditor.explorer_select - 1)
         gEditor.explorer_offset = gEditor.explorer_select - 1;
     else if (gEditor.explorer_select >= gEditor.explorer_last_line)
@@ -45,7 +45,7 @@ static void editorExplorerScrollToSelect() {
         gEditor.explorer_offset = 0;
 }
 
-static inline void editorExplorerShow() {
+static inline void editorExplorerShow(void) {
     if (gEditor.explorer_width == 0) {
         gEditor.explorer_width = gEditor.explorer_prefer_width
                                      ? gEditor.explorer_prefer_width
@@ -139,7 +139,7 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
     return true;
 }
 
-void editorScrollToCursor() {
+void editorScrollToCursor(void) {
     int cols = gEditor.screen_cols - gEditor.explorer_width -
                (gCurFile->num_rows_digits + 1);
     int rx = 0;
@@ -162,7 +162,7 @@ void editorScrollToCursor() {
     }
 }
 
-void editorScrollToCursorCenter() {
+void editorScrollToCursorCenter(void) {
     gCurFile->row_offset = gCurFile->cursor.y - gEditor.display_rows / 2;
     if (gCurFile->row_offset < 0) {
         gCurFile->row_offset = 0;
@@ -292,7 +292,7 @@ static int findPrevCharIndex(const EditorRow* row, int index,
     return index;
 }
 
-static void editorMoveCursorWordLeft() {
+static void editorMoveCursorWordLeft(void) {
     if (gCurFile->cursor.x == 0) {
         if (gCurFile->cursor.y == 0)
             return;
@@ -308,7 +308,7 @@ static void editorMoveCursorWordLeft() {
         editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
 }
 
-static void editorMoveCursorWordRight() {
+static void editorMoveCursorWordRight(void) {
     if (gCurFile->cursor.x == gCurFile->row[gCurFile->cursor.y].size) {
         if (gCurFile->cursor.y == gCurFile->num_rows - 1)
             return;
@@ -438,7 +438,7 @@ static void editorCloseFile(int index) {
     }
 }
 
-void editorProcessKeypress() {
+void editorProcessKeypress(void) {
     // Protect closing file with unsaved changes
     static int close_protect = -1;
     // Protect quiting program with unsaved files

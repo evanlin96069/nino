@@ -3,10 +3,10 @@
 
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int));
 void editorMoveCursor(int key);
-void editorProcessKeypress();
+void editorProcessKeypress(void);
 
-void editorScrollToCursor();
-void editorScrollToCursorCenter();
+void editorScrollToCursor(void);
+void editorScrollToCursorCenter(void);
 void editorScroll(int dist);
 
 void mousePosToEditorPos(int* x, int* y);

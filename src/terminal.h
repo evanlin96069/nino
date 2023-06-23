@@ -4,19 +4,19 @@
 #define PANIC(s) panic(__FILE__, __LINE__, s)
 void panic(char* file, int line, const char* s);
 
-void enableRawMode();
+void enableRawMode(void);
 int editorReadKey(int* x, int* y);
 int getWindowSize(int* rows, int* cols);
-void enableSwap();
-void disableSwap();
-void enableMouse();
-void disableMouse();
+void enableSwap(void);
+void disableSwap(void);
+void enableMouse(void);
+void disableMouse(void);
 
 #ifndef _WIN32
-void enableAutoResize();
+void enableAutoResize(void);
 #endif
 
-void resizeWindow();
-void terminalExit();
+void resizeWindow(void);
+void terminalExit(void);
 
 #endif

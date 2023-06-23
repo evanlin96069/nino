@@ -180,7 +180,7 @@ static void editorGotoCallback(char* query, int key) {
     }
 }
 
-void editorGotoLine() {
+void editorGotoLine(void) {
     char* query =
         editorPrompt("Goto line: %s", GOTO_LINE_MODE, editorGotoCallback);
     if (query) {

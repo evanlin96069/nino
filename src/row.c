@@ -96,7 +96,7 @@ void editorInsertChar(int c) {
     }
 }
 
-void editorInsertNewline() {
+void editorInsertNewline(void) {
     int i = 0;
 
     if (gCurFile->cursor.x == 0) {
@@ -135,7 +135,7 @@ void editorInsertNewline() {
     gCurFile->sx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], i);
 }
 
-void editorDelChar() {
+void editorDelChar(void) {
     if (gCurFile->cursor.y == gCurFile->num_rows)
         return;
     if (gCurFile->cursor.x == 0 && gCurFile->cursor.y == 0)

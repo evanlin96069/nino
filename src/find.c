@@ -200,7 +200,7 @@ static void editorFindCallback(char* query, int key) {
     memset(match_pos, HL_MATCH, len);
 }
 
-void editorFind() {
+void editorFind(void) {
     char* query = editorPrompt("Search: %s", FIND_MODE, editorFindCallback);
     if (query) {
         free(query);

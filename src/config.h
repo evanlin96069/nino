@@ -51,7 +51,7 @@ typedef struct EditorConCmdArgs {
 } EditorConCmdArgs;
 
 typedef void (*CommandCallback)(EditorConCmdArgs args);
-typedef void (*ConVarCallback)();
+typedef void (*ConVarCallback)(void);
 
 typedef struct EditorConVar {
     const char* default_string;
@@ -82,9 +82,9 @@ struct EditorColorScheme {
     Color highlight[HL_TYPE_COUNT];
 };
 
-void editorInitCommands();
-void editorLoadConfig();
-void editorSetting();
+void editorInitCommands(void);
+void editorLoadConfig(void);
+void editorSetting(void);
 
 void editorSetConVar(EditorConVar* thisptr, const char* string_val);
 void editorInitConCmd(EditorConCmd* thisptr);

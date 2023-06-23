@@ -26,7 +26,7 @@ void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
 
 // On gCurFile
 void editorInsertChar(int c);
-void editorInsertNewline();
-void editorDelChar();
+void editorInsertNewline(void);
+void editorDelChar(void);
 
 #endif

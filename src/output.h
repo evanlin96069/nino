@@ -4,6 +4,6 @@
 #include "utils.h"
 
 void editorDrawRows(abuf* ab);
-void editorRefreshScreen();
+void editorRefreshScreen(void);
 
 #endif

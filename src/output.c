@@ -255,7 +255,7 @@ void editorDrawFileExplorer(abuf* ab) {
     explorer_buf = NULL;
 }
 
-void editorRefreshScreen() {
+void editorRefreshScreen(void) {
     abuf ab = ABUF_INIT;
 
     abufAppend(&ab, "\x1b[?25l");

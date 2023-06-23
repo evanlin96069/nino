@@ -18,7 +18,7 @@ HANDLE hStdout = INVALID_HANDLE_VALUE;
 Editor gEditor;
 EditorFile* gCurFile;
 
-void editorInit() {
+void editorInit(void) {
 #ifdef _WIN32
     hStdin = GetStdHandle(STD_INPUT_HANDLE);
     if (hStdin == INVALID_HANDLE_VALUE)
@@ -79,7 +79,7 @@ void editorInit() {
     editorRefreshScreen();
 }
 
-void editorFree() {
+void editorFree(void) {
     for (int i = 0; i < gEditor.file_count; i++) {
         editorFreeFile(&gEditor.files[i]);
     }

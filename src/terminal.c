@@ -30,7 +30,7 @@ void panic(char* file, int line, const char* s) {
     exit(EXIT_FAILURE);
 }
 
-static void disableRawMode() {
+static void disableRawMode(void) {
 #ifdef _WIN32
     SetConsoleMode(hStdin, orig_in_mode);
     SetConsoleMode(hStdout, orig_out_mode);
@@ -40,7 +40,7 @@ static void disableRawMode() {
 #endif
 }
 
-void enableRawMode() {
+void enableRawMode(void) {
 #ifdef _WIN32
     DWORD mode = 0;
 
@@ -295,21 +295,21 @@ static void SIGSEGV_handler(int sig) {
     _exit(EXIT_FAILURE);
 }
 
-void enableSwap() {
+void enableSwap(void) {
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR)
         return;
     UNUSED(write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11));
 }
 
-void disableSwap() { UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8)); }
+void disableSwap(void) { UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8)); }
 
-void enableMouse() {
+void enableMouse(void) {
     if (!gEditor.mouse_mode &&
         write(STDOUT_FILENO, "\x1b[?1002h\x1b[?1015h\x1b[?1006h", 24) == 24)
         gEditor.mouse_mode = true;
 }
 
-void disableMouse() {
+void disableMouse(void) {
     if (gEditor.mouse_mode &&
         write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
         gEditor.mouse_mode = false;
@@ -322,10 +322,10 @@ static void SIGWINCH_handler(int sig) {
     resizeWindow();
 }
 
-void enableAutoResize() { signal(SIGWINCH, SIGWINCH_handler); }
+void enableAutoResize(void) { signal(SIGWINCH, SIGWINCH_handler); }
 #endif
 
-void resizeWindow() {
+void resizeWindow(void) {
     int rows, cols;
     if (getWindowSize(&rows, &cols) == -1)
         PANIC("getWindowSize");
@@ -341,7 +341,7 @@ void resizeWindow() {
     }
 }
 
-void terminalExit() {
+void terminalExit(void) {
     disableRawMode();
     disableSwap();
     disableMouse();
