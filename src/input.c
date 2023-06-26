@@ -422,9 +422,21 @@ static bool moveMouse(int x, int y) {
     return true;
 }
 
+// Protect closing file with unsaved changes
+static int close_protect = -1;
 static void editorCloseFile(int index) {
-    if (index < 0 || index > gEditor.file_count)
+    if (index < 0 || index > gEditor.file_count) {
+        close_protect = -1;
         return;
+    }
+
+    if (gEditor.files[index].dirty && close_protect != index) {
+        editorSetStatusMsg(
+            "File has unsaved changes. Press again to close file "
+            "anyway.");
+        close_protect = index;
+        return;
+    }
 
     editorRemoveFile(index);
     if (gEditor.file_count == 0) {
@@ -439,8 +451,6 @@ static void editorCloseFile(int index) {
 }
 
 void editorProcessKeypress(void) {
-    // Protect closing file with unsaved changes
-    static int close_protect = -1;
     // Protect quiting program with unsaved files
     static bool quit_protect = true;
 
@@ -518,19 +528,11 @@ void editorProcessKeypress(void) {
         }
 
         // Close current file
-        case CTRL_KEY('w'): {
+        case CTRL_KEY('w'):
             quit_protect = true;
             editorFreeAction(action);
-            if (gCurFile->dirty && close_protect != gEditor.file_index) {
-                editorSetStatusMsg(
-                    "File has unsaved changes. Press ^W again to close file "
-                    "anyway.");
-                close_protect = gEditor.file_index;
-                return;
-            }
             editorCloseFile(gEditor.file_index);
             return;
-        }
 
         // Save
         case CTRL_KEY('s'):
@@ -1234,10 +1236,19 @@ void editorProcessKeypress(void) {
             break;
 
         // Close tab
+        case SCROLL_PRESSED:
+            // Return to prevent resetting close_protect
+            editorFreeAction(action);
+            return;
+
         case SCROLL_RELEASED:
             should_scroll = false;
-            if (getMousePosField(x, y) == FIELD_TOP_STATUS)
+            if (getMousePosField(x, y) == FIELD_TOP_STATUS) {
+                quit_protect = true;
+                editorFreeAction(action);
                 editorCloseFile(handleTabClick(x));
+                return;
+            }
             break;
 
         // Action: Input
