@@ -158,14 +158,20 @@ void editorDrawStatusBar(abuf* ab) {
     int len = strlen(help_str);
     int lang_len, pos_len;
     int rlen;
-    lang_len =
-        snprintf(lang, sizeof(lang), "  %s  ",
-                 gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text");
-    pos_len =
-        snprintf(pos, sizeof(pos), " Ln: %d, Col: %d  ", gCurFile->cursor.y + 1,
-                 editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                 gCurFile->cursor.x) +
-                     1);
+    if (gEditor.file_count == 0) {
+        lang_len = 0;
+        pos_len = 0;
+    } else {
+        lang_len = snprintf(
+            lang, sizeof(lang), "  %s  ",
+            gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text");
+        pos_len = snprintf(pos, sizeof(pos), " Ln: %d, Col: %d  ",
+                           gCurFile->cursor.y + 1,
+                           editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                                           gCurFile->cursor.x) +
+                               1);
+    }
+
     rlen = lang_len + pos_len;
 
     if (rlen > gEditor.screen_cols)
