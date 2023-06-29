@@ -57,14 +57,14 @@ void editorInit(void) {
     gEditor.status_msg[0][0] = '\0';
     gEditor.status_msg[1][0] = '\0';
 
-    gEditor.explorer_focus = false;
-    gEditor.explorer_node = NULL;
+    gEditor.explorer.focused = false;
+    gEditor.explorer.node = NULL;
 
     editorInitCommands();
     editorLoadConfig();
 
     resizeWindow();
-    gEditor.explorer_prefer_width = gEditor.explorer_width =
+    gEditor.explorer.prefered_width = gEditor.explorer.width =
         gEditor.screen_cols * 0.2f;
 
 #ifndef _WIN32
@@ -84,7 +84,7 @@ void editorFree(void) {
         editorFreeFile(&gEditor.files[i]);
     }
     editorFreeClipboardContent(&gEditor.clipboard);
-    editorExplorerFree(gEditor.explorer_node);
+    editorExplorerFree(gEditor.explorer.node);
 }
 
 void editorFreeFile(EditorFile* file) {

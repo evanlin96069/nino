@@ -27,9 +27,9 @@ void editorDrawTopStatusBar(abuf* ab) {
     const char* right_buf = "  nino v" EDITOR_VERSION " ";
     bool has_more_files = false;
     int rlen = strlen(right_buf);
-    int len = gEditor.explorer_width;
+    int len = gEditor.explorer.width;
 
-    gotoXY(ab, 1, gEditor.explorer_width + 1);
+    gotoXY(ab, 1, gEditor.explorer.width + 1);
 
     setColor(ab, gEditor.color_cfg.top_status[0], 0);
     setColor(ab, gEditor.color_cfg.top_status[1], 1);

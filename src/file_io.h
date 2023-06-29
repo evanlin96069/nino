@@ -20,6 +20,16 @@ typedef struct EditorExplorerNode {
     EditorExplorerNodeData file;
 } EditorExplorerNode;
 
+typedef struct EditorExplorer {
+    bool focused;
+    int prefered_width;
+    int width;
+    int offset;
+    int last_line;  // Last displayed line
+    int selected_index;
+    EditorExplorerNode* node;
+} EditorExplorer;
+
 typedef struct EditorFile EditorFile;
 
 bool editorOpen(EditorFile* file, const char* filename);

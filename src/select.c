@@ -64,12 +64,7 @@ void editorDeleteText(EditorSelectRange range) {
         gCurFile->num_rows -= removed_rows;
         gCurFile->cursor.y -= removed_rows;
 
-        gCurFile->num_rows_digits = 0;
-        int num_rows = gCurFile->num_rows;
-        while (num_rows) {
-            num_rows /= 10;
-            gCurFile->num_rows_digits++;
-        }
+        gCurFile->num_rows_digits = getDigit(gCurFile->num_rows);
     }
     while (gCurFile->cursor.y != range.start_y ||
            gCurFile->cursor.x != range.start_x) {

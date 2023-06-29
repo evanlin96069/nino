@@ -95,13 +95,7 @@ typedef struct Editor {
     int tab_displayed;
 
     // File explorer
-    bool explorer_focus;
-    int explorer_prefer_width;
-    int explorer_width;
-    int explorer_offset;
-    int explorer_last_line;  // Last displayed line
-    int explorer_select;
-    EditorExplorerNode* explorer_node;
+    EditorExplorer explorer;
 } Editor;
 
 // Text editor

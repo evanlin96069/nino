@@ -116,13 +116,13 @@ bool editorOpen(EditorFile* file, const char* path) {
     struct stat file_info;
     if (stat(path, &file_info) != -1) {
         if (S_ISDIR(file_info.st_mode)) {
-            if (gEditor.explorer_node)
-                editorExplorerFree(gEditor.explorer_node);
-            gEditor.explorer_node = editorExplorerCreate(path);
-            gEditor.explorer_node->is_open = true;
-            gEditor.explorer_offset = 0;
-            gEditor.explorer_last_line = 0;
-            gEditor.explorer_select = 0;
+            if (gEditor.explorer.node)
+                editorExplorerFree(gEditor.explorer.node);
+            gEditor.explorer.node = editorExplorerCreate(path);
+            gEditor.explorer.node->is_open = true;
+            gEditor.explorer.offset = 0;
+            gEditor.explorer.last_line = 0;
+            gEditor.explorer.selected_index = 0;
             return false;
         }
 
@@ -417,7 +417,7 @@ EditorExplorerNode* editorExplorerSearch(int index) {
     if (index < 0)
         return NULL;
     int line = 0;
-    return walkNode(gEditor.explorer_node, &line, index + 1);
+    return walkNode(gEditor.explorer.node, &line, index + 1);
 }
 
 void editorExplorerFree(EditorExplorerNode* node) {

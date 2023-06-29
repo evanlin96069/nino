@@ -22,20 +22,20 @@ int main(int argc, char* argv[]) {
     }
 
     if (gEditor.file_count == 0) {
-        if (gEditor.explorer_node) {
-            gEditor.explorer_focus = true;
+        if (gEditor.explorer.node) {
+            gEditor.explorer.focused = true;
         } else {
             editorAddFile(&file);
             editorInsertRow(gCurFile, 0, "", 0);
         }
     }
 
-    if (gEditor.explorer_node == NULL)
-        gEditor.explorer_width = 0;
+    if (gEditor.explorer.node == NULL)
+        gEditor.explorer.width = 0;
 
     gEditor.loading = false;
 
-    while (gEditor.file_count || gEditor.explorer_node) {
+    while (gEditor.file_count || gEditor.explorer.node) {
         editorRefreshScreen();
         editorProcessKeypress();
     }
