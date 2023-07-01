@@ -15,6 +15,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `ignorecase` | 2 | Use case insensitive search. Set to 2 to use smartcase. |
 | `mouse` | 1 | Enable mouse mode. |
 | `color` | cmd | Change the color of an element. |
+| `exec` | cmd | Execute a config file. |
 | `help` | cmd | Find help about a convar/concommand. |
 
 ## Color

@@ -83,7 +83,8 @@ struct EditorColorScheme {
 };
 
 void editorInitCommands(void);
-void editorLoadConfig(void);
+bool editorLoadConfig(const char* path);
+void editorLoadDefaultConfig(void);
 void editorSetting(void);
 
 void editorSetConVar(EditorConVar* thisptr, const char* string_val);

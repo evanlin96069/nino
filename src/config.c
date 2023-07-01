@@ -121,6 +121,16 @@ CON_COMMAND(color, "Change the color of an element.") {
     }
 }
 
+CON_COMMAND(exec, "Execute a config file.") {
+    if (args.argc != 2) {
+        editorSetStatusMsg("Usage: exec <file>");
+        return;
+    }
+    if (!editorLoadConfig(args.argv[1])) {
+        editorSetStatusMsg("Cannot open file \"%s\"", args.argv[1]);
+    }
+}
+
 CON_COMMAND(help, "Find help about a convar/concommand.") {
     if (args.argc != 2) {
         editorSetStatusMsg("Usage: help <command>");
@@ -239,15 +249,14 @@ void editorInitCommands(void) {
     INIT_CONVAR(mouse);
 
     INIT_CONCOMMAND(color);
+    INIT_CONCOMMAND(exec);
     INIT_CONCOMMAND(help);
 }
 
-void editorLoadConfig(void) {
-    char path[256] = {0};
-    snprintf(path, sizeof(path), "%s/.ninorc", getenv("HOME"));
+bool editorLoadConfig(const char* path) {
     FILE* fp = fopen(path, "r");
     if (!fp)
-        return;
+        return false;
 
     char buf[128] = {0};
     while (fgets(buf, sizeof(buf), fp)) {
@@ -255,6 +264,13 @@ void editorLoadConfig(void) {
         parseLine(buf);
     }
     fclose(fp);
+    return true;
+}
+
+void editorLoadDefaultConfig(void) {
+    char path[256] = {0};
+    snprintf(path, sizeof(path), "%s/.ninorc", getenv("HOME"));
+    editorLoadConfig(path);
 }
 
 void editorSetting(void) {

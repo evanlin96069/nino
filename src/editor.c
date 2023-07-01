@@ -61,7 +61,7 @@ void editorInit(void) {
     gEditor.explorer.node = NULL;
 
     editorInitCommands();
-    editorLoadConfig();
+    editorLoadDefaultConfig();
 
     resizeWindow();
     gEditor.explorer.prefered_width = gEditor.explorer.width =
