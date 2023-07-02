@@ -1,5 +1,17 @@
-# Configs
-Set config using `Ctrl+P` or create the config file `~/.ninorc`.
+# Configurations
+Configurations are set by running commands. Use `Ctrl+P` to open the command prompt.
+
+To run commands on start, create `ninorc` in the configuration directory.
+
+## Configuration Directory:
+- Linux
+    - `~/.config/nino`
+- Windows
+    - `~/.nino`
+
+## Execute a Config File
+`exec` command executes a config file.
+The command will first search for the file in the current directory, then the configuration directory.
 
 ## Commands and ConVars
 | Name | Default | Description |
@@ -16,8 +28,8 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `mouse` | 1 | Enable mouse mode. |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |
-| `hldb_load` | Load a syntax highlighting JSON file. |
-| `hldb_reload_all` | Reload syntax highlighting database. |
+| `hldb_load` | cmd | Load a syntax highlighting JSON file. |
+| `hldb_reload_all` | cmd | Reload syntax highlighting database. |
 | `help` | cmd | Find help about a convar/concommand. |
 
 ## Color
@@ -25,6 +37,7 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 
 When color code is `000000` it will be transparent.
 
+### Default Theme
 | Element | Default |
 | - | - |
 | `bg` | `1e1e1e` |
@@ -62,4 +75,4 @@ When color code is `000000` it will be transparent.
 | `hl.space` | `ff6464` |
 
 ## Example
-An [example](example.ninorc) of `~/.ninorc`.
+An [example](example.ninorc) of `ninorc`.
