@@ -2,13 +2,13 @@
 
 # Platform detection
 ifeq ($(OS),Windows_NT)
-	EXE_EXT = .exe
-	mkdir = mkdir $(subst /,\,$(1)) > nul 2>&1 || (exit 0)
-	rm = $(wordlist 2,65535,$(foreach FILE,$(subst /,\,$(1)),& del $(FILE) > nul 2>&1)) || (exit 0)
+    EXE_EXT = .exe
+    mkdir = mkdir $(subst /,\,$(1)) > nul 2>&1 || (exit 0)
+    rm = $(wordlist 2,65535,$(foreach FILE,$(subst /,\,$(1)),& del $(FILE) > nul 2>&1)) || (exit 0)
 else
-	EXE_EXT =
-	mkdir = mkdir -p $(1)
-	rm = rm $(1) > /dev/null 2>&1 || true
+    EXE_EXT =
+    mkdir = mkdir -p $(1)
+    rm = rm $(1) > /dev/null 2>&1 || true
 endif
 
 # Compiler flags
