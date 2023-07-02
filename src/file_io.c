@@ -221,7 +221,7 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
         file->row = realloc_s(file->row, sizeof(EditorRow) * at);
         file->num_rows = at;
-        file->num_rows_digits = getDigit(file->num_rows);
+        file->lineno_width = getDigit(file->num_rows) + 2;
         if (end_nl) {
             editorInsertRow(file, file->num_rows, "", 0);
         }

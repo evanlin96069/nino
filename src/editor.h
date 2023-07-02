@@ -37,7 +37,7 @@ typedef struct EditorFile {
 
     // Total line number
     int num_rows;
-    int num_rows_digits;
+    int lineno_width;
 
     // File info
     int dirty;

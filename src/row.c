@@ -30,7 +30,7 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
     editorUpdateRow(file, &file->row[at]);
 
     file->num_rows++;
-    file->num_rows_digits = getDigit(file->num_rows);
+    file->lineno_width = getDigit(file->num_rows) + 2;
 }
 
 void editorFreeRow(EditorRow* row) {
@@ -46,7 +46,7 @@ void editorDelRow(EditorFile* file, int at) {
             sizeof(EditorRow) * (file->num_rows - at - 1));
 
     file->num_rows--;
-    file->num_rows_digits = getDigit(file->num_rows);
+    file->lineno_width = getDigit(file->num_rows) + 2;
 }
 
 void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c) {

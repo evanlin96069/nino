@@ -44,15 +44,15 @@ void editorDrawRows(abuf* ab) {
                 setColor(ab, gEditor.color_cfg.line_number[1], 1);
             }
 
-            snprintf(line_number, sizeof(line_number), "%*d ",
-                     gCurFile->num_rows_digits, i + 1);
+            snprintf(line_number, sizeof(line_number), " %*d ",
+                     gCurFile->lineno_width - 2, i + 1);
             abufAppend(ab, line_number);
 
             abufAppend(ab, ANSI_CLEAR);
             setColor(ab, gEditor.color_cfg.bg, 1);
 
             int cols = gEditor.screen_cols - gEditor.explorer.width -
-                       (gCurFile->num_rows_digits + 1);
+                       gCurFile->lineno_width;
             int col_offset =
                 editorRowRxToCx(&gCurFile->row[i], gCurFile->col_offset);
             int len = gCurFile->row[i].size - col_offset;
@@ -275,7 +275,7 @@ void editorRefreshScreen(void) {
         int col = (editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
                                    gCurFile->cursor.x) -
                    gCurFile->col_offset) +
-                  1 + gCurFile->num_rows_digits + 1;
+                  1 + gCurFile->lineno_width;
         if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 1 ||
             col > gEditor.screen_cols - gEditor.explorer.width)
             should_show_cursor = false;

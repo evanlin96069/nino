@@ -140,8 +140,8 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
 }
 
 void editorScrollToCursor(void) {
-    int cols = gEditor.screen_cols - gEditor.explorer.width -
-               (gCurFile->num_rows_digits + 1);
+    int cols =
+        gEditor.screen_cols - gEditor.explorer.width - gCurFile->lineno_width;
     int rx = 0;
     if (gCurFile->cursor.y < gCurFile->num_rows) {
         rx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
@@ -180,7 +180,7 @@ int getMousePosField(int x, int y) {
         return FIELD_STATUS;
     if (x < gEditor.explorer.width)
         return FIELD_EXPLORER;
-    if (x < gEditor.explorer.width + gCurFile->num_rows_digits + 1)
+    if (x < gEditor.explorer.width + gCurFile->lineno_width)
         return FIELD_LINENO;
     return FIELD_TEXT;
 }
@@ -198,7 +198,7 @@ void mousePosToEditorPos(int* x, int* y) {
         return;
     }
 
-    int col = *x - gEditor.explorer.width - gCurFile->num_rows_digits - 1 +
+    int col = *x - gEditor.explorer.width - gCurFile->lineno_width +
               gCurFile->col_offset;
     if (col < 0) {
         col = 0;
