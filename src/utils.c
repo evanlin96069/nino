@@ -32,6 +32,31 @@ void *realloc_s(void *ptr, size_t size) {
     return ptr;
 }
 
+void arenaInit(Arena* arena, size_t capacity) {
+    arena->capacity = capacity;
+    arena->size = 0;
+    arena->data = malloc_s(capacity);
+}
+
+void* arenaAlloc(Arena* arena, size_t size) {
+    if (arena->size + size > arena->capacity) {
+        PANIC("arenaAlloc");
+    }
+
+    void* result = arena->data + arena->size;
+    arena->size += size;
+    return result;
+}
+
+void arenaReset(Arena* arena) { arena->size = 0; }
+
+void arenaDeinit(Arena* arena) {
+    arena->size = 0;
+    arena->capacity = 0;
+    free(arena->data);
+    arena->data = NULL;
+}
+
 int osRead(char *buf, int n) {
 #ifdef _WIN32
     DWORD nread = 0;

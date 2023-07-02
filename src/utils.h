@@ -31,6 +31,17 @@ void* malloc_s(size_t size);
 void* calloc_s(size_t n, size_t size);
 void* realloc_s(void* ptr, size_t size);
 
+typedef struct Arena {
+    size_t capacity;
+    size_t size;
+    uint8_t* data;
+} Arena;
+
+void arenaInit(Arena* arena, size_t capacity);
+void* arenaAlloc(Arena* arena, size_t size);
+void arenaReset(Arena* arena);
+void arenaDeinit(Arena* arena);
+
 int osRead(char* buf, int n);
 
 void abufAppend(abuf* ab, const char* s);
