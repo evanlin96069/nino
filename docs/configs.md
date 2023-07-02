@@ -16,6 +16,8 @@ Set config using `Ctrl+P` or create the config file `~/.ninorc`.
 | `mouse` | 1 | Enable mouse mode. |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |
+| `hldb_load` | Load a syntax highlighting JSON file. |
+| `hldb_reload_all` | Reload syntax highlighting database. |
 | `help` | cmd | Find help about a convar/concommand. |
 
 ## Color

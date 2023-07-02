@@ -6,7 +6,6 @@
 #include "action.h"
 #include "config.h"
 #include "file_io.h"
-#include "file_types.h"
 #include "row.h"
 #include "select.h"
 
@@ -20,6 +19,8 @@ extern HANDLE hStdin;
 extern HANDLE hStdout;
 
 #endif
+
+typedef struct EditorSyntax EditorSyntax;
 
 typedef struct EditorFile {
     // Cursor position
@@ -52,7 +53,7 @@ typedef struct EditorFile {
     EditorRow* row;
 
     // Syntax highlight information
-    const EditorSyntax* syntax;
+    EditorSyntax* syntax;
 
     // Undo redo
     EditorActionList* action_head;
@@ -93,6 +94,9 @@ typedef struct Editor {
     int file_index;
     int tab_offset;
     int tab_displayed;
+
+    // Syntax highlight
+    EditorSyntax* HLDB;
 
     // File explorer
     EditorExplorer explorer;

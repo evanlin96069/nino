@@ -397,3 +397,13 @@ JsonValue* jsonParse(const char* text, Arena* arena) {
     }
     return value;
 }
+
+JsonValue* jsonObjectFind(const JsonObject* object, const char* key) {
+    while (object) {
+        if (strcmp(object->key, key) == 0) {
+            return object->value;
+        }
+        object = object->next;
+    }
+    return NULL;
+}

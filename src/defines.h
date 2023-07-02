@@ -1,9 +1,9 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
+#include <stdbool.h>
 #include <stddef.h>
-
-#include "file_types.h"
+#include <stdint.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096

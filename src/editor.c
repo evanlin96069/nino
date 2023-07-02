@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "defines.h"
+#include "highlight.h"
 #include "output.h"
 #include "row.h"
 #include "terminal.h"
@@ -57,11 +58,14 @@ void editorInit(void) {
     gEditor.status_msg[0][0] = '\0';
     gEditor.status_msg[1][0] = '\0';
 
+    gEditor.HLDB = NULL;
+
     gEditor.explorer.focused = false;
     gEditor.explorer.node = NULL;
 
     editorInitCommands();
     editorLoadDefaultConfig();
+    editorLoadDefaultHLDB();
 
     resizeWindow();
     gEditor.explorer.prefered_width = gEditor.explorer.width =
@@ -85,6 +89,7 @@ void editorFree(void) {
     }
     editorFreeClipboardContent(&gEditor.clipboard);
     editorExplorerFree(gEditor.explorer.node);
+    editorFreeHLDB();
 }
 
 void editorFreeFile(EditorFile* file) {

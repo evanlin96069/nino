@@ -44,5 +44,6 @@ typedef struct JsonObject {
 } JsonObject;
 
 JsonValue* jsonParse(const char* text, Arena* arena);
+JsonValue* jsonObjectFind(const JsonObject* object, const char* key);
 
 #endif

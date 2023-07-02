@@ -1,0 +1,63 @@
+{
+    "name": "Python",
+    "extensions": [
+        ".py"
+    ],
+    "comment": "#",
+    "multiline-comment": [
+        "'''",
+        "'''"
+    ],
+    "keywords1": [
+        "as",
+        "assert",
+        "break",
+        "continue",
+        "del",
+        "elif",
+        "else",
+        "except",
+        "finally",
+        "for",
+        "from",
+        "if",
+        "import",
+        "pass",
+        "raise",
+        "return",
+        "try",
+        "while",
+        "with",
+        "yield"
+    ],
+    "keywords2": [
+        "and",
+        "class",
+        "def",
+        "False",
+        "global",
+        "in",
+        "is",
+        "lambda",
+        "None",
+        "nonlocal",
+        "not",
+        "or",
+        "True"
+    ],
+    "keywords3": [
+        "bool",
+        "int",
+        "float",
+        "complex",
+        "list",
+        "tuple",
+        "str",
+        "bytes",
+        "bytearray",
+        "frozenset",
+        "set",
+        "dict",
+        "type"
+    ]
+}

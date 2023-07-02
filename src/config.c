@@ -6,6 +6,7 @@
 
 #include "defines.h"
 #include "editor.h"
+#include "highlight.h"
 #include "input.h"
 #include "status.h"
 #include "terminal.h"
@@ -131,6 +132,39 @@ CON_COMMAND(exec, "Execute a config file.") {
     }
 }
 
+CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
+    if (args.argc != 2) {
+        editorSetStatusMsg("Usage: hldb_load <json file>");
+        return;
+    }
+    if (!editorLoadHLDB(args.argv[1])) {
+        editorSetStatusMsg("Failed to load file \"%s\"", args.argv[1]);
+    }
+
+    // Reload all
+    for (int i = 0; i < gEditor.file_count; i++) {
+        editorSelectSyntaxHighlight(&gEditor.files[i]);
+        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
+            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
+        }
+    }
+}
+
+CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
+    UNUSED(args.argc);
+
+    editorFreeHLDB();
+    editorLoadDefaultHLDB();
+
+    // Reload all
+    for (int i = 0; i < gEditor.file_count; i++) {
+        editorSelectSyntaxHighlight(&gEditor.files[i]);
+        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
+            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
+        }
+    }
+}
+
 CON_COMMAND(help, "Find help about a convar/concommand.") {
     if (args.argc != 2) {
         editorSetStatusMsg("Usage: help <command>");
@@ -250,6 +284,8 @@ void editorInitCommands(void) {
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(exec);
+    INIT_CONCOMMAND(hldb_load);
+    INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(help);
 }
 
@@ -268,9 +304,20 @@ bool editorLoadConfig(const char* path) {
 }
 
 void editorLoadDefaultConfig(void) {
-    char path[256] = {0};
-    snprintf(path, sizeof(path), "%s/.ninorc", getenv("HOME"));
-    editorLoadConfig(path);
+    char path[PATH_MAX] = {0};
+#ifdef _WIN32
+    snprintf(path, sizeof(path), "%s\\.nino\\ninorc", getenv("HOME"));
+    if (!editorLoadConfig(path)) {
+        snprintf(path, sizeof(path), "%s\\.ninorc", getenv("HOME"));
+        editorLoadConfig(path);
+    }
+#else
+    snprintf(path, sizeof(path), "%s/.config/nino/ninorc", getenv("HOME"));
+    if (!editorLoadConfig(path)) {
+        snprintf(path, sizeof(path), "%s/.ninorc", getenv("HOME"));
+        editorLoadConfig(path);
+    }
+#endif
 }
 
 void editorSetting(void) {

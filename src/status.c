@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "editor.h"
+#include "highlight.h"
 #include "utils.h"
 #include "version.h"
 
