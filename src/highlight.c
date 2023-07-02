@@ -205,10 +205,12 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
 void editorLoadDefaultHLDB(void) {
     char path[PATH_MAX];
 #ifdef _WIN32
-    snprintf(path, sizeof(path), "%s\\.nino\\syntax", getenv("HOME"));
+    char search_path[PATH_MAX];
+    snprintf(path, sizeof(path), "%s\\.nino\\syntax", getenv("userprofile"));
+    snprintf(search_path, MAX_PATH, "%s\\*.json", path);
 
     WIN32_FIND_DATA findData;
-    HANDLE hFind = FindFirstFile(path, &findData);
+    HANDLE hFind = FindFirstFile(search_path, &findData);
     if (hFind == INVALID_HANDLE_VALUE)
         return;
 
@@ -234,7 +236,8 @@ void editorLoadDefaultHLDB(void) {
             const char* ext = strrchr(entry->d_name, '.');
             if (ext && strcmp(ext, ".json") == 0) {
                 char file_path[PATH_MAX];
-                snprintf(file_path, sizeof(file_path), "%s/%s", path, entry->d_name);
+                snprintf(file_path, sizeof(file_path), "%s/%s", path,
+                         entry->d_name);
                 editorLoadHLDB(file_path);
             }
         }
