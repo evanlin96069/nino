@@ -13,7 +13,7 @@ Syntax highlighting data are stored in JSON files.
 {
     "name" : "Example language",
     "extensions" : [
-        ".extension1", 
+        ".extension1",
         ".extension2"
     ],
     "comment": "//",

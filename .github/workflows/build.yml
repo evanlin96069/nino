@@ -6,6 +6,8 @@ on:
         - '.github/*'
         - '.gitignore'
         - 'docs/*'
+        - 'syntax/*'
+        - 'themes/*'
         - 'README.md'
 
 jobs:
