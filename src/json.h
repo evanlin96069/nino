@@ -32,16 +32,16 @@ struct JsonValue {
     };
 };
 
-typedef struct JsonArray {
+struct JsonArray {
     struct JsonArray* next;
     JsonValue* value;
-} JsonArray;
+};
 
-typedef struct JsonObject {
+struct JsonObject {
     struct JsonObject* next;
     char* key;
     JsonValue* value;
-} JsonObject;
+};
 
 JsonValue* jsonParse(const char* text, Arena* arena);
 JsonValue* jsonObjectFind(const JsonObject* object, const char* key);

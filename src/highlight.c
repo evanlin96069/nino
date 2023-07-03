@@ -246,7 +246,7 @@ void editorLoadDefaultHLDB(void) {
 #endif
 }
 
-#define ARENA_SIZE (1 << 17)
+#define ARENA_SIZE (1 << 14)
 static EditorSyntax* HLDB_tail = NULL;
 bool editorLoadHLDB(const char* json_file) {
     FILE* fp;
