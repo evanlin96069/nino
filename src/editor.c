@@ -32,36 +32,15 @@ void editorInit(void) {
     enableRawMode();
     enableSwap();
 
-    gEditor.file_count = 0;
-    gEditor.file_index = 0;
-    gEditor.tab_offset = 0;
-    gEditor.tab_displayed = 0;
-
-    gEditor.screen_rows = 0;
-    gEditor.screen_cols = 0;
+    memset(&gEditor, 0, sizeof(Editor));
 
     gEditor.loading = true;
     gEditor.state = EDIT_MODE;
-    gEditor.mouse_mode = false;
+
     // Mouse mode default on
     enableMouse();
 
-    gEditor.px = 0;
-
-    gEditor.clipboard.size = 0;
-    gEditor.clipboard.data = NULL;
-
-    gEditor.cvars = NULL;
-
     gEditor.color_cfg = color_default;
-
-    gEditor.status_msg[0][0] = '\0';
-    gEditor.status_msg[1][0] = '\0';
-
-    gEditor.HLDB = NULL;
-
-    gEditor.explorer.focused = false;
-    gEditor.explorer.node = NULL;
 
     editorInitCommands();
     editorLoadDefaultConfig();
@@ -88,7 +67,7 @@ void editorFree(void) {
         editorFreeFile(&gEditor.files[i]);
     }
     editorFreeClipboardContent(&gEditor.clipboard);
-    editorExplorerFree(gEditor.explorer.node);
+    editorExplorerFree();
     editorFreeHLDB();
 }
 

@@ -23,7 +23,6 @@
 #include "output.h"
 #include "row.h"
 #include "status.h"
-#include "utils.h"
 
 #ifdef _WIN32
 static int isFileOpened(BY_HANDLE_FILE_INFORMATION fileInfo) {
@@ -68,6 +67,27 @@ static char* editroRowsToString(EditorFile* file, int* len) {
     }
 
     return buf;
+}
+
+static void editorExplorerFreeNode(EditorExplorerNode* node) {
+    if (!node)
+        return;
+
+    if (node->is_directory) {
+        for (size_t i = 0; i < node->dir.count; i++) {
+            editorExplorerFreeNode(node->dir.nodes[i]);
+        }
+
+        for (size_t i = 0; i < node->file.count; i++) {
+            editorExplorerFreeNode(node->file.nodes[i]);
+        }
+
+        free(node->dir.nodes);
+        free(node->file.nodes);
+    }
+
+    free(node->filename);
+    free(node);
 }
 
 #ifdef _WIN32
@@ -117,11 +137,12 @@ bool editorOpen(EditorFile* file, const char* path) {
     if (stat(path, &file_info) != -1) {
         if (S_ISDIR(file_info.st_mode)) {
             if (gEditor.explorer.node)
-                editorExplorerFree(gEditor.explorer.node);
+                editorExplorerFreeNode(gEditor.explorer.node);
             gEditor.explorer.node = editorExplorerCreate(path);
             gEditor.explorer.node->is_open = true;
-            gEditor.explorer.offset = 0;
-            gEditor.explorer.last_line = 0;
+            editorExplorerRefresh();
+
+            gEditor.explorer.offset = 1;
             gEditor.explorer.selected_index = 0;
             return false;
         }
@@ -318,6 +339,7 @@ EditorExplorerNode* editorExplorerCreate(const char* path) {
     node->is_directory = S_ISDIR(file_info.st_mode);
     node->is_open = false;
     node->loaded = false;
+    node->depth = 0;
     node->dir.count = 0;
     node->dir.nodes = NULL;
     node->file.count = 0;
@@ -353,6 +375,8 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
         if (!child)
             continue;
 
+        child->depth = node->depth + 1;
+
         if (child->is_directory) {
             insertExplorerNode(child, &node->dir);
         } else {
@@ -377,6 +401,8 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
         EditorExplorerNode* child = editorExplorerCreate(entry_path);
         if (!child)
             continue;
+
+        child->depth = node->depth + 1;
 
         if (child->is_directory) {
             insertExplorerNode(child, &node->dir);
@@ -413,6 +439,31 @@ static EditorExplorerNode* walkNode(EditorExplorerNode* node, int* line,
     return NULL;
 }
 
+static void flattenNode(EditorExplorerNode* node) {
+    vector_push(gEditor.explorer.flatten, node);
+
+    if (node->is_directory && node->is_open) {
+        if (!node->loaded)
+            editorExplorerLoadNode(node);
+
+        for (size_t i = 0; i < node->dir.count; i++) {
+            flattenNode(node->dir.nodes[i]);
+        }
+
+        for (size_t i = 0; i < node->file.count; i++) {
+            flattenNode(node->file.nodes[i]);
+        }
+    }
+}
+
+void editorExplorerRefresh(void) {
+    gEditor.explorer.flatten.size = 0;
+    gEditor.explorer.flatten.capacity = 0;
+    free(gEditor.explorer.flatten.data);
+    flattenNode(gEditor.explorer.node);
+    vector_shrink(gEditor.explorer.flatten);
+}
+
 EditorExplorerNode* editorExplorerSearch(int index) {
     if (index < 0)
         return NULL;
@@ -420,23 +471,7 @@ EditorExplorerNode* editorExplorerSearch(int index) {
     return walkNode(gEditor.explorer.node, &line, index + 1);
 }
 
-void editorExplorerFree(EditorExplorerNode* node) {
-    if (!node)
-        return;
-
-    if (node->is_directory) {
-        for (size_t i = 0; i < node->dir.count; i++) {
-            editorExplorerFree(node->dir.nodes[i]);
-        }
-
-        for (size_t i = 0; i < node->file.count; i++) {
-            editorExplorerFree(node->file.nodes[i]);
-        }
-
-        free(node->dir.nodes);
-        free(node->file.nodes);
-    }
-
-    free(node->filename);
-    free(node);
+void editorExplorerFree(void) {
+    editorExplorerFreeNode(gEditor.explorer.node);
+    free(gEditor.explorer.flatten.data);
 }

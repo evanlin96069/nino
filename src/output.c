@@ -166,66 +166,8 @@ void editorDrawRows(abuf* ab) {
     }
 }
 
-char* explorer_buf = NULL;
-
-static void drawFileName(abuf* ab, const char* icon, const char* path,
-                         int depth) {
-    if (!explorer_buf)
-        return;
-
-    const char* filename = getBaseName(path);
-
-    snprintf(explorer_buf, gEditor.explorer.width + 1, "%*s%s%s%*s", depth * 2,
-             "", icon, filename, gEditor.explorer.width, "");
-    abufAppendN(ab, explorer_buf, gEditor.explorer.width);
-}
-
-void editorDrawExplorerNode(abuf* ab, EditorExplorerNode* node, int* line,
-                            int depth) {
-    if (!node)
-        return;
-    if (*line > gEditor.explorer.offset + gEditor.display_rows)
-        return;
-
-    if (*line > gEditor.explorer.offset) {
-        gotoXY(ab, *line - gEditor.explorer.offset + 1, 1);
-
-        if (*line == gEditor.explorer.selected_index)
-            setColor(ab, gEditor.color_cfg.explorer[1], 1);
-        else
-            setColor(ab, gEditor.color_cfg.explorer[0], 1);
-
-        const char* icon = "";
-        if (node->is_directory) {
-            setColor(ab, gEditor.color_cfg.explorer[2], 0);
-            icon = node->is_open ? "v " : "> ";
-        } else {
-            setColor(ab, gEditor.color_cfg.explorer[3], 0);
-        }
-        drawFileName(ab, icon, node->filename, depth);
-    }
-    (*line)++;
-
-    if (node->is_directory && node->is_open) {
-        if (!node->loaded)
-            editorExplorerLoadNode(node);
-
-        for (size_t i = 0; i < node->dir.count; i++) {
-            editorDrawExplorerNode(ab, node->dir.nodes[i], line, depth + 1);
-            if (*line > gEditor.explorer.offset + gEditor.display_rows)
-                return;
-        }
-
-        for (size_t i = 0; i < node->file.count; i++) {
-            editorDrawExplorerNode(ab, node->file.nodes[i], line, depth + 1);
-            if (*line > gEditor.explorer.offset + gEditor.display_rows)
-                return;
-        }
-    }
-}
-
-void editorDrawFileExplorer(abuf* ab) {
-    explorer_buf = malloc_s(gEditor.explorer.width + 1);
+static void editorDrawFileExplorer(abuf* ab) {
+    char* explorer_buf = malloc_s(gEditor.explorer.width + 1);
     gotoXY(ab, 1, 1);
 
     setColor(ab, gEditor.color_cfg.explorer[3], 0);
@@ -238,21 +180,50 @@ void editorDrawFileExplorer(abuf* ab) {
              gEditor.explorer.width, "");
     abufAppendN(ab, explorer_buf, gEditor.explorer.width);
 
-    int line = 0;
-    editorDrawExplorerNode(ab, gEditor.explorer.node, &line, 0);
-    gEditor.explorer.last_line = line;
-    memset(explorer_buf, ' ', gEditor.explorer.width);
+    int lines = gEditor.explorer.flatten.size - gEditor.explorer.offset;
+    if (lines < 0) {
+        lines = 0;
+    } else if (lines > gEditor.display_rows) {
+        lines = gEditor.display_rows;
+    }
 
+    for (int i = 0; i < lines; i++) {
+        gotoXY(ab, i + 2, 1);
+
+        size_t index = gEditor.explorer.offset + i;
+        EditorExplorerNode* node = gEditor.explorer.flatten.data[index];
+        if (index == gEditor.explorer.selected_index)
+            setColor(ab, gEditor.color_cfg.explorer[1], 1);
+        else
+            setColor(ab, gEditor.color_cfg.explorer[0], 1);
+
+        const char* icon = "";
+        if (node->is_directory) {
+            setColor(ab, gEditor.color_cfg.explorer[2], 0);
+            icon = node->is_open ? "v " : "> ";
+        } else {
+            setColor(ab, gEditor.color_cfg.explorer[3], 0);
+        }
+        const char* filename = getBaseName(node->filename);
+
+        snprintf(explorer_buf, gEditor.explorer.width + 1, "%*s%s%s%*s",
+                 node->depth * 2, "", icon, filename, gEditor.explorer.width,
+                 "");
+        abufAppendN(ab, explorer_buf, gEditor.explorer.width);
+    }
+
+    // Draw blank lines
     setColor(ab, gEditor.color_cfg.explorer[0], 1);
     setColor(ab, gEditor.color_cfg.explorer[3], 0);
 
-    while (line <= gEditor.explorer.offset + gEditor.display_rows) {
-        gotoXY(ab, line - gEditor.explorer.offset + 1, 1);
+    memset(explorer_buf, ' ', gEditor.explorer.width);
+
+    for (int i = 0; i < gEditor.display_rows - lines; i++) {
+        gotoXY(ab, lines + i + 2, 1);
         abufAppendN(ab, explorer_buf, gEditor.explorer.width);
-        line++;
     }
+
     free(explorer_buf);
-    explorer_buf = NULL;
 }
 
 void editorRefreshScreen(void) {

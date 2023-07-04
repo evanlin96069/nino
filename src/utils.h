@@ -61,10 +61,9 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
 
 #define vector_pop(vec) ((vec).data[--(vec).size])
 
-#define vector_shrink(vec)                                     \
-    do {                                                       \
-        ((_Vector*)&(vec))->data =                             \
-            realloc_s(vec.data, sizeof(*vec.data) * vec.size); \
+#define vector_shrink(vec)                                              \
+    do {                                                                \
+        (vec).data = realloc_s(vec.data, sizeof(*vec.data) * vec.size); \
     } while (0)
 
 // Abuf

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
+#include "utils.h"
+
 typedef struct EditorExplorerNodeData {
     struct EditorExplorerNode** nodes;
     size_t count;
@@ -15,6 +17,7 @@ typedef struct EditorExplorerNode {
     bool is_directory;
     bool is_open;  // Is directory open in the explorer
     bool loaded;   // Is directory loaded
+    int depth;
     size_t dir_count;
     EditorExplorerNodeData dir;
     EditorExplorerNodeData file;
@@ -25,9 +28,9 @@ typedef struct EditorExplorer {
     int prefered_width;
     int width;
     int offset;
-    int last_line;  // Last displayed line
-    int selected_index;
-    EditorExplorerNode* node;
+    uint32_t selected_index;
+    EditorExplorerNode* node;  // Root node of explorer tree
+    VECTOR(EditorExplorerNode*) flatten;
 } EditorExplorer;
 
 typedef struct EditorFile EditorFile;
@@ -38,7 +41,8 @@ void editorOpenFilePrompt(void);
 
 EditorExplorerNode* editorExplorerCreate(const char* path);
 void editorExplorerLoadNode(EditorExplorerNode* node);
+void editorExplorerRefresh(void);
 EditorExplorerNode* editorExplorerSearch(int index);
-void editorExplorerFree(EditorExplorerNode* node);
+void editorExplorerFree(void);
 
 #endif

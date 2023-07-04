@@ -21,12 +21,14 @@
 
 static void editorExplorerNodeClicked(void) {
     EditorExplorerNode* node =
-        editorExplorerSearch(gEditor.explorer.selected_index - 1);
+        gEditor.explorer.flatten.data[gEditor.explorer.selected_index];
+
     EditorFile file = {0};
     if (!node)
         return;
     if (node->is_directory) {
         node->is_open ^= 1;
+        editorExplorerRefresh();
     } else if (editorOpen(&file, node->filename)) {
         int index = editorAddFile(&file);
         // hack: refresh screen to update gEditor.tab_displayed
@@ -36,13 +38,17 @@ static void editorExplorerNodeClicked(void) {
 }
 
 static void editorExplorerScrollToSelect(void) {
-    if (gEditor.explorer.offset > gEditor.explorer.selected_index - 1)
-        gEditor.explorer.offset = gEditor.explorer.selected_index - 1;
-    else if (gEditor.explorer.selected_index >= gEditor.explorer.last_line)
+    if (gEditor.explorer.offset > (int)gEditor.explorer.selected_index) {
+        gEditor.explorer.offset = gEditor.explorer.selected_index;
+    } else if ((int)gEditor.explorer.selected_index >=
+               gEditor.explorer.offset + gEditor.display_rows) {
         gEditor.explorer.offset =
-            gEditor.explorer.selected_index - gEditor.display_rows;
-    if (gEditor.explorer.offset < 0)
-        gEditor.explorer.offset = 0;
+            gEditor.explorer.selected_index - gEditor.display_rows + 1;
+    }
+
+    if (gEditor.explorer.offset < 1) {
+        gEditor.explorer.offset = 1;
+    }
 }
 
 static inline void editorExplorerShow(void) {
@@ -58,17 +64,17 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
         case WHEEL_UP:
             if (getMousePosField(x, y) != FIELD_EXPLORER)
                 return false;
-            if (gEditor.explorer.offset > 0) {
-                gEditor.explorer.offset = (gEditor.explorer.offset - 3)
+            if (gEditor.explorer.offset > 1) {
+                gEditor.explorer.offset = (gEditor.explorer.offset - 3) > 1
                                               ? (gEditor.explorer.offset - 3)
-                                              : 0;
+                                              : 1;
             }
             break;
 
         case WHEEL_DOWN:
             if (getMousePosField(x, y) != FIELD_EXPLORER)
                 return false;
-            if (gEditor.explorer.last_line - gEditor.explorer.offset >
+            if ((int)gEditor.explorer.flatten.size - gEditor.explorer.offset >
                 gEditor.display_rows) {
                 gEditor.explorer.offset += 3;
             }
@@ -82,7 +88,8 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
             break;
 
         case ARROW_DOWN:
-            if (gEditor.explorer.selected_index >= gEditor.explorer.last_line)
+            if (gEditor.explorer.selected_index + 1 >=
+                gEditor.explorer.flatten.size)
                 break;
             gEditor.explorer.selected_index++;
             editorExplorerScrollToSelect();
@@ -107,9 +114,10 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
                 break;
             }
 
-            if (y > gEditor.explorer.last_line - gEditor.explorer.offset)
+            if (y >
+                (int)gEditor.explorer.flatten.size - gEditor.explorer.offset)
                 break;
-            gEditor.explorer.selected_index = y + gEditor.explorer.offset;
+            gEditor.explorer.selected_index = y - 1 + gEditor.explorer.offset;
             editorExplorerNodeClicked();
             break;
 
