@@ -20,10 +20,12 @@
 #include "utils.h"
 
 static void editorExplorerNodeClicked(void) {
-    EditorExplorerNode* node =
-        gEditor.explorer.flatten.data[gEditor.explorer.selected_index];
-
+    EditorExplorerNode* node = NULL;
     EditorFile file = {0};
+
+    if (gEditor.explorer.selected_index < gEditor.explorer.flatten.size)
+        node = gEditor.explorer.flatten.data[gEditor.explorer.selected_index];
+
     if (!node)
         return;
     if (node->is_directory) {

@@ -11,24 +11,26 @@
 #include "terminal.h"
 #include "unicode.h"
 
-void *malloc_s(size_t size) {
+void *_malloc_s(const char *file, int line, size_t size) {
     void *ptr = malloc(size);
     if (!ptr && size != 0)
-        PANIC("malloc");
+        panic(file, line, "malloc");
+
     return ptr;
 }
 
-void *calloc_s(size_t n, size_t size) {
+void *_calloc_s(const char *file, int line, size_t n, size_t size) {
     void *ptr = calloc(n, size);
     if (!ptr && size != 0)
-        PANIC("calloc");
+        panic(file, line, "calloc");
+
     return ptr;
 }
 
-void *realloc_s(void *ptr, size_t size) {
+void *_realloc_s(const char *file, int line, void *ptr, size_t size) {
     ptr = realloc(ptr, size);
     if (!ptr && size != 0)
-        PANIC("realloc");
+        panic(file, line, "realloc");
     return ptr;
 }
 
@@ -250,18 +252,18 @@ int getDigit(int n) {
 }
 
 #ifdef _WIN32
-#define PATH_SEPARATOR '\\'
+#define DIRECTORY_SEPARATOR '\\'
 #else
-#define PATH_SEPARATOR '/'
+#define DIRECTORY_SEPARATOR '/'
 #endif
 
 const char *getBaseName(const char *path) {
-    const char *name = strrchr(path, PATH_SEPARATOR);
+    const char *name = strrchr(path, DIRECTORY_SEPARATOR);
     return name ? name + 1 : path;
 }
 
 char *getDirName(char *path) {
-    char *name = strrchr(path, PATH_SEPARATOR);
+    char *name = strrchr(path, DIRECTORY_SEPARATOR);
     if (!name) {
         name = path;
         *name = '.';

@@ -42,7 +42,6 @@ void editorOpenFilePrompt(void);
 EditorExplorerNode* editorExplorerCreate(const char* path);
 void editorExplorerLoadNode(EditorExplorerNode* node);
 void editorExplorerRefresh(void);
-EditorExplorerNode* editorExplorerSearch(int index);
 void editorExplorerFree(void);
 
 #endif

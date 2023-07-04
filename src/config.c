@@ -130,13 +130,9 @@ CON_COMMAND(exec, "Execute a config file.") {
     if (!editorLoadConfig(args.argv[1])) {
         // Try configs dir
         char path[PATH_MAX];
-#ifdef _WIN32
-        snprintf(path, sizeof(path), "%s\\.nino\\%s", getenv("userprofile"),
-                 args.argv[1]);
-#else
-        snprintf(path, sizeof(path), "%s/.config/nino/%s", getenv("HOME"),
-                 args.argv[1]);
-#endif
+        snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "%s"),
+                 getenv(ENV_HOME), args.argv[1]);
+
         if (!editorLoadConfig(path)) {
             editorSetStatusMsg("Cannot open file \"%s\"", args.argv[1]);
         }
@@ -316,19 +312,12 @@ bool editorLoadConfig(const char* path) {
 
 void editorLoadDefaultConfig(void) {
     char path[PATH_MAX] = {0};
-#ifdef _WIN32
-    snprintf(path, sizeof(path), "%s\\.nino\\ninorc", getenv("userprofile"));
+    const char* home_dir = getenv(ENV_HOME);
+    snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "ninorc"), home_dir);
     if (!editorLoadConfig(path)) {
-        snprintf(path, sizeof(path), "%s\\.ninorc", getenv("userprofile"));
+        snprintf(path, sizeof(path), PATH_CAT("%s", ".ninorc"), home_dir);
         editorLoadConfig(path);
     }
-#else
-    snprintf(path, sizeof(path), "%s/.config/nino/ninorc", getenv("HOME"));
-    if (!editorLoadConfig(path)) {
-        snprintf(path, sizeof(path), "%s/.ninorc", getenv("HOME"));
-        editorLoadConfig(path);
-    }
-#endif
 }
 
 void editorSetting(void) {

@@ -93,8 +93,8 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
 #ifdef _WIN32
 static int64_t getline(char** lineptr, size_t* n, FILE* stream) {
     char* buf = NULL;
-    char* p = buf;
-    size_t size;
+    size_t capacity;
+    int64_t size = 0;
     int c;
     const size_t buf_size = 128;
 
@@ -102,7 +102,7 @@ static int64_t getline(char** lineptr, size_t* n, FILE* stream) {
         return -1;
 
     buf = *lineptr;
-    size = *n;
+    capacity = *n;
 
     c = fgetc(stream);
     if (c == EOF)
@@ -110,25 +110,27 @@ static int64_t getline(char** lineptr, size_t* n, FILE* stream) {
 
     if (!buf) {
         buf = malloc_s(buf_size);
-        size = buf_size;
+        capacity = buf_size;
     }
-    p = buf;
+
     while (c != EOF) {
-        if ((size_t)(p - buf) > (size - 1)) {
-            size = size + buf_size;
-            buf = realloc_s(buf, size);
+        if ((size_t)size > (capacity - 1)) {
+            capacity += buf_size;
+            buf = realloc_s(buf, capacity);
         }
-        *p++ = c;
+        buf[size++] = c;
+
         if (c == '\n')
             break;
+
         c = fgetc(stream);
     }
 
-    *p++ = '\0';
+    buf[size] = '\0';
     *lineptr = buf;
-    *n = size;
+    *n = capacity;
 
-    return p - buf - 1;
+    return size;
 }
 #endif
 
@@ -415,30 +417,6 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
     node->loaded = true;
 }
 
-static EditorExplorerNode* walkNode(EditorExplorerNode* node, int* line,
-                                    int index) {
-    if (!node)
-        return NULL;
-
-    if (*line == index)
-        return node;
-    (*line)++;
-
-    EditorExplorerNode* result = NULL;
-    if (node->is_directory && node->is_open) {
-        for (size_t i = 0; i < node->dir.count; i++) {
-            if ((result = walkNode(node->dir.nodes[i], line, index)))
-                return result;
-        }
-
-        for (size_t i = 0; i < node->file.count; i++) {
-            if ((result = walkNode(node->file.nodes[i], line, index)))
-                return result;
-        }
-    }
-    return NULL;
-}
-
 static void flattenNode(EditorExplorerNode* node) {
     vector_push(gEditor.explorer.flatten, node);
 
@@ -462,13 +440,6 @@ void editorExplorerRefresh(void) {
     free(gEditor.explorer.flatten.data);
     flattenNode(gEditor.explorer.node);
     vector_shrink(gEditor.explorer.flatten);
-}
-
-EditorExplorerNode* editorExplorerSearch(int index) {
-    if (index < 0)
-        return NULL;
-    int line = 0;
-    return walkNode(gEditor.explorer.node, &line, index + 1);
 }
 
 void editorExplorerFree(void) {

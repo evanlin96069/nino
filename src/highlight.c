@@ -204,10 +204,12 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
 
 void editorLoadDefaultHLDB(void) {
     char path[PATH_MAX];
+    snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
+             getenv(ENV_HOME));
+
 #ifdef _WIN32
     char search_path[PATH_MAX];
-    snprintf(path, sizeof(path), "%s\\.nino\\syntax", getenv("userprofile"));
-    snprintf(search_path, MAX_PATH, "%s\\*.json", path);
+    snprintf(search_path, sizeof(search_path), "%s\\*.json", path);
 
     WIN32_FIND_DATA findData;
     HANDLE hFind = FindFirstFile(search_path, &findData);
@@ -217,15 +219,14 @@ void editorLoadDefaultHLDB(void) {
     do {
         if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
             char file_path[PATH_MAX];
-            snprintf(file_path, PATH_MAX, "%s\\%s", path, findData.cFileName);
+            snprintf(file_path, sizeof(file_path), "%s\\%s", path,
+                     findData.cFileName);
             editorLoadHLDB(file_path);
         }
     } while (FindNextFile(hFind, &findData) != 0);
 
     FindClose(hFind);
 #else
-    snprintf(path, sizeof(path), "%s/.config/nino/syntax", getenv("HOME"));
-
     DIR* directory = opendir(path);
     if (!directory)
         return;

@@ -2,7 +2,7 @@
 #define TERMINAL_H
 
 #define PANIC(s) panic(__FILE__, __LINE__, s)
-void panic(char* file, int line, const char* s);
+void panic(const char* file, int line, const char* s);
 
 void enableRawMode(void);
 int editorReadKey(int* x, int* y);

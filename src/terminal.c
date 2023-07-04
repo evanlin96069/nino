@@ -24,7 +24,7 @@ static DWORD orig_out_mode;
 static struct termios orig_termios;
 #endif
 
-void panic(char* file, int line, const char* s) {
+void panic(const char* file, int line, const char* s) {
     terminalExit();
     fprintf(stderr, "Error at %s: %d: %s\r\n", file, line, s);
     exit(EXIT_FAILURE);

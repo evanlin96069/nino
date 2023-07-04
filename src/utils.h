@@ -5,6 +5,22 @@
 
 #include "row.h"
 
+#ifdef _WIN32
+#define ENV_HOME "USERPROFILE"
+#define CONF_DIR ".nino"
+#define _SLASH "\\"
+#else
+#define ENV_HOME "HOME"
+#define CONF_DIR ".config/nino"
+#define _SLASH "/"
+#endif
+
+#define PATH_CAT(...) \
+    _GET_MACRO(__VA_ARGS__, _PATH_CAT3, _PATH_CAT2)(__VA_ARGS__)
+#define _GET_MACRO(_1, _2, _3, NAME, ...) NAME
+#define _PATH_CAT2(p1, p2) p1 _SLASH p2
+#define _PATH_CAT3(p1, p2, p3) p1 _SLASH p2 _SLASH p3
+
 // ANSI escape sequences
 #define ANSI_CLEAR "\x1b[m"
 #define ANSI_UNDERLINE "\x1b[4m"
@@ -15,9 +31,13 @@
 #define ANSI_DEFAULT_BG "\x1b[49m"
 
 // Allocate
-void* malloc_s(size_t size);
-void* calloc_s(size_t n, size_t size);
-void* realloc_s(void* ptr, size_t size);
+#define malloc_s(size) _malloc_s(__FILE__, __LINE__, size)
+#define calloc_s(n, size) _calloc_s(__FILE__, __LINE__, n, size)
+#define realloc_s(ptr, size) _realloc_s(__FILE__, __LINE__, ptr, size)
+
+void* _malloc_s(const char* file, int line, size_t size);
+void* _calloc_s(const char* file, int line, size_t n, size_t size);
+void* _realloc_s(const char* file, int line, void* ptr, size_t size);
 
 // Arena
 typedef struct Arena {
