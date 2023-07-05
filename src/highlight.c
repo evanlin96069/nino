@@ -255,13 +255,13 @@ bool editorLoadHLDB(const char* json_file) {
     char* buffer;
 
     // Load file
-    fp = fopen(json_file, "r");
+    fp = fopen(json_file, "rb");
     if (!fp)
         return false;
 
     fseek(fp, 0, SEEK_END);
     size = ftell(fp);
-    rewind(fp);
+    fseek(fp, 0, SEEK_SET);
 
     buffer = calloc_s(1, size + 1);
 
