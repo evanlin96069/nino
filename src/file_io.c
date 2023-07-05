@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 
 #ifdef _WIN32
-#include <io.h>
+#include <windows.h>
 #define ftruncate _chsize_s
 #else
 #include <dirent.h>

@@ -12,12 +12,9 @@
 #define EDITOR_FILE_MAX_SLOT 32
 
 #ifdef _WIN32
-
-#include <Windows.h>
-
+#include <windows.h>
 extern HANDLE hStdin;
 extern HANDLE hStdout;
-
 #endif
 
 typedef struct EditorSyntax EditorSyntax;

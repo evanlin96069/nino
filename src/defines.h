@@ -1,18 +1,8 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
 #define CTRL_KEY(k) ((k)&0x1F)
 #define ALT_KEY(k) ((k) | 0x1B00)
-
-#define UNUSED(x) (void)!(x)
 
 #define HL_HIGHLIGHT_NUMBERS (1 << 0)
 #define HL_HIGHLIGHT_STRINGS (1 << 1)

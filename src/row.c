@@ -5,6 +5,7 @@
 
 #include "defines.h"
 #include "highlight.h"
+#include "unicode.h"
 #include "utils.h"
 
 void editorUpdateRow(EditorFile* file, EditorRow* row) {
@@ -153,4 +154,76 @@ void editorDelChar(void) {
     }
     gCurFile->sx =
         editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
+}
+
+int editorRowNextUTF8(EditorRow* row, int cx) {
+    if (cx < 0)
+        return 0;
+
+    if (cx >= row->size)
+        return row->size;
+
+    const char* s = &row->data[cx];
+    size_t byte_size;
+    decodeUTF8(s, row->size - cx, &byte_size);
+    return cx + byte_size;
+}
+
+int editorRowPreviousUTF8(EditorRow* row, int cx) {
+    if (cx <= 0)
+        return 0;
+
+    if (cx > row->size)
+        return row->size;
+
+    int i = 0;
+    size_t byte_size;
+    while (i < cx) {
+        decodeUTF8(&row->data[i], row->size - i, &byte_size);
+        i += byte_size;
+    }
+    return i - byte_size;
+}
+
+int editorRowCxToRx(const EditorRow* row, int cx) {
+    int rx = 0;
+    int i = 0;
+    while (i < cx) {
+        size_t byte_size;
+        uint32_t unicode = decodeUTF8(&row->data[i], row->size - i, &byte_size);
+        if (unicode == '\t') {
+            rx += (CONVAR_GETINT(tabsize) - 1) - (rx % CONVAR_GETINT(tabsize)) +
+                  1;
+        } else {
+            int width = unicodeWidth(unicode);
+            if (width < 0)
+                width = 1;
+            rx += width;
+        }
+        i += byte_size;
+    }
+    return rx;
+}
+
+int editorRowRxToCx(const EditorRow* row, int rx) {
+    int cur_rx = 0;
+    int cx = 0;
+    while (cx < row->size) {
+        size_t byte_size;
+        uint32_t unicode =
+            decodeUTF8(&row->data[cx], row->size - cx, &byte_size);
+        if (unicode == '\t') {
+            cur_rx += (CONVAR_GETINT(tabsize) - 1) -
+                      (cur_rx % CONVAR_GETINT(tabsize)) + 1;
+        } else {
+            int width = unicodeWidth(unicode);
+            if (width < 0)
+                width = 1;
+            cur_rx += width;
+        }
+        if (cur_rx > rx)
+            return cx;
+        cx += byte_size;
+    }
+    return cx;
 }

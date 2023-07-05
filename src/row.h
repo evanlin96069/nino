@@ -29,4 +29,12 @@ void editorInsertChar(int c);
 void editorInsertNewline(void);
 void editorDelChar(void);
 
+// UTF-8
+int editorRowPreviousUTF8(EditorRow* row, int cx);
+int editorRowNextUTF8(EditorRow* row, int cx);
+
+// Cx Rx
+int editorRowCxToRx(const EditorRow* row, int cx);
+int editorRowRxToCx(const EditorRow* row, int rx);
+
 #endif

@@ -14,6 +14,7 @@
 
 #ifdef _WIN32
 #include <io.h>
+#include <windows.h>
 static DWORD orig_in_mode;
 static DWORD orig_out_mode;
 #else

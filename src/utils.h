@@ -1,9 +1,13 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
-#include "row.h"
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 #ifdef _WIN32
 #define ENV_HOME "USERPROFILE"
@@ -29,6 +33,8 @@
 #define ANSI_NOT_INVERT "\x1b[27m"
 #define ANSI_DEFAULT_FG "\x1b[39m"
 #define ANSI_DEFAULT_BG "\x1b[49m"
+
+#define UNUSED(x) (void)!(x)
 
 // Allocate
 #define malloc_s(size) _malloc_s(__FILE__, __LINE__, size)
@@ -103,14 +109,6 @@ void abufFree(abuf* ab);
 
 // IO
 int osRead(char* buf, int n);
-
-// UTF-8
-int editorRowPreviousUTF8(EditorRow* row, int cx);
-int editorRowNextUTF8(EditorRow* row, int cx);
-
-// Row
-int editorRowCxToRx(const EditorRow* row, int cx);
-int editorRowRxToCx(const EditorRow* row, int rx);
 
 // Color
 typedef struct Color {
