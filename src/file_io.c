@@ -157,19 +157,18 @@ bool editorOpen(EditorFile* file, const char* path) {
 #ifdef _WIN32
         HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL,
                                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (hFile == INVALID_HANDLE_VALUE) {
-            CloseHandle(hFile);
+        if (hFile == INVALID_HANDLE_VALUE)
             return false;
-        }
 
         BY_HANDLE_FILE_INFORMATION fileInfo;
-        if (!GetFileInformationByHandle(hFile, &fileInfo)) {
-            CloseHandle(hFile);
+        WINBOOL result = GetFileInformationByHandle(hFile, &fileInfo);
+        CloseHandle(hFile);
+        if (!result)
             return false;
-        }
 
         int open_index = isFileOpened(fileInfo);
         file->file_info = fileInfo;
+
 #else
         int open_index = isFileOpened(file_info.st_ino);
         file->file_inode = file_info.st_ino;
