@@ -3,7 +3,6 @@ name: Build
 on:
   push:
     paths-ignore:
-        - '.github/*'
         - '.gitignore'
         - 'docs/*'
         - 'syntax/*'
@@ -12,6 +11,7 @@ on:
 
 jobs:
   build:
+    name: Linux Build
     runs-on: ubuntu-latest
 
     steps:
@@ -33,11 +33,28 @@ jobs:
       - name: Archive release binary
         uses: actions/upload-artifact@v3
         with:
-          name: release
+          name: nino-linux
           path: release/nino
 
-      - name: Archive debug binary
+  build-windows:
+    name: Windows Build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Prepare directories
+        run: make prep
+
+      - name: Build release
+        run: make release
+
+      - name: Build debug
+        run: make debug
+
+      - name: Archive release binary
         uses: actions/upload-artifact@v3
         with:
-          name: debug
-          path: debug/nino
+          name: nino-windows
+          path: release/nino.exe
