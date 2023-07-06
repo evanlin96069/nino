@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef enum TokenType {
+typedef enum JsonTokenType {
     TOKEN_EMPTY = 0,
     TOKEN_ERROR,
     TOKEN_NULL,
@@ -18,21 +18,21 @@ typedef enum TokenType {
     TOKEN_RBRACKET = ']',
     TOKEN_COMMA = ',',
     TOKEN_COLON = ':',
-} TokenType;
+} JsonTokenType;
 
-typedef struct Token {
-    TokenType type;
+typedef struct JsonToken {
+    JsonTokenType type;
     union {
         double number;
         bool boolean;
         char* string;
     };
-} Token;
+} JsonToken;
 
 #define JSON_STRING_SIZE 64
 
-static Token tokenError(Arena* arena, const char* fmt, ...) {
-    Token token;
+static JsonToken tokenError(Arena* arena, const char* fmt, ...) {
+    JsonToken token;
     token.type = TOKEN_ERROR;
     token.string = arenaAlloc(arena, JSON_STRING_SIZE);
 
@@ -44,10 +44,10 @@ static Token tokenError(Arena* arena, const char* fmt, ...) {
     return token;
 }
 
-static Token nextToken(const char* text, Arena* arena) {
+static JsonToken nextToken(const char* text, Arena* arena) {
     static const char* start = NULL;
     static const char* p = NULL;
-    Token token = {0};
+    JsonToken token = {0};
     char c;
 
     if (text) {
@@ -266,7 +266,7 @@ static JsonValue* parseArray(Arena* arena);
 
 static JsonValue* parseObject(Arena* arena);
 
-static JsonValue* parseValue(Token token, Arena* arena) {
+static JsonValue* parseValue(JsonToken token, Arena* arena) {
     JsonValue* value;
     if (token.type == TOKEN_LBRACE) {
         value = parseObject(arena);
@@ -305,7 +305,7 @@ static JsonValue* parseValue(Token token, Arena* arena) {
 }
 
 static JsonValue* parseObject(Arena* arena) {
-    Token token = nextToken(NULL, arena);
+    JsonToken token = nextToken(NULL, arena);
 
     JsonObject head = {0};
     JsonObject* curr = &head;
@@ -354,7 +354,7 @@ static JsonValue* parseObject(Arena* arena) {
 }
 
 static JsonValue* parseArray(Arena* arena) {
-    Token token = nextToken(NULL, arena);
+    JsonToken token = nextToken(NULL, arena);
     JsonArray head = {0};
     JsonArray* curr = &head;
 
@@ -384,7 +384,7 @@ static JsonValue* parseArray(Arena* arena) {
 }
 
 JsonValue* jsonParse(const char* text, Arena* arena) {
-    Token token = nextToken(text, arena);
+    JsonToken token = nextToken(text, arena);
     JsonValue* value = parseValue(token, arena);
     if (value->type == JSON_ERROR)
         return value;
