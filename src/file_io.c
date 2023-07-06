@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include "file_io.h"
 
 #include <errno.h>
@@ -11,7 +9,6 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#define ftruncate _chsize_s
 #else
 #include <dirent.h>
 #include <unistd.h>
@@ -48,13 +45,14 @@ static int isFileOpened(ino_t inode) {
 }
 #endif
 
-static char* editroRowsToString(EditorFile* file, int* len) {
-    int total_len = 0;
+static char* editroRowsToString(EditorFile* file, size_t* len) {
+    size_t total_len = 0;
     for (int i = 0; i < file->num_rows; i++) {
         total_len += file->row[i].size + 1;
     }
+
     // last line no newline
-    *len = total_len - 1;
+    *len = (total_len > 0) ? total_len - 1 : 0;
 
     char* buf = malloc_s(total_len);
     char* p = buf;
@@ -89,50 +87,6 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
     free(node->filename);
     free(node);
 }
-
-#ifdef _WIN32
-static int64_t getline(char** lineptr, size_t* n, FILE* stream) {
-    char* buf = NULL;
-    size_t capacity;
-    int64_t size = 0;
-    int c;
-    const size_t buf_size = 128;
-
-    if (!lineptr || !stream || !n)
-        return -1;
-
-    buf = *lineptr;
-    capacity = *n;
-
-    c = fgetc(stream);
-    if (c == EOF)
-        return -1;
-
-    if (!buf) {
-        buf = malloc_s(buf_size);
-        capacity = buf_size;
-    }
-
-    while (c != EOF) {
-        if ((size_t)size > (capacity - 1)) {
-            capacity += buf_size;
-            buf = realloc_s(buf, capacity);
-        }
-        buf[size++] = c;
-
-        if (c == '\n')
-            break;
-
-        c = fgetc(stream);
-    }
-
-    buf[size] = '\0';
-    *lineptr = buf;
-    *n = capacity;
-
-    return size;
-}
-#endif
 
 bool editorOpen(EditorFile* file, const char* path) {
     struct stat file_info;
@@ -193,7 +147,7 @@ bool editorOpen(EditorFile* file, const char* path) {
 
     if (!f && errno == ENOENT) {
         // file doesn't exist
-        char parent_dir[PATH_MAX];
+        char parent_dir[EDITOR_PATH_MAX];
         snprintf(parent_dir, sizeof(parent_dir), "%s", path);
         getDirName(parent_dir);
         if (access(parent_dir, 0) != 0) {  // F_OK
@@ -218,7 +172,7 @@ bool editorOpen(EditorFile* file, const char* path) {
 
         file->row = malloc_s(sizeof(EditorRow) * cap);
 
-        while ((len = getline(&line, &n, f)) != -1) {
+        while ((len = getLine(&line, &n, f)) != -1) {
             end_nl = false;
             while (len > 0 &&
                    (line[len - 1] == '\n' || line[len - 1] == '\r')) {
@@ -265,21 +219,19 @@ void editorSave(EditorFile* file, int save_as) {
         file->filename = filename;
         editorSelectSyntaxHighlight(file);
     }
-    int len;
+    size_t len;
     char* buf = editroRowsToString(file, &len);
 
-    int fd = open(file->filename, O_RDWR | O_CREAT, 0644);
-    if (fd != -1) {
-        if (ftruncate(fd, len) != -1) {
-            if (write(fd, buf, len) == len) {
-                close(fd);
-                free(buf);
-                file->dirty = 0;
-                editorSetStatusMsg("%d bytes written to disk.", len);
-                return;
-            }
+    FILE* fp = fopen(file->filename, "wb");
+    if (fp) {
+        if (fwrite(buf, sizeof(char), len, fp) == len) {
+            fclose(fp);
+            free(buf);
+            file->dirty = 0;
+            editorSetStatusMsg("%d bytes written to disk.", len);
+            return;
         }
-        close(fd);
+        fclose(fp);
     }
     free(buf);
     editorSetStatusMsg("Can't save \"%s\"! %s", file->filename,
@@ -357,7 +309,7 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
     WIN32_FIND_DATAA find_data;
     HANDLE find_handle;
 
-    char entry_path[PATH_MAX];
+    char entry_path[EDITOR_PATH_MAX];
     snprintf(entry_path, sizeof(entry_path), "%s\\*", node->filename);
 
     if ((find_handle = FindFirstFileA(entry_path, &find_data)) ==
@@ -395,7 +347,7 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
 
-        char entry_path[PATH_MAX];
+        char entry_path[EDITOR_PATH_MAX];
         snprintf(entry_path, sizeof(entry_path), "%s/%s", node->filename,
                  entry->d_name);
 

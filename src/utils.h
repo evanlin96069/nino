@@ -4,26 +4,47 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
-#ifndef PATH_MAX
-#define PATH_MAX 4096
+// OS
+#ifdef _WIN32
+// Windows
+#include <windows.h>
+#define EDITOR_PATH_MAX MAX_PATH
+#elif __linux__
+// Linux
+#include <linux/limits.h>
+#define EDITOR_PATH_MAX PATH_MAX
+#else
+// Other
+#define EDITOR_PATH_MAX 4096
 #endif
 
 #ifdef _WIN32
 #define ENV_HOME "USERPROFILE"
 #define CONF_DIR ".nino"
-#define _SLASH "\\"
+#define DIR_SEP "\\"
 #else
 #define ENV_HOME "HOME"
 #define CONF_DIR ".config/nino"
-#define _SLASH "/"
+#define DIR_SEP "/"
 #endif
 
-#define PATH_CAT(...) \
-    _GET_MACRO(__VA_ARGS__, _PATH_CAT3, _PATH_CAT2)(__VA_ARGS__)
-#define _GET_MACRO(_1, _2, _3, NAME, ...) NAME
-#define _PATH_CAT2(p1, p2) p1 _SLASH p2
-#define _PATH_CAT3(p1, p2, p3) p1 _SLASH p2 _SLASH p3
+// Macros
+#define _DO02(m, sep, x, y) m(x) sep m(y)
+#define _DO03(m, sep, x, y, z) \
+    m(x) sep m(y)              \
+    sep m(z)
+
+#define _DO_N(x01, x02, x03, N, ...) _DO##N
+#define _MAP(m, sep, ...) _DO_N(__VA_ARGS__, 03, 02, 01)(m, sep, __VA_ARGS__)
+
+#define _NOP(s) s
+
+#define STR2CHAR(s) (*s)
+#define PATH_CAT(...) _MAP(_NOP, DIR_SEP, __VA_ARGS__)
+
+#define UNUSED(x) (void)!(x)
 
 // ANSI escape sequences
 #define ANSI_CLEAR "\x1b[m"
@@ -33,8 +54,6 @@
 #define ANSI_NOT_INVERT "\x1b[27m"
 #define ANSI_DEFAULT_FG "\x1b[39m"
 #define ANSI_DEFAULT_BG "\x1b[49m"
-
-#define UNUSED(x) (void)!(x)
 
 // Allocate
 #define malloc_s(size) _malloc_s(__FILE__, __LINE__, size)
@@ -134,5 +153,8 @@ char* getDirName(char* path);
 // Misc
 void gotoXY(abuf* ab, int x, int y);
 int getDigit(int n);
+
+int64_t getLine(char** lineptr, size_t* n, FILE* stream);
+char* strCaseStr(const char* str, const char* sub_str);
 
 #endif

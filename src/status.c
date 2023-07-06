@@ -62,7 +62,7 @@ void editorDrawTopStatusBar(abuf* ab) {
                 setColor(ab, gEditor.color_cfg.top_status[3], 1);
             }
 
-            char buf[PATH_MAX] = {0};
+            char buf[EDITOR_PATH_MAX] = {0};
             const char* filename =
                 file->filename ? getBaseName(file->filename) : "Untitled";
             int buf_len = snprintf(buf, sizeof(buf), " %s%s ",

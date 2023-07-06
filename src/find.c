@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,29 +24,6 @@ static void findListFree(FindList* thisptr) {
         free(temp);
     }
 }
-
-#ifdef _WIN32
-static char* strcasestr(const char* str, const char* sub_str) {
-    // O(n*m), but should be ok
-    if (*sub_str == '\0')
-        return (char*)str;
-
-    while (*str != '\0') {
-        const char* s = str;
-        const char* sub = sub_str;
-        while (tolower(*s) == tolower(*sub)) {
-            s++;
-            sub++;
-            if (*sub == '\0') {
-                return (char*)str;
-            }
-        }
-        str++;
-    }
-
-    return NULL;
-}
-#endif
 
 static void editorFindCallback(char* query, int key) {
     static char* prev_query = NULL;
@@ -117,7 +92,7 @@ static void editorFindCallback(char* query, int key) {
             char* (*search_func)(const char*, const char*) = &strstr;
 
             if (CONVAR_GETINT(ignorecase) == 1) {
-                search_func = &strcasestr;
+                search_func = &strCaseStr;
             } else if (CONVAR_GETINT(ignorecase) == 2) {
                 bool has_upper = false;
                 for (size_t i = 0; i < len; i++) {
@@ -127,7 +102,7 @@ static void editorFindCallback(char* query, int key) {
                     }
                 }
                 if (!has_upper) {
-                    search_func = &strcasestr;
+                    search_func = &strCaseStr;
                 }
             }
 

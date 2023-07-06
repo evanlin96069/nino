@@ -178,19 +178,13 @@ int getDigit(int n) {
     return 10;
 }
 
-#ifdef _WIN32
-#define DIRECTORY_SEPARATOR '\\'
-#else
-#define DIRECTORY_SEPARATOR '/'
-#endif
-
 const char *getBaseName(const char *path) {
-    const char *name = strrchr(path, DIRECTORY_SEPARATOR);
+    const char *name = strrchr(path, STR2CHAR(DIR_SEP));
     return name ? name + 1 : path;
 }
 
 char *getDirName(char *path) {
-    char *name = strrchr(path, DIRECTORY_SEPARATOR);
+    char *name = strrchr(path, STR2CHAR(DIR_SEP));
     if (!name) {
         name = path;
         *name = '.';
@@ -198,4 +192,67 @@ char *getDirName(char *path) {
     }
     *name = '\0';
     return path;
+}
+
+int64_t getLine(char **lineptr, size_t *n, FILE *stream) {
+    char *buf = NULL;
+    size_t capacity;
+    int64_t size = 0;
+    int c;
+    const size_t buf_size = 128;
+
+    if (!lineptr || !stream || !n)
+        return -1;
+
+    buf = *lineptr;
+    capacity = *n;
+
+    c = fgetc(stream);
+    if (c == EOF)
+        return -1;
+
+    if (!buf) {
+        buf = malloc_s(buf_size);
+        capacity = buf_size;
+    }
+
+    while (c != EOF) {
+        if ((size_t)size > (capacity - 1)) {
+            capacity += buf_size;
+            buf = realloc_s(buf, capacity);
+        }
+        buf[size++] = c;
+
+        if (c == '\n')
+            break;
+
+        c = fgetc(stream);
+    }
+
+    buf[size] = '\0';
+    *lineptr = buf;
+    *n = capacity;
+
+    return size;
+}
+
+char *strCaseStr(const char *str, const char *sub_str) {
+    // O(n*m), but should be ok
+    if (*sub_str == '\0')
+        return (char *)str;
+
+    while (*str != '\0') {
+        const char *s = str;
+        const char *sub = sub_str;
+        while (tolower(*s) == tolower(*sub)) {
+            s++;
+            sub++;
+            if (*sub == '\0') {
+                return (char *)str;
+            }
+        }
+        str++;
+    }
+
+    return NULL;
 }

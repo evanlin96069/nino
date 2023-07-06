@@ -13,8 +13,7 @@ endif
 
 # Compiler flags
 CC = gcc
-CFLAGS = -pedantic -std=gnu11 -Wall -Wextra
-CFLAGS +=-Wno-strict-aliasing -Wno-format-truncation
+CFLAGS = -pedantic -std=c11 -Wall -Wextra
 
 # Project files
 SRCDIR = src

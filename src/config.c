@@ -129,7 +129,7 @@ CON_COMMAND(exec, "Execute a config file.") {
     }
     if (!editorLoadConfig(args.argv[1])) {
         // Try configs dir
-        char path[PATH_MAX];
+        char path[EDITOR_PATH_MAX];
         snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "%s"),
                  getenv(ENV_HOME), args.argv[1]);
 
@@ -311,7 +311,7 @@ bool editorLoadConfig(const char* path) {
 }
 
 void editorLoadDefaultConfig(void) {
-    char path[PATH_MAX] = {0};
+    char path[EDITOR_PATH_MAX] = {0};
     const char* home_dir = getenv(ENV_HOME);
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "ninorc"), home_dir);
     if (!editorLoadConfig(path)) {

@@ -9,6 +9,7 @@
 #include <windows.h>
 #else
 #include <dirent.h>
+#include <sys/stat.h>
 #endif
 
 #include "config.h"
@@ -203,12 +204,12 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
 }
 
 void editorLoadDefaultHLDB(void) {
-    char path[PATH_MAX];
+    char path[EDITOR_PATH_MAX];
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
              getenv(ENV_HOME));
 
 #ifdef _WIN32
-    char search_path[PATH_MAX];
+    char search_path[EDITOR_PATH_MAX];
     snprintf(search_path, sizeof(search_path), "%s\\*.json", path);
 
     WIN32_FIND_DATA findData;
@@ -218,7 +219,7 @@ void editorLoadDefaultHLDB(void) {
 
     do {
         if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            char file_path[PATH_MAX];
+            char file_path[EDITOR_PATH_MAX];
             snprintf(file_path, sizeof(file_path), "%s\\%s", path,
                      findData.cFileName);
             editorLoadHLDB(file_path);
@@ -233,12 +234,21 @@ void editorLoadDefaultHLDB(void) {
 
     struct dirent* entry;
     while ((entry = readdir(directory)) != NULL) {
-        if (entry->d_type == DT_REG) {
+        char file_path[EDITOR_PATH_MAX];
+        int len = snprintf(file_path, sizeof(file_path), "%s/%s", path,
+                           entry->d_name);
+
+        // This is just to suppress Wformat-truncation
+        if (len < 0)
+            continue;
+
+        struct stat file_info;
+        if (stat(file_path, &file_info) == -1)
+            continue;
+
+        if (S_ISREG(file_info.st_mode)) {
             const char* ext = strrchr(entry->d_name, '.');
             if (ext && strcmp(ext, ".json") == 0) {
-                char file_path[PATH_MAX];
-                snprintf(file_path, sizeof(file_path), "%s/%s", path,
-                         entry->d_name);
                 editorLoadHLDB(file_path);
             }
         }
