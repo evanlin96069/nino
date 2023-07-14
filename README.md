@@ -10,7 +10,7 @@ Inspired by [kilo](https://github.com/antirez/kilo)
 and [snaptoken's Build Your Own Text Editor tutorial](https://viewsourcecode.org/snaptoken/kilo/).
 
 ## Why?
-I'm not used to vim and I don't like nano either, so I make my own text editor.
+I'm not used to [Vim](https://www.vim.org/) and I don't like [nano](https://nano-editor.org/) either, so I make my own text editor. (I don't know about [micro](https://micro-editor.github.io/) back then...)
 
 ## Features
 - Basic syntax highlight
@@ -25,7 +25,7 @@ I'm not used to vim and I don't like nano either, so I make my own text editor.
 
 ## Installation
 ### Linux
-nino requires a sufficiently Unix-like C library and a C99 compiler.
+nino requires a sufficiently Unix-like C library and a C11 compiler.
 
 Build nino:
 ```

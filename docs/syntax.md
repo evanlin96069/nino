@@ -21,19 +21,19 @@ Syntax highlighting data are stored in JSON files.
         "/*",
         "*/"
     ],
-     "keywords1": [
+    "keywords1": [
         "for",
         "while",
         "if",
         "else"
-     ],
-     "keywords2": [
+    ],
+    "keywords2": [
         "int",
         "char",
         "float"
-     ],
-     "keywords3": [
+    ],
+    "keywords3": [
         "string"
-     ]
+    ]
 }
 ```
