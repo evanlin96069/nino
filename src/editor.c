@@ -29,32 +29,17 @@ void editorInit(void) {
         PANIC("GetStdHandle(STD_OUTPUT_HANDLE)");
 #endif
 
-    enableRawMode();
-    enableSwap();
-
     memset(&gEditor, 0, sizeof(Editor));
-
     gEditor.loading = true;
     gEditor.state = EDIT_MODE;
-
-    // Mouse mode default on
-    enableMouse();
-
     gEditor.color_cfg = color_default;
 
-    editorInitCommands();
-    editorLoadDefaultConfig();
-    editorLoadDefaultHLDB();
+    editorInitTerminal();
+    editorInitConfig();
+    editorInitHLDB();
 
-    resizeWindow();
     gEditor.explorer.prefered_width = gEditor.explorer.width =
         gEditor.screen_cols * 0.2f;
-
-#ifndef _WIN32
-    enableAutoResize();
-#endif
-
-    atexit(terminalExit);
 
     // Draw loading
     memset(&gEditor.files[0], 0, sizeof(EditorFile));

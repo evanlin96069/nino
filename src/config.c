@@ -161,7 +161,7 @@ CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
     UNUSED(args.argc);
 
     editorFreeHLDB();
-    editorLoadDefaultHLDB();
+    editorInitHLDB();
 
     // Reload all
     for (int i = 0; i < gEditor.file_count; i++) {
@@ -277,7 +277,22 @@ static void parseLine(char* line) {
         ConVarCmdCallback(cmd, args);
 }
 
-void editorInitCommands(void) {
+bool editorLoadConfig(const char* path) {
+    FILE* fp = fopen(path, "r");
+    if (!fp)
+        return false;
+
+    char buf[128] = {0};
+    while (fgets(buf, sizeof(buf), fp)) {
+        buf[strcspn(buf, "\r\n")] = '\0';
+        parseLine(buf);
+    }
+    fclose(fp);
+    return true;
+}
+
+void editorInitConfig(void) {
+    // Init commands
     INIT_CONVAR(tabsize);
     INIT_CONVAR(whitespace);
     INIT_CONVAR(autoindent);
@@ -294,23 +309,8 @@ void editorInitCommands(void) {
     INIT_CONCOMMAND(hldb_load);
     INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(help);
-}
 
-bool editorLoadConfig(const char* path) {
-    FILE* fp = fopen(path, "r");
-    if (!fp)
-        return false;
-
-    char buf[128] = {0};
-    while (fgets(buf, sizeof(buf), fp)) {
-        buf[strcspn(buf, "\r\n")] = '\0';
-        parseLine(buf);
-    }
-    fclose(fp);
-    return true;
-}
-
-void editorLoadDefaultConfig(void) {
+    // Load defualt config
     char path[EDITOR_PATH_MAX] = {0};
     const char* home_dir = getenv(ENV_HOME);
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "ninorc"), home_dir);

@@ -41,7 +41,7 @@ static void disableRawMode(void) {
 #endif
 }
 
-void enableRawMode(void) {
+static void enableRawMode(void) {
 #ifdef _WIN32
     DWORD mode = 0;
 
@@ -240,7 +240,7 @@ int editorReadKey(int* x, int* y) {
 }
 
 #ifdef _WIN32
-int getWindowSize(int* rows, int* cols) {
+static int getWindowSize(int* rows, int* cols) {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
 
     if (GetConsoleScreenBufferInfo(hStdout, &csbi)) {
@@ -274,7 +274,7 @@ static int getCursorPos(int* rows, int* cols) {
     return 0;
 }
 
-int getWindowSize(int* rows, int* cols) {
+static int getWindowSize(int* rows, int* cols) {
     struct winsize ws;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
         if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
@@ -296,13 +296,13 @@ static void SIGSEGV_handler(int sig) {
     _exit(EXIT_FAILURE);
 }
 
-void enableSwap(void) {
-    if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR)
-        return;
+static void enableSwap(void) {
     UNUSED(write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11));
 }
 
-void disableSwap(void) { UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8)); }
+static void disableSwap(void) {
+    UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8));
+}
 
 void enableMouse(void) {
     if (!gEditor.mouse_mode &&
@@ -322,8 +322,6 @@ static void SIGWINCH_handler(int sig) {
         return;
     resizeWindow();
 }
-
-void enableAutoResize(void) { signal(SIGWINCH, SIGWINCH_handler); }
 #endif
 
 void resizeWindow(void) {
@@ -340,6 +338,24 @@ void resizeWindow(void) {
         if (!gEditor.loading)
             editorRefreshScreen();
     }
+}
+
+void editorInitTerminal(void) {
+    enableRawMode();
+    enableSwap();
+    // Mouse mode default on
+    enableMouse();
+    atexit(terminalExit);
+    resizeWindow();
+
+    if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
+        PANIC("SIGSEGV_handler");
+    }
+#ifndef _WIN32
+    if (signal(SIGWINCH, SIGWINCH_handler) == SIG_ERR) {
+        PANIC("SIGWINCH_handler");
+    }
+#endif
 }
 
 void terminalExit(void) {

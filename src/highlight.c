@@ -203,7 +203,7 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
     }
 }
 
-void editorLoadDefaultHLDB(void) {
+void editorInitHLDB(void) {
     char path[EDITOR_PATH_MAX];
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
              getenv(ENV_HOME));

@@ -82,9 +82,8 @@ struct EditorColorScheme {
     Color highlight[HL_TYPE_COUNT];
 };
 
-void editorInitCommands(void);
+void editorInitConfig(void);
 bool editorLoadConfig(const char* path);
-void editorLoadDefaultConfig(void);
 void editorSetting(void);
 
 void editorSetConVar(EditorConVar* thisptr, const char* string_val);

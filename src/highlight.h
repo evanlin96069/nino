@@ -21,7 +21,7 @@ typedef struct EditorSyntax {
 
 void editorUpdateSyntax(EditorFile* file, EditorRow* row);
 void editorSelectSyntaxHighlight(EditorFile* file);
-void editorLoadDefaultHLDB(void);
+void editorInitHLDB(void);
 bool editorLoadHLDB(const char* json_file);
 void editorFreeHLDB(void);
 
