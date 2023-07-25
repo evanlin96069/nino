@@ -172,6 +172,22 @@ CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
     }
 }
 
+CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
+    if (args.argc == 1) {
+        editorSetStatusMsg("%s",
+                           (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF");
+        return;
+    }
+
+    if (strcasecmp(args.argv[1], "lf") == 0) {
+        gCurFile->newline = NL_UNIX;
+    } else if (strcasecmp(args.argv[1], "crlf") == 0) {
+        gCurFile->newline = NL_DOS;
+    } else {
+        editorSetStatusMsg("Usage: newline <LF/CRLF>");
+    }
+}
+
 CON_COMMAND(help, "Find help about a convar/concommand.") {
     if (args.argc != 2) {
         editorSetStatusMsg("Usage: help <command>");
@@ -308,6 +324,7 @@ void editorInitConfig(void) {
     INIT_CONCOMMAND(exec);
     INIT_CONCOMMAND(hldb_load);
     INIT_CONCOMMAND(hldb_reload_all);
+    INIT_CONCOMMAND(newline);
     INIT_CONCOMMAND(help);
 
     // Load defualt config
@@ -372,7 +389,7 @@ EditorConCmd* editorFindCmd(const char* name) {
     EditorConCmd* result = NULL;
     EditorConCmd* curr = gEditor.cvars;
     while (curr) {
-        if (strcmp(name, curr->name) == 0) {
+        if (strcasecmp(name, curr->name) == 0) {
             result = curr;
             break;
         }

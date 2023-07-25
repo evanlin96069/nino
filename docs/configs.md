@@ -30,6 +30,7 @@ The command will first search for the file in the current directory, then the co
 | `exec` | cmd | Execute a config file. |
 | `hldb_load` | cmd | Load a syntax highlighting JSON file. |
 | `hldb_reload_all` | cmd | Reload syntax highlighting database. |
+| `newline` | cmd | Set the EOL sequence (LF/CRLF). |
 | `help` | cmd | Find help about a convar/concommand. |
 
 ## Color

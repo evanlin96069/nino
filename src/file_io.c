@@ -47,21 +47,27 @@ static int isFileOpened(ino_t inode) {
 
 static char* editroRowsToString(EditorFile* file, size_t* len) {
     size_t total_len = 0;
+    int nl_len = (file->newline == NL_UNIX) ? 1 : 2;
     for (int i = 0; i < file->num_rows; i++) {
-        total_len += file->row[i].size + 1;
+        total_len += file->row[i].size + nl_len;
     }
 
     // last line no newline
-    *len = (total_len > 0) ? total_len - 1 : 0;
+    *len = (total_len > 0) ? total_len - nl_len : 0;
 
     char* buf = malloc_s(total_len);
     char* p = buf;
     for (int i = 0; i < file->num_rows; i++) {
         memcpy(p, file->row[i].data, file->row[i].size);
         p += file->row[i].size;
-        if (i != file->num_rows - 1)
+        if (i != file->num_rows - 1) {
+            if (file->newline == NL_DOS) {
+                *p = '\r';
+                p++;
+            }
             *p = '\n';
-        p++;
+            p++;
+        }
     }
 
     return buf;
@@ -170,12 +176,17 @@ bool editorOpen(EditorFile* file, const char* path) {
         size_t n = 0;
         int64_t len;
 
+        file->newline = NL_DEFAULT;
         file->row = malloc_s(sizeof(EditorRow) * cap);
 
         while ((len = getLine(&line, &n, f)) != -1) {
             end_nl = false;
             while (len > 0 &&
                    (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+                if (line[len - 1] == '\r') {
+                    // Should we care about CR?
+                    file->newline = NL_DOS;
+                }
                 end_nl = true;
                 len--;
             }

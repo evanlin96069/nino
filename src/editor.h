@@ -1,6 +1,7 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
+#include <stdint.h>
 #include <sys/types.h>
 
 #include "action.h"
@@ -11,10 +12,16 @@
 
 #define EDITOR_FILE_MAX_SLOT 32
 
+#define NL_UNIX 0
+#define NL_DOS 1
+
 #ifdef _WIN32
+#define NL_DEFAULT NL_DOS
 #include <windows.h>
 extern HANDLE hStdin;
 extern HANDLE hStdout;
+#else
+#define NL_DEFAULT NL_UNIX
 #endif
 
 typedef struct EditorSyntax EditorSyntax;
@@ -39,6 +46,7 @@ typedef struct EditorFile {
 
     // File info
     int dirty;
+    uint8_t newline;
     char* filename;
 #ifdef _WIN32
     BY_HANDLE_FILE_INFORMATION file_info;
