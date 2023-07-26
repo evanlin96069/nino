@@ -104,7 +104,7 @@ bool editorOpen(EditorFile* file, const char* path) {
             gEditor.explorer.node->is_open = true;
             editorExplorerRefresh();
 
-            gEditor.explorer.offset = 1;
+            gEditor.explorer.offset = 0;
             gEditor.explorer.selected_index = 0;
             return false;
         }
@@ -380,7 +380,8 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
 }
 
 static void flattenNode(EditorExplorerNode* node) {
-    vector_push(gEditor.explorer.flatten, node);
+    if (node != gEditor.explorer.node)
+        vector_push(gEditor.explorer.flatten, node);
 
     if (node->is_directory && node->is_open) {
         if (!node->loaded)

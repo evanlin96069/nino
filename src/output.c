@@ -190,7 +190,7 @@ static void editorDrawFileExplorer(abuf* ab) {
     for (int i = 0; i < lines; i++) {
         gotoXY(ab, i + 2, 1);
 
-        size_t index = gEditor.explorer.offset + i;
+        int index = gEditor.explorer.offset + i;
         EditorExplorerNode* node = gEditor.explorer.flatten.data[index];
         if (index == gEditor.explorer.selected_index)
             setColor(ab, gEditor.color_cfg.explorer[1], 1);

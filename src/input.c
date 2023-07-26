@@ -23,7 +23,7 @@ static void editorExplorerNodeClicked(void) {
     EditorExplorerNode* node = NULL;
     EditorFile file = {0};
 
-    if (gEditor.explorer.selected_index < gEditor.explorer.flatten.size)
+    if (gEditor.explorer.selected_index < (int)gEditor.explorer.flatten.size)
         node = gEditor.explorer.flatten.data[gEditor.explorer.selected_index];
 
     if (!node)
@@ -40,7 +40,7 @@ static void editorExplorerNodeClicked(void) {
 }
 
 static void editorExplorerScrollToSelect(void) {
-    if (gEditor.explorer.offset > (int)gEditor.explorer.selected_index) {
+    if (gEditor.explorer.offset > gEditor.explorer.selected_index) {
         gEditor.explorer.offset = gEditor.explorer.selected_index;
     } else if ((int)gEditor.explorer.selected_index >=
                gEditor.explorer.offset + gEditor.display_rows) {
@@ -48,8 +48,8 @@ static void editorExplorerScrollToSelect(void) {
             gEditor.explorer.selected_index - gEditor.display_rows + 1;
     }
 
-    if (gEditor.explorer.offset < 1) {
-        gEditor.explorer.offset = 1;
+    if (gEditor.explorer.offset < 0) {
+        gEditor.explorer.offset = 0;
     }
 }
 
@@ -62,14 +62,33 @@ static inline void editorExplorerShow(void) {
 }
 
 static bool editorExplorerProcessKeypress(int c, int x, int y) {
+    if (isprint(c)) {
+        if (!gEditor.explorer.node)
+            return true;
+
+        c = tolower(c);
+        size_t index = gEditor.explorer.selected_index + 1;
+        for (size_t i = 0; i < gEditor.explorer.flatten.size; i++) {
+            index = index % gEditor.explorer.flatten.size;
+            if (tolower(getBaseName(
+                    gEditor.explorer.flatten.data[index]->filename)[0]) == c) {
+                gEditor.explorer.selected_index = index;
+                editorExplorerScrollToSelect();
+                break;
+            }
+            index++;
+        }
+        return true;
+    }
+
     switch (c) {
         case WHEEL_UP:
             if (getMousePosField(x, y) != FIELD_EXPLORER)
                 return false;
-            if (gEditor.explorer.offset > 1) {
-                gEditor.explorer.offset = (gEditor.explorer.offset - 3) > 1
+            if (gEditor.explorer.offset > 0) {
+                gEditor.explorer.offset = (gEditor.explorer.offset - 3) > 0
                                               ? (gEditor.explorer.offset - 3)
-                                              : 1;
+                                              : 0;
             }
             break;
 
@@ -83,7 +102,7 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
             break;
 
         case ARROW_UP:
-            if (gEditor.explorer.selected_index <= 1)
+            if (gEditor.explorer.selected_index <= 0)
                 break;
             gEditor.explorer.selected_index--;
             editorExplorerScrollToSelect();
@@ -91,9 +110,49 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
 
         case ARROW_DOWN:
             if (gEditor.explorer.selected_index + 1 >=
-                gEditor.explorer.flatten.size)
+                (int)gEditor.explorer.flatten.size)
                 break;
             gEditor.explorer.selected_index++;
+            editorExplorerScrollToSelect();
+            break;
+
+        case HOME_KEY:
+            gEditor.explorer.selected_index = 0;
+            editorExplorerScrollToSelect();
+            break;
+
+        case END_KEY:
+            gEditor.explorer.selected_index = gEditor.explorer.flatten.size - 1;
+            ;
+            editorExplorerScrollToSelect();
+            break;
+
+        case PAGE_UP:
+            if (gEditor.explorer.selected_index != gEditor.explorer.offset) {
+                gEditor.explorer.selected_index = gEditor.explorer.offset;
+            } else {
+                gEditor.explorer.selected_index -= gEditor.display_rows;
+                if (gEditor.explorer.selected_index < 0) {
+                    gEditor.explorer.selected_index = 0;
+                }
+            }
+            editorExplorerScrollToSelect();
+            break;
+
+        case PAGE_DOWN:
+            if (gEditor.explorer.selected_index !=
+                gEditor.explorer.offset + gEditor.display_rows - 1) {
+                gEditor.explorer.selected_index =
+                    gEditor.explorer.offset + gEditor.display_rows - 1;
+            } else {
+                gEditor.explorer.selected_index += gEditor.display_rows;
+            }
+
+            if (gEditor.explorer.selected_index >=
+                (int)gEditor.explorer.flatten.size) {
+                gEditor.explorer.selected_index =
+                    gEditor.explorer.flatten.size - 1;
+            }
             editorExplorerScrollToSelect();
             break;
 

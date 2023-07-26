@@ -28,7 +28,7 @@ typedef struct EditorExplorer {
     int prefered_width;
     int width;
     int offset;
-    uint32_t selected_index;
+    int selected_index;
     EditorExplorerNode* node;  // Root node of explorer tree
     VECTOR(EditorExplorerNode*) flatten;
 } EditorExplorer;
