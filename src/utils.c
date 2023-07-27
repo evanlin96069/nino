@@ -67,16 +67,6 @@ void _vector_make_room(_Vector *_vec, size_t item_size) {
     }
 }
 
-int osRead(char *buf, int n) {
-#ifdef _WIN32
-    DWORD nread = 0;
-    ReadConsoleA(hStdin, buf, n, &nread, NULL);
-    return (int)nread;
-#else
-    return read(STDIN_FILENO, buf, n);
-#endif
-}
-
 void abufAppend(abuf *ab, const char *s) { abufAppendN(ab, s, strlen(s)); }
 
 void abufAppendN(abuf *ab, const char *s, size_t n) {

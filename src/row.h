@@ -2,6 +2,7 @@
 #define ROW_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stddef.h>
 
 struct EditorFile;
@@ -26,6 +27,7 @@ void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
 
 // On gCurFile
 void editorInsertChar(int c);
+void editorInsertUnicode(uint32_t unicode);
 void editorInsertNewline(void);
 void editorDelChar(void);
 

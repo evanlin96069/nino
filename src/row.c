@@ -97,6 +97,17 @@ void editorInsertChar(int c) {
     }
 }
 
+void editorInsertUnicode(uint32_t unicode) {
+    char output[4];
+    int len = encodeUTF8(unicode, output);
+    if (len == -1)
+        return;
+
+    for (int i = 0; i < len; i++) {
+        editorInsertChar(output[i]);
+    }
+}
+
 void editorInsertNewline(void) {
     int i = 0;
 

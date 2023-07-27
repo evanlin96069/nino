@@ -43,6 +43,12 @@ static void disableRawMode(void) {
 
 static void enableRawMode(void) {
 #ifdef _WIN32
+    if (!SetConsoleCP(CP_UTF8))
+        PANIC("SetConsoleCP");
+
+    if (!SetConsoleOutputCP(CP_UTF8))
+        PANIC("SetConsoleOutputCP");
+
     DWORD mode = 0;
 
     if (!GetConsoleMode(hStdin, &mode))
@@ -75,6 +81,62 @@ static void enableRawMode(void) {
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
         PANIC("tcsetattr");
+#endif
+}
+
+// Reads a character from the console.
+static bool readConsole(uint32_t* unicode) {
+#ifdef _WIN32
+    WCHAR wbuf[1];
+    DWORD n = 0;
+    if (!ReadConsoleW(hStdin, wbuf, 1, &n, NULL) || !n) {
+        return false;
+    }
+    *unicode = (uint32_t)wbuf[0];
+    return true;
+#else
+    // Decode UTF-8
+
+    int bytes;
+    uint8_t first_byte;
+
+    if (read(STDIN_FILENO, &first_byte, 1) != 1) {
+        return false;
+    }
+
+    if ((first_byte & 0x80) == 0x00) {
+        *unicode = (uint32_t)first_byte;
+        return true;
+    }
+
+    if ((first_byte & 0xE0) == 0xC0) {
+        *unicode = (first_byte & 0x1F) << 6;
+        bytes = 1;
+    } else if ((first_byte & 0xF0) == 0xE0) {
+        *unicode = (first_byte & 0x0F) << 12;
+        bytes = 2;
+    } else if ((first_byte & 0xF8) == 0xF0) {
+        *unicode = (first_byte & 0x07) << 18;
+        bytes = 3;
+    } else {
+        return false;
+    }
+
+    uint8_t buf[3];
+    if (read(STDIN_FILENO, buf, bytes) != bytes) {
+        return false;
+    }
+
+    int shift = (bytes - 1) * 6;
+    for (int i = 0; i < bytes; i++) {
+        if ((buf[i] & 0xC0) != 0x80) {
+            return false;
+        }
+        *unicode |= (buf[i] & 0x3F) << shift;
+        shift -= 6;
+    }
+
+    return true;
 #endif
 }
 
@@ -160,83 +222,105 @@ static const StrIntPair sequence_lookup[] = {
     {"[6;6~", SHIFT_CTRL_PAGE_DOWN},
 };
 
-int editorReadKey(int* x, int* y) {
-    int nread;
-    char c;
-
-    *x = 0;
-    *y = 0;
+EditorInput editorReadKey(void) {
+    uint32_t c;
+    EditorInput result = {.type = UNKNOWN};
 
 #ifdef _WIN32
     // TODO: Detect window resize event
     resizeWindow();
 #endif
 
-    while ((nread = osRead(&c, 1)) != 1) {
-        if (nread == -1 && errno != EAGAIN) {
-            PANIC("read");
-        }
+    while (!readConsole(&c)) {
     }
 
     if (c == ESC) {
         char seq[16] = {0};
         bool success = false;
-        if (osRead(&seq[0], 1) != 1)
-            return ESC;
-        if (seq[0] != '[')
-            return ALT_KEY(seq[0]);
+        if (!readConsole(&c)) {
+            result.type = ESC;
+            return result;
+        }
+        seq[0] = (char)c;
+
+        if (seq[0] != '[') {
+            result.type = ALT_KEY(seq[0]);
+            return result;
+        }
+
         for (size_t i = 1; i < sizeof(seq) - 1; i++) {
-            if (osRead(&seq[i], 1) != 1)
-                return UNKNOWN;
+            if (!readConsole(&c)) {
+                return result;
+            }
+            seq[i] = (char)c;
             if (isupper(seq[i]) || seq[i] == 'm' || seq[i] == '~') {
                 success = true;
                 break;
             }
         }
 
-        if (!success)
-            return UNKNOWN;
+        if (!success) {
+            return result;
+        }
 
         // Mouse input
         if (seq[1] == '<' && gEditor.mouse_mode) {
             int type;
             char m;
-            sscanf(&seq[2], "%d;%d;%d%c", &type, x, y, &m);
-            (*x)--;
-            (*y)--;
+            sscanf(&seq[2], "%d;%d;%d%c", &type, &result.data.cursor.x,
+                   &result.data.cursor.y, &m);
+            (*&result.data.cursor.x)--;
+            (*&result.data.cursor.y)--;
+
             switch (type) {
                 case 0:
-                    if (m == 'M')
-                        return MOUSE_PRESSED;
-                    if (m == 'm')
-                        return MOUSE_RELEASED;
-                    return UNKNOWN;
+                    if (m == 'M') {
+                        result.type = MOUSE_PRESSED;
+                    } else if (m == 'm') {
+                        result.type = MOUSE_RELEASED;
+                    }
+                    break;
                 case 1:
-                    if (m == 'M')
-                        return SCROLL_PRESSED;
-                    if (m == 'm')
-                        return SCROLL_RELEASED;
-                    return UNKNOWN;
+                    if (m == 'M') {
+                        result.type = SCROLL_PRESSED;
+                    } else if (m == 'm') {
+                        result.type = SCROLL_RELEASED;
+                    }
+                    break;
                 case 32:
-                    return MOUSE_MOVE;
+                    result.type = MOUSE_MOVE;
+                    break;
                 case 64:
-                    return WHEEL_UP;
+                    result.type = WHEEL_UP;
+                    break;
                 case 65:
-                    return WHEEL_DOWN;
+                    result.type = WHEEL_DOWN;
+                    break;
                 default:
-                    return UNKNOWN;
+                    break;
             }
+            return result;
         }
 
         for (size_t i = 0;
              i < sizeof(sequence_lookup) / sizeof(sequence_lookup[0]); i++) {
             if (strcmp(sequence_lookup[i].str, seq) == 0) {
-                return sequence_lookup[i].value;
+                result.type = sequence_lookup[i].value;
+                return result;
             }
         }
-        return UNKNOWN;
+        return result;
     }
-    return c;
+
+    if ((c <= 31 || c == BACKSPACE) && c != '\t') {
+        result.type = c;
+        return result;
+    }
+
+    result.type = CHAR_INPUT;
+    result.data.unicode = c;
+
+    return result;
 }
 
 #ifdef _WIN32
@@ -259,7 +343,7 @@ static int getCursorPos(int* rows, int* cols) {
         return -1;
 
     while (i < sizeof(buf) - 1) {
-        if (osRead(&buf[i], 1) != 1)
+        if (read(STDIN_FILENO, &buf[i], 1) != 1)
             break;
         if (buf[i] == 'R')
             break;

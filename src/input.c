@@ -61,12 +61,12 @@ static inline void editorExplorerShow(void) {
     }
 }
 
-static bool editorExplorerProcessKeypress(int c, int x, int y) {
-    if (isprint(c)) {
+static bool editorExplorerProcessKeypress(EditorInput input) {
+    if (input.type == CHAR_INPUT) {
         if (!gEditor.explorer.node)
             return true;
 
-        c = tolower(c);
+        char c = tolower(input.data.unicode);
         size_t index = gEditor.explorer.selected_index + 1;
         for (size_t i = 0; i < gEditor.explorer.flatten.size; i++) {
             index = index % gEditor.explorer.flatten.size;
@@ -81,9 +81,10 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
         return true;
     }
 
-    switch (c) {
+    switch (input.type) {
         case WHEEL_UP:
-            if (getMousePosField(x, y) != FIELD_EXPLORER)
+            if (getMousePosField(input.data.cursor.x, input.data.cursor.y) !=
+                FIELD_EXPLORER)
                 return false;
             if (gEditor.explorer.offset > 0) {
                 gEditor.explorer.offset = (gEditor.explorer.offset - 3) > 0
@@ -93,7 +94,8 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
             break;
 
         case WHEEL_DOWN:
-            if (getMousePosField(x, y) != FIELD_EXPLORER)
+            if (getMousePosField(input.data.cursor.x, input.data.cursor.y) !=
+                FIELD_EXPLORER)
                 return false;
             if ((int)gEditor.explorer.flatten.size - gEditor.explorer.offset >
                 gEditor.display_rows) {
@@ -161,24 +163,26 @@ static bool editorExplorerProcessKeypress(int c, int x, int y) {
             break;
 
         case MOUSE_PRESSED:
-            if (getMousePosField(x, y) != FIELD_EXPLORER) {
+            if (getMousePosField(input.data.cursor.x, input.data.cursor.y) !=
+                FIELD_EXPLORER) {
                 gEditor.explorer.focused = false;
                 return false;
             }
 
-            if (x == gEditor.explorer.width - 1) {
+            if (input.data.cursor.x == gEditor.explorer.width - 1) {
                 return false;
             }
 
-            if (y == 0) {
+            if (input.data.cursor.y == 0) {
                 gEditor.explorer.focused = true;
                 break;
             }
 
-            if (y >
+            if (input.data.cursor.y >
                 (int)gEditor.explorer.flatten.size - gEditor.explorer.offset)
                 break;
-            gEditor.explorer.selected_index = y - 1 + gEditor.explorer.offset;
+            gEditor.explorer.selected_index =
+                input.data.cursor.y - 1 + gEditor.explorer.offset;
             editorExplorerNodeClicked();
             break;
 
@@ -530,10 +534,9 @@ void editorProcessKeypress(void) {
     static int curr_y = 0;
     static bool pressed_explorer = false;
 
-    int x, y;
-    int c = editorReadKey(&x, &y);
+    EditorInput input = editorReadKey();
 
-    if (gEditor.explorer.focused && editorExplorerProcessKeypress(c, x, y))
+    if (gEditor.explorer.focused && editorExplorerProcessKeypress(input))
         return;
 
     if (gEditor.file_count == 0) {
@@ -549,6 +552,9 @@ void editorProcessKeypress(void) {
     EditorAction* action = calloc_s(1, sizeof(EditorAction));
     action->old_cursor = gCurFile->cursor;
 
+    int c = input.type;
+    int x = input.data.cursor.x;
+    int y = input.data.cursor.y;
     switch (c) {
         // Action: Newline
         case '\r': {
@@ -660,7 +666,7 @@ void editorProcessKeypress(void) {
             gCurFile->cursor.x = start_x;
             gCurFile->sx =
                 editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], start_x);
-            gCurFile->cursor.is_selected = c == (SHIFT_HOME);
+            gCurFile->cursor.is_selected = (c == (SHIFT_HOME));
             gCurFile->bracket_autocomplete = 0;
         } break;
 
@@ -1170,7 +1176,7 @@ void editorProcessKeypress(void) {
                         break;
                     }
                     gEditor.explorer.focused = true;
-                    editorExplorerProcessKeypress(c, x, y);
+                    editorExplorerProcessKeypress(input);
                 }
                 break;
             }
@@ -1270,7 +1276,7 @@ void editorProcessKeypress(void) {
                     if (gEditor.tab_offset > 0)
                         gEditor.tab_offset--;
                 } else if (field == FIELD_EXPLORER) {
-                    editorExplorerProcessKeypress(c, x, y);
+                    editorExplorerProcessKeypress(input);
                 }
                 break;
             }
@@ -1291,7 +1297,7 @@ void editorProcessKeypress(void) {
                 if (field == FIELD_TOP_STATUS) {
                     handleTabClick(gEditor.screen_cols);
                 } else if (field == FIELD_EXPLORER) {
-                    editorExplorerProcessKeypress(c, x, y);
+                    editorExplorerProcessKeypress(input);
                 }
                 break;
             }
@@ -1321,13 +1327,8 @@ void editorProcessKeypress(void) {
             break;
 
         // Action: Input
-        default: {
-            if (c == UNKNOWN ||
-                ((c & 0x80) == 0 && (!isprint(c) && c != '\t'))) {
-                should_scroll = false;
-                break;
-            }
-
+        case CHAR_INPUT: {
+            c = input.data.unicode;
             should_record_action = true;
 
             getSelectStartEnd(&action->deleted_range);
@@ -1345,7 +1346,7 @@ void editorProcessKeypress(void) {
             int close_bracket = isOpenBracket(c);
             int open_bracket = isCloseBracket(c);
             if (!CONVAR_GETINT(bracket)) {
-                editorInsertChar(c);
+                editorInsertUnicode(c);
             } else if (close_bracket) {
                 editorInsertChar(c);
                 editorInsertChar(close_bracket);
@@ -1380,7 +1381,7 @@ void editorProcessKeypress(void) {
                     editorInsertChar(c);
                 }
             } else {
-                editorInsertChar(c);
+                editorInsertUnicode(c);
             }
 
             action->added_range.end_x = gCurFile->cursor.x + x_offset;
@@ -1395,6 +1396,10 @@ void editorProcessKeypress(void) {
                 should_record_action = false;
             }
         } break;
+
+        default:
+            should_scroll = false;
+            break;
     }
 
     if (gCurFile->cursor.x == gCurFile->cursor.select_x &&

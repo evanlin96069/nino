@@ -9,6 +9,7 @@
 #include "output.h"
 #include "status.h"
 #include "terminal.h"
+#include "unicode.h"
 
 #define PROMPT_BUF_INIT_SIZE 64
 #define PROMPT_BUF_GROWTH_RATE 2.0f
@@ -30,10 +31,13 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     while (true) {
         editorSetStatusMsg(prompt, buf);
         editorRefreshScreen();
-        int x, y;
-        int c = editorReadKey(&x, &y);
+
+        EditorInput input = editorReadKey();
+        int x = input.data.cursor.x;
+        int y = input.data.cursor.y;
+
         size_t idx = gEditor.px - start;
-        switch (c) {
+        switch (input.type) {
             case DEL_KEY:
                 if (idx != buflen)
                     idx++;
@@ -47,7 +51,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     buflen--;
                     idx--;
                     if (callback)
-                        callback(buf, c);
+                        callback(buf, input.type);
                 }
                 break;
 
@@ -71,7 +75,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 idx += paste_len;
 
                 if (callback)
-                    callback(buf, c);
+                    callback(buf, input.type);
 
                 break;
             }
@@ -126,7 +130,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 editorSetStatusMsg("");
                 gEditor.state = EDIT_MODE;
                 if (callback)
-                    callback(buf, c);
+                    callback(buf, input.type);
                 free(buf);
                 return NULL;
 
@@ -135,26 +139,36 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     editorSetStatusMsg("");
                     gEditor.state = EDIT_MODE;
                     if (callback)
-                        callback(buf, c);
+                        callback(buf, input.type);
                     return buf;
                 }
                 break;
 
-            default:
-                if (isprint(c)) {
-                    if (buflen == bufsize - 1) {
-                        bufsize *= PROMPT_BUF_GROWTH_RATE;
-                        buf = realloc_s(buf, bufsize);
-                    }
-                    memmove(&buf[idx + 1], &buf[idx], buflen - idx + 1);
-                    buf[idx] = c;
-                    buflen++;
-                    idx++;
+            case CHAR_INPUT: {
+                char output[4];
+                int len = encodeUTF8(input.data.unicode, output);
+                if (len == -1)
+                    return buf;
+
+                if (buflen + len > bufsize) {
+                    bufsize += len;
+                    bufsize *= PROMPT_BUF_GROWTH_RATE;
+                    buf = realloc_s(buf, bufsize);
                 }
+                memmove(&buf[idx + len], &buf[idx], buflen - idx + 1);
+                memcpy(&buf[idx], output, len);
+                buflen += len;
+                idx += len;
+
+                // TODO: Support Unicode characters in prompt
 
                 if (callback)
-                    callback(buf, c);
-                break;
+                    callback(buf, input.data.unicode);
+            } break;
+
+            default:
+                if (callback)
+                    callback(buf, input.type);
         }
         gEditor.px = start + idx;
     }

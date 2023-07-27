@@ -201,6 +201,29 @@ int unicodeWidth(uint32_t ucs) {
     return 1;
 }
 
+int encodeUTF8(unsigned int code_point, char output[4]) {
+    if (code_point <= 0x7F) {
+        output[0] = (char)code_point;
+        return 1;
+    } else if (code_point <= 0x07FF) {
+        output[0] = 0xC0 | (code_point >> 6);
+        output[1] = 0x80 | (code_point & 0x3F);
+        return 2;
+    } else if (code_point <= 0xFFFF) {
+        output[0] = 0xE0 | (code_point >> 12);
+        output[1] = 0x80 | ((code_point >> 6) & 0x3F);
+        output[2] = 0x80 | (code_point & 0x3F);
+        return 3;
+    } else if (code_point <= 0x10FFFF) {
+        output[0] = 0xF0 | (code_point >> 18);
+        output[1] = 0x80 | ((code_point >> 12) & 0x3F);
+        output[2] = 0x80 | ((code_point >> 6) & 0x3F);
+        output[3] = 0x80 | (code_point & 0x3F);
+        return 4;
+    }
+    return -1;
+}
+
 uint32_t decodeUTF8(const char *str, size_t len, size_t *byte_size) {
     if (len == 0) {
         *byte_size = 0;

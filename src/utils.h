@@ -126,9 +126,6 @@ void abufAppend(abuf* ab, const char* s);
 void abufAppendN(abuf* ab, const char* s, size_t n);
 void abufFree(abuf* ab);
 
-// IO
-int osRead(char* buf, int n);
-
 // Color
 typedef struct Color {
     int r, g, b;
