@@ -1,4 +1,4 @@
-.PHONY: all prep release debug clean format install uninstall
+.PHONY: all prep release debug clean format install install-data
 
 # Platform detection
 ifeq ($(OS),Windows_NT)
@@ -26,7 +26,10 @@ EXE = nino$(EXE_EXT)
 prefix ?= /usr/local
 exec_prefix ?= $(prefix)
 bindir ?= $(exec_prefix)/bin
+
+datadir = $(HOME)/.config/nino
 INSTALL = install
+INSTALL_DATA = $(INSTALL) -m 644
 
 # Release build settings
 RELDIR = release
@@ -77,3 +80,10 @@ format:
 # Install target
 install:
 	$(INSTALL) $(RELEXE) $(DESTDIR)$(bindir)/$(EXE)
+
+install-data:
+	$(call mkdir, $(datadir))
+	$(call mkdir, $(datadir)/syntax)
+	$(INSTALL_DATA) syntax/*.json $(DESTDIR)$(datadir)/syntax/
+	$(call mkdir, $(datadir)/themes)
+	$(INSTALL_DATA) themes/*.nino $(DESTDIR)$(datadir)/themes/

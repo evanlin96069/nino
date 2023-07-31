@@ -27,11 +27,16 @@ I'm not used to [Vim](https://www.vim.org/) and I don't like [nano](https://nano
 ### Linux
 nino requires a sufficiently Unix-like C library and a C11 compiler.
 
-Build nino:
+#### Build nino:
 ```
 git clone https://github.com/evanlin96069/nino.git
 cd nino
 make && sudo make install
+```
+
+#### Install Themes and Syntax Highlighting
+```
+make install-data
 ```
 
 ### Windows
