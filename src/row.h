@@ -2,8 +2,8 @@
 #define ROW_H
 
 #include <stdbool.h>
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 struct EditorFile;
 typedef struct EditorFile EditorFile;

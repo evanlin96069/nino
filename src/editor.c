@@ -8,6 +8,7 @@
 #include "highlight.h"
 #include "output.h"
 #include "row.h"
+#include "status.h"
 #include "terminal.h"
 #include "utils.h"
 
@@ -66,8 +67,11 @@ void editorFreeFile(EditorFile* file) {
 }
 
 int editorAddFile(EditorFile* file) {
-    if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT)
+    if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
+        editorSetStatusMsg("Already opened too many files!");
         return -1;
+    }
+
     EditorFile* current = &gEditor.files[gEditor.file_count];
 
     *current = *file;
