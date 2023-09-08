@@ -80,7 +80,9 @@ void editorDrawRows(abuf* ab) {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
                     abufAppend(ab, ANSI_INVERT);
                     abufAppendN(ab, &sym, 1);
-                    abufAppend(ab, ANSI_INVERT);
+                    abufAppend(ab, ANSI_CLEAR);
+                    setColor(ab, gEditor.color_cfg.highlightFg[curr_fg], 0);
+                    setColor(ab, gEditor.color_cfg.highlightBg[curr_bg], 1);
 
                     rx++;
                     j++;
