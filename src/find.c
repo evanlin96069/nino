@@ -30,9 +30,9 @@ static void editorFindCallback(char* query, int key) {
     static FindList head = {.prev = NULL, .next = NULL};
     static FindList* match_node = NULL;
 
-    static unsigned char* saved_hl_pos = NULL;
-    static unsigned char* saved_hl = NULL;
-    static int saved_hl_len = 0;
+    static uint8_t* saved_hl_pos = NULL;
+    static uint8_t* saved_hl = NULL;
+    static size_t saved_hl_len = 0;
 
     static int total = 0;
     static int current = 0;
@@ -166,13 +166,15 @@ static void editorFindCallback(char* query, int key) {
 
     editorScrollToCursorCenter();
 
-    unsigned char* match_pos =
-        &gCurFile->row[match_node->row].hl[match_node->col];
+    uint8_t* match_pos = &gCurFile->row[match_node->row].hl[match_node->col];
     saved_hl_len = len;
     saved_hl_pos = match_pos;
     saved_hl = malloc_s(len + 1);
     memcpy(saved_hl, match_pos, len);
-    memset(match_pos, HL_MATCH, len);
+    for (size_t i = 0; i < len; i++) {
+        match_pos[i] &= ~HL_BG_MASK;
+        match_pos[i] |= HL_BG_MATCH << HL_FG_BITS;
+    }
 }
 
 void editorFind(void) {

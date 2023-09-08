@@ -65,7 +65,11 @@ enum EditorState {
     OPEN_FILE_MODE,
 };
 
-enum EditorHighlight {
+#define HL_FG_MASK 0x0F
+#define HL_BG_MASK 0xF0
+#define HL_FG_BITS 4
+
+enum EditorHighlightFg {
     HL_NORMAL = 0,
     HL_COMMENT,
     HL_KEYWORD1,
@@ -73,10 +77,18 @@ enum EditorHighlight {
     HL_KEYWORD3,
     HL_STRING,
     HL_NUMBER,
-    HL_MATCH,
-    HL_SELECT,
     HL_SPACE,
-    HL_TYPE_COUNT,
+
+    HL_FG_COUNT,
+};
+
+enum EditorHighlightBg {
+    HL_BG_NORMAL = 0,
+    HL_BG_MATCH,
+    HL_BG_SELECT,
+    HL_BG_TRAILING,
+
+    HL_BG_COUNT,
 };
 
 enum EditorField {

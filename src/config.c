@@ -19,7 +19,8 @@ CONVAR(whitespace, "Use whitespace instead of tab.", "1", NULL);
 CONVAR(autoindent, "Enable auto indent.", "0", NULL);
 CONVAR(backspace, "Use hungry backspace.", "1", NULL);
 CONVAR(bracket, "Use auto bracket completion.", "0", NULL);
-CONVAR(trailing, "Highlight trailing spaces.", "1", cvarSyntaxCallback);
+CONVAR(trailing, "Highlight trailing spaces.", "1", NULL);
+CONVAR(drawspace, "Render whitespace and tab", "0", NULL);
 CONVAR(syntax, "Enable syntax highlight.", "1", cvarSyntaxCallback);
 CONVAR(helpinfo, "Show the help information.", "1", NULL);
 CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smartcase.",
@@ -82,16 +83,17 @@ static const ColorElement color_element_map[] = {
 
     {"cursorline", &gEditor.color_cfg.cursor_line},
 
-    {"hl.normal", &gEditor.color_cfg.highlight[HL_NORMAL]},
-    {"hl.comment", &gEditor.color_cfg.highlight[HL_COMMENT]},
-    {"hl.keyword1", &gEditor.color_cfg.highlight[HL_KEYWORD1]},
-    {"hl.keyword2", &gEditor.color_cfg.highlight[HL_KEYWORD2]},
-    {"hl.keyword3", &gEditor.color_cfg.highlight[HL_KEYWORD3]},
-    {"hl.string", &gEditor.color_cfg.highlight[HL_STRING]},
-    {"hl.number", &gEditor.color_cfg.highlight[HL_NUMBER]},
-    {"hl.match", &gEditor.color_cfg.highlight[HL_MATCH]},
-    {"hl.select", &gEditor.color_cfg.highlight[HL_SELECT]},
-    {"hl.space", &gEditor.color_cfg.highlight[HL_SPACE]},
+    {"hl.normal", &gEditor.color_cfg.highlightFg[HL_NORMAL]},
+    {"hl.comment", &gEditor.color_cfg.highlightFg[HL_COMMENT]},
+    {"hl.keyword1", &gEditor.color_cfg.highlightFg[HL_KEYWORD1]},
+    {"hl.keyword2", &gEditor.color_cfg.highlightFg[HL_KEYWORD2]},
+    {"hl.keyword3", &gEditor.color_cfg.highlightFg[HL_KEYWORD3]},
+    {"hl.string", &gEditor.color_cfg.highlightFg[HL_STRING]},
+    {"hl.number", &gEditor.color_cfg.highlightFg[HL_NUMBER]},
+    {"hl.space", &gEditor.color_cfg.highlightFg[HL_SPACE]},
+    {"hl.match", &gEditor.color_cfg.highlightBg[HL_BG_MATCH]},
+    {"hl.select", &gEditor.color_cfg.highlightBg[HL_BG_SELECT]},
+    {"hl.trailing", &gEditor.color_cfg.highlightBg[HL_BG_TRAILING]},
 };
 
 CON_COMMAND(color, "Change the color of an element.") {
@@ -241,7 +243,7 @@ const EditorColorScheme color_default = {
             {30, 30, 30},
         },
     .cursor_line = {40, 40, 40},
-    .highlight =
+    .highlightFg =
         {
             {229, 229, 229},
             {106, 153, 85},
@@ -250,6 +252,11 @@ const EditorColorScheme color_default = {
             {78, 201, 176},
             {206, 145, 120},
             {181, 206, 168},
+            {63, 63, 63},
+        },
+    .highlightBg =
+        {
+            {0, 0, 0},
             {89, 46, 20},
             {38, 79, 120},
             {255, 100, 100},
@@ -315,6 +322,7 @@ void editorInitConfig(void) {
     INIT_CONVAR(backspace);
     INIT_CONVAR(bracket);
     INIT_CONVAR(trailing);
+    INIT_CONVAR(drawspace);
     INIT_CONVAR(syntax);
     INIT_CONVAR(helpinfo);
     INIT_CONVAR(ignorecase);

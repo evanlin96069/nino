@@ -171,13 +171,11 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
         editorUpdateSyntax(file, &file->row[row_index + 1]);
 
 update_trailing:
-    if (CONVAR_GETINT(trailing)) {
-        for (int i = row->size - 1; i >= 0; i--) {
-            if (row->data[i] == ' ' || row->data[i] == '\t')
-                row->hl[i] = HL_SPACE;
-            else
-                break;
-        }
+    for (int i = row->size - 1; i >= 0; i--) {
+        if (row->data[i] == ' ' || row->data[i] == '\t')
+            row->hl[i] = HL_BG_TRAILING << HL_FG_BITS;
+        else
+            break;
     }
 }
 

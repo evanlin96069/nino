@@ -12,7 +12,7 @@ typedef struct EditorRow {
     int size;
     int rsize;
     char* data;
-    unsigned char* hl;
+    uint8_t* hl;
     int hl_open_comment;
 } EditorRow;
 

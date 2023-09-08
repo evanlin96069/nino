@@ -12,6 +12,7 @@
 #include <unistd.h>
 #endif
 
+#include "config.h"
 #include "defines.h"
 #include "editor.h"
 #include "highlight.h"
@@ -30,13 +31,14 @@ void editorDrawRows(abuf* ab) {
         // Move cursor to the beginning of a row
         gotoXY(ab, s_row, 1 + gEditor.explorer.width);
 
+        gEditor.color_cfg.highlightBg[HL_BG_NORMAL] = gEditor.color_cfg.bg;
         if (i < gCurFile->num_rows) {
             char line_number[16];
-            Color saved_bg = gEditor.color_cfg.bg;
             if (i == gCurFile->cursor.y) {
-                if (!gCurFile->cursor.is_selected)
-                    gEditor.color_cfg.bg = gEditor.color_cfg.cursor_line;
-
+                if (!gCurFile->cursor.is_selected) {
+                    gEditor.color_cfg.highlightBg[HL_BG_NORMAL] =
+                        gEditor.color_cfg.cursor_line;
+                }
                 setColor(ab, gEditor.color_cfg.line_number[1], 0);
                 setColor(ab, gEditor.color_cfg.line_number[0], 1);
             } else {
@@ -64,13 +66,12 @@ void editorDrawRows(abuf* ab) {
             rlen += gCurFile->col_offset;
 
             char* c = &gCurFile->row[i].data[col_offset];
-            unsigned char* hl = &(gCurFile->row[i].hl[col_offset]);
-            unsigned char current_color = HL_NORMAL;
+            uint8_t* hl = &(gCurFile->row[i].hl[col_offset]);
+            uint8_t curr_fg = HL_BG_NORMAL;
+            uint8_t curr_bg = HL_NORMAL;
 
-            bool in_select = false;
-            bool has_bg = false;
-
-            setColor(ab, gEditor.color_cfg.highlight[current_color], 0);
+            setColor(ab, gEditor.color_cfg.highlightFg[curr_fg], 0);
+            setColor(ab, gEditor.color_cfg.highlightBg[curr_bg], 1);
 
             int j = 0;
             int rx = gCurFile->col_offset;
@@ -79,60 +80,56 @@ void editorDrawRows(abuf* ab) {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
                     abufAppend(ab, ANSI_INVERT);
                     abufAppendN(ab, &sym, 1);
-
-                    abufAppend(ab, ANSI_CLEAR);
-                    setColor(ab, gEditor.color_cfg.bg, 1);
-                    setColor(ab, gEditor.color_cfg.highlight[current_color], 0);
+                    abufAppend(ab, ANSI_INVERT);
 
                     rx++;
                     j++;
                 } else {
-                    unsigned char color = hl[j];
+                    uint8_t fg = hl[j] & HL_FG_MASK;
+                    uint8_t bg = hl[j] >> HL_FG_BITS;
+
                     if (gCurFile->cursor.is_selected &&
                         isPosSelected(i, j + col_offset, range)) {
-                        if (!in_select) {
-                            in_select = true;
-                            setColor(ab, gEditor.color_cfg.highlight[HL_SELECT],
-                                     1);
-                        }
-                    } else {
-                        // restore bg
-                        if (color == HL_MATCH || color == HL_SPACE) {
-                            setColor(ab, gEditor.color_cfg.highlight[color], 1);
-                        } else if (in_select) {
-                            in_select = false;
-                            setColor(ab, gEditor.color_cfg.bg, 1);
-                        }
+                        bg = HL_BG_SELECT;
+                    }
+                    if (CONVAR_GETINT(drawspace) &&
+                        (c[j] == ' ' || c[j] == '\t')) {
+                        fg = HL_SPACE;
+                    }
+                    if (bg == HL_BG_TRAILING && !CONVAR_GETINT(trailing)) {
+                        bg = HL_BG_NORMAL;
                     }
 
-                    if (color != current_color) {
-                        current_color = color;
-                        if (color == HL_MATCH || color == HL_SPACE) {
-                            has_bg = true;
-                            setColor(ab, gEditor.color_cfg.highlight[HL_NORMAL],
-                                     0);
-                            if (!in_select) {
-                                setColor(ab, gEditor.color_cfg.highlight[color],
-                                         1);
-                            }
-                        } else {
-                            if (has_bg) {
-                                has_bg = false;
-                                if (!in_select) {
-                                    setColor(ab, gEditor.color_cfg.bg, 1);
-                                }
-                            }
-                            setColor(ab, gEditor.color_cfg.highlight[color], 0);
-                        }
+                    // Update color
+                    if (fg != curr_fg) {
+                        curr_fg = fg;
+                        setColor(ab, gEditor.color_cfg.highlightFg[fg], 0);
                     }
+                    if (bg != curr_bg) {
+                        curr_bg = bg;
+                        setColor(ab, gEditor.color_cfg.highlightBg[bg], 1);
+                    }
+
                     if (c[j] == '\t') {
-                        // TODO: Add show tab feature
-                        abufAppend(ab, " ");
+                        if (CONVAR_GETINT(drawspace) && j != 0) {
+                            abufAppend(ab, "|");
+                        } else {
+                            abufAppend(ab, " ");
+                        }
+
                         rx++;
                         while (rx % CONVAR_GETINT(tabsize) != 0 && rx < rlen) {
                             abufAppend(ab, " ");
                             rx++;
                         }
+                        j++;
+                    } else if (c[j] == ' ') {
+                        if (CONVAR_GETINT(drawspace)) {
+                            abufAppend(ab, ".");
+                        } else {
+                            abufAppend(ab, " ");
+                        }
+                        rx++;
                         j++;
                     } else {
                         size_t byte_size;
@@ -154,11 +151,10 @@ void editorDrawRows(abuf* ab) {
             if (gCurFile->cursor.is_selected && range.end_y > i &&
                 i >= range.start_y &&
                 gCurFile->row[i].rsize - gCurFile->col_offset < cols) {
-                setColor(ab, gEditor.color_cfg.highlight[HL_SELECT], 1);
+                setColor(ab, gEditor.color_cfg.highlightBg[HL_BG_SELECT], 1);
                 abufAppend(ab, " ");
             }
-            setColor(ab, gEditor.color_cfg.bg, 1);
-            gEditor.color_cfg.bg = saved_bg;
+            setColor(ab, gEditor.color_cfg.highlightBg[HL_BG_NORMAL], 1);
         }
         if (!is_row_full)
             abufAppend(ab, "\x1b[K");

@@ -14,6 +14,7 @@ extern EditorConCmd cvar_autoindent;
 extern EditorConCmd cvar_backspace;
 extern EditorConCmd cvar_bracket;
 extern EditorConCmd cvar_trailing;
+extern EditorConCmd cvar_drawspace;
 extern EditorConCmd cvar_syntax;
 extern EditorConCmd cvar_helpinfo;
 extern EditorConCmd cvar_ignorecase;
@@ -79,7 +80,8 @@ struct EditorColorScheme {
     Color status[6];
     Color line_number[2];
     Color cursor_line;
-    Color highlight[HL_TYPE_COUNT];
+    Color highlightFg[HL_FG_COUNT];
+    Color highlightBg[HL_BG_COUNT];
 };
 
 void editorInitConfig(void);

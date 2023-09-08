@@ -71,9 +71,10 @@ When color code is `000000` it will be transparent.
 | `hl.keyword3` | `4ec9b0` |
 | `hl.string` | `ce9178` |
 | `hl.number` | `b5cea8` |
+| `hl.space` | `3f3f3f` |
 | `hl.match` | `592e14` |
 | `hl.select` | `264f78` |
-| `hl.space` | `ff6464` |
+| `hl.trailing` | `ff6464` |
 
 ## Example
 An [example](example.ninorc) of `ninorc`.

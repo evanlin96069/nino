@@ -30,4 +30,5 @@ color hl.string 2aa198
 color hl.number d33682
 color hl.match 4d3b24
 color hl.select 274642
-color hl.space ff6464
+color hl.trailing ff6464
+color hl.space 3f3f3f
