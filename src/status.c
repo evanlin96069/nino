@@ -80,6 +80,10 @@ void editorDrawTopStatusBar(abuf* ab) {
                 }
             }
 
+            // Not enough space to even show one tab
+            if (buf_len < 0)
+                break;
+
             abufAppendN(ab, buf, buf_len);
             len += buf_len;
             gEditor.tab_displayed++;
