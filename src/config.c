@@ -281,7 +281,7 @@ static void parseLine(char* line) {
     char* token = strtok(line, " ");
     EditorConCmdArgs args = {.argc = 0};
     for (int i = 0; token && i < 4; i++, args.argc++) {
-        strcpy(args.argv[i], token);
+        snprintf(args.argv[i], COMMAND_MAX_LENGTH, "%s", token);
         token = strtok(NULL, " ");
     }
 

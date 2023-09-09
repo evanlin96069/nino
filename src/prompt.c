@@ -16,7 +16,6 @@
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     gEditor.state = state;
 
-    // TODO: Make prompt buffer a row
     size_t bufsize = PROMPT_BUF_INIT_SIZE;
     char* buf = malloc_s(bufsize);
 
@@ -150,7 +149,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 if (len == -1)
                     return buf;
 
-                if (buflen + len > bufsize) {
+                if (buflen + len >= bufsize) {
                     bufsize += len;
                     bufsize *= PROMPT_BUF_GROWTH_RATE;
                     buf = realloc_s(buf, bufsize);
