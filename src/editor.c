@@ -57,6 +57,11 @@ void editorFree(void) {
     editorFreeHLDB();
 }
 
+void editorInitFile(EditorFile* file) {
+    memset(file, 0, sizeof(EditorFile));
+    file->newline = NL_DEFAULT;
+}
+
 void editorFreeFile(EditorFile* file) {
     for (int i = 0; i < file->num_rows; i++) {
         editorFreeRow(&file->row[i]);

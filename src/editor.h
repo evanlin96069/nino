@@ -115,6 +115,7 @@ extern EditorFile* gCurFile;
 
 void editorInit(void);
 void editorFree(void);
+void editorInitFile(EditorFile* file);
 void editorFreeFile(EditorFile* file);
 
 // Multiple files control

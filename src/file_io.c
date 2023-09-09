@@ -95,6 +95,8 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
 }
 
 bool editorOpen(EditorFile* file, const char* path) {
+    editorInitFile(file);
+
     struct stat file_info;
     if (stat(path, &file_info) != -1) {
         if (S_ISDIR(file_info.st_mode)) {
@@ -139,7 +141,7 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
     }
 
-    FILE* f = fopen(path, "r");
+    FILE* f = fopen(path, "rb");
     if (!f && errno != ENOENT) {
         editorSetStatusMsg("Can't load \"%s\"! %s", path, strerror(errno));
         return false;
@@ -168,7 +170,8 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
         editorInsertRow(file, file->cursor.y, "", 0);
     } else {
-        bool end_nl = true;
+        bool has_end_nl = true;
+        bool has_cr = false;
         size_t at = 0;
         size_t cap = 16;
 
@@ -176,18 +179,15 @@ bool editorOpen(EditorFile* file, const char* path) {
         size_t n = 0;
         int64_t len;
 
-        file->newline = NL_DEFAULT;
         file->row = malloc_s(sizeof(EditorRow) * cap);
 
         while ((len = getLine(&line, &n, f)) != -1) {
-            end_nl = false;
+            has_end_nl = false;
             while (len > 0 &&
                    (line[len - 1] == '\n' || line[len - 1] == '\r')) {
-                if (line[len - 1] == '\r') {
-                    // Should we care about CR?
-                    file->newline = NL_DOS;
-                }
-                end_nl = true;
+                if (line[len - 1] == '\r')
+                    has_cr = true;
+                has_end_nl = true;
                 len--;
             }
             // editorInsertRow but faster
@@ -209,9 +209,17 @@ bool editorOpen(EditorFile* file, const char* path) {
         file->row = realloc_s(file->row, sizeof(EditorRow) * at);
         file->num_rows = at;
         file->lineno_width = getDigit(file->num_rows) + 2;
-        if (end_nl) {
+
+        if (has_end_nl) {
             editorInsertRow(file, file->num_rows, "", 0);
         }
+
+        if (has_cr) {
+            file->newline = NL_DOS;
+        } else if (file->num_rows) {
+            file->newline = NL_UNIX;
+        }
+
         free(line);
         fclose(f);
     }
@@ -260,7 +268,7 @@ void editorOpenFilePrompt(void) {
     if (!path)
         return;
 
-    EditorFile file = {0};
+    EditorFile file;
     if (editorOpen(&file, path)) {
         int index = editorAddFile(&file);
         // hack: refresh screen to update gEditor.tab_displayed
