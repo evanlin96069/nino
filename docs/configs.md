@@ -22,9 +22,10 @@ The command will first search for the file in the current directory, then the co
 | `backspace` | 1 | Use hungry backspace. |
 | `bracket` | 0 | Use auto bracket completion. |
 | `trailing` | 1 | Highlight trailing spaces. |
+| `drawspace` | 1 | Render whitespace and tab. |
 | `syntax` | 1 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
-| `ignorecase` | 2 | Use case insensitive search. Set to 2 to use smartcase. |
+| `ignorecase` | 2 | Use case insensitive search. Set to 2 to use smart case. |
 | `mouse` | 1 | Enable mouse mode. |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |

@@ -113,7 +113,7 @@ void editorDrawRows(abuf* ab) {
                     }
 
                     if (c[j] == '\t') {
-                        if (CONVAR_GETINT(drawspace) && j != 0) {
+                        if (CONVAR_GETINT(drawspace)) {
                             abufAppend(ab, "|");
                         } else {
                             abufAppend(ab, " ");
