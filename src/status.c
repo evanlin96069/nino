@@ -170,12 +170,13 @@ void editorDrawStatusBar(abuf* ab) {
         lang_len = snprintf(
             lang, sizeof(lang), "  %s  ",
             gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text");
-        pos_len = snprintf(pos, sizeof(pos), " Ln: %d, Col: %d <%s> ",
-                           gCurFile->cursor.y + 1,
-                           editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                           gCurFile->cursor.x) +
-                               1,
-                           (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF");
+        pos_len = snprintf(
+            pos, sizeof(pos), " %d:%d [%.f%%] <%s> ", gCurFile->cursor.y + 1,
+            editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                            gCurFile->cursor.x) +
+                1,
+            (float)gCurFile->row_offset / (gCurFile->num_rows - 1) * 100,
+            (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF");
     }
 
     rlen = lang_len + pos_len;
