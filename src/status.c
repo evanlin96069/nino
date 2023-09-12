@@ -167,16 +167,22 @@ void editorDrawStatusBar(abuf* ab) {
         lang_len = 0;
         pos_len = 0;
     } else {
-        lang_len = snprintf(
-            lang, sizeof(lang), "  %s  ",
-            gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text");
-        pos_len = snprintf(
-            pos, sizeof(pos), " %d:%d [%.f%%] <%s> ", gCurFile->cursor.y + 1,
-            editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                            gCurFile->cursor.x) +
-                1,
-            (float)gCurFile->row_offset / (gCurFile->num_rows - 1) * 100,
-            (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF");
+        const char* file_type =
+            gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text";
+        int row = gCurFile->cursor.y + 1;
+        int col = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                                  gCurFile->cursor.x) +
+                  1;
+        float line_percent = 0.0f;
+        const char* nl_type = (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF";
+        if (gCurFile->num_rows - 1 > 0) {
+            line_percent =
+                (float)gCurFile->row_offset / (gCurFile->num_rows - 1) * 100.0f;
+        }
+
+        lang_len = snprintf(lang, sizeof(lang), "  %s  ", file_type);
+        pos_len = snprintf(pos, sizeof(pos), " %d:%d [%.f%%] <%s> ", row, col,
+                           line_percent, nl_type);
     }
 
     rlen = lang_len + pos_len;
