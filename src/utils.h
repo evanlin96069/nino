@@ -64,21 +64,6 @@ void* _malloc_s(const char* file, int line, size_t size);
 void* _calloc_s(const char* file, int line, size_t n, size_t size);
 void* _realloc_s(const char* file, int line, void* ptr, size_t size);
 
-// Arena
-typedef struct Arena {
-    size_t capacity;
-    size_t size;
-    uint8_t* data;
-} Arena;
-
-void arenaInit(Arena* arena, size_t capacity);
-void* arenaAlloc(Arena* arena, size_t size);
-#define arenaReset(arena)  \
-    do {                   \
-        (arena)->size = 0; \
-    } while (0)
-void arenaDeinit(Arena* arena);
-
 // Vector
 #define VECTOR_MIN_CAPACITY 16
 #define VECTOR_EXTEND_RATE 1.5

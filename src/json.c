@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define JSON_ERROR_SIZE 64
+#define JSON_STRING_SIZE 16
+#define JSON_ARRAY_SIZE 16
+
 typedef enum JsonTokenType {
     TOKEN_EMPTY = 0,
     TOKEN_ERROR,
@@ -29,16 +33,14 @@ typedef struct JsonToken {
     };
 } JsonToken;
 
-#define JSON_STRING_SIZE 64
-
 static JsonToken tokenError(Arena* arena, const char* fmt, ...) {
     JsonToken token;
     token.type = TOKEN_ERROR;
-    token.string = arenaAlloc(arena, JSON_STRING_SIZE);
+    token.string = arenaAlloc(arena, JSON_ERROR_SIZE);
 
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(token.string, JSON_STRING_SIZE, fmt, ap);
+    vsnprintf(token.string, JSON_ERROR_SIZE, fmt, ap);
     va_end(ap);
 
     return token;
@@ -190,9 +192,9 @@ static JsonToken nextToken(const char* text, Arena* arena) {
                 }
 
                 if (size + 2 >= capacity) {
-                    // Hack: Realloc the string
-                    arenaAlloc(arena, JSON_STRING_SIZE);
-                    capacity += JSON_STRING_SIZE;
+                    token.string = arenaRealloc(arena, token.string, capacity,
+                                                capacity * 2);
+                    capacity *= 2;
                 }
 
                 token.string[size++] = c;
@@ -252,11 +254,11 @@ static JsonToken nextToken(const char* text, Arena* arena) {
 static JsonValue* jsonError(Arena* arena, const char* fmt, ...) {
     JsonValue* value = arenaAlloc(arena, sizeof(JsonValue));
     value->type = JSON_ERROR;
-    value->string = arenaAlloc(arena, JSON_STRING_SIZE);
+    value->string = arenaAlloc(arena, JSON_ERROR_SIZE);
 
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(value->string, JSON_STRING_SIZE, fmt, ap);
+    vsnprintf(value->string, JSON_ERROR_SIZE, fmt, ap);
     va_end(ap);
 
     return value;
@@ -355,11 +357,13 @@ static JsonValue* parseObject(Arena* arena) {
 
 static JsonValue* parseArray(Arena* arena) {
     JsonToken token = nextToken(NULL, arena);
-    JsonArray head = {0};
-    JsonArray* curr = &head;
+    JsonArray* array = arenaAlloc(arena, sizeof(JsonArray));
+    size_t capacity = JSON_ARRAY_SIZE;
+    array->data = arenaAlloc(arena, sizeof(JsonValue*) * capacity);
+    array->size = 0;
 
     while (token.type != TOKEN_RBRACKET) {
-        if (curr != &head) {
+        if (array->size > 0) {
             if (token.type == TOKEN_COMMA) {
                 token = nextToken(NULL, arena);
             } else {
@@ -367,19 +371,29 @@ static JsonValue* parseArray(Arena* arena) {
                                  "Expected ',' or ']' after array element");
             }
         }
-        curr->next = arenaAlloc(arena, sizeof(JsonArray));
-        curr = curr->next;
-        curr->next = NULL;
-        curr->value = parseValue(token, arena);
 
-        if (curr->value->type == JSON_ERROR)
-            return curr->value;
+        JsonValue* data = parseValue(token, arena);
+        if (data->type == JSON_ERROR)
+            return data;
+
+        if (array->size + 1 > capacity) {
+            size_t new_capacity = capacity * 2;
+            array->data =
+                arenaRealloc(arena, array->data, sizeof(JsonValue*) * capacity,
+                             sizeof(JsonValue*) * new_capacity);
+            capacity = new_capacity;
+            ;
+        }
+
+        array->data[array->size] = data;
+        array->size++;
+
         token = nextToken(NULL, arena);
     }
 
     JsonValue* value = arenaAlloc(arena, sizeof(JsonValue));
     value->type = JSON_ARRAY;
-    value->array = head.next;
+    value->array = array;
     return value;
 }
 

@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "utils.h"
+#include "arena.h"
 
 typedef enum JsonType {
     JSON_ERROR,
@@ -33,8 +33,8 @@ struct JsonValue {
 };
 
 struct JsonArray {
-    struct JsonArray* next;
-    JsonValue* value;
+    size_t size;
+    JsonValue** data;
 };
 
 struct JsonObject {

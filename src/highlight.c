@@ -255,7 +255,7 @@ void editorInitHLDB(void) {
 #endif
 }
 
-#define ARENA_SIZE (1 << 14)
+#define ARENA_SIZE (1 << 10)
 static EditorSyntax* HLDB_tail = NULL;
 bool editorLoadHLDB(const char* json_file) {
     FILE* fp;
@@ -306,9 +306,10 @@ bool editorLoadHLDB(const char* json_file) {
 
     JsonValue* extensions = jsonObjectFind(object, "extensions");
     CHECK(extensions && extensions->type == JSON_ARRAY);
-    for (JsonArray* item = extensions->array; item; item = item->next) {
-        CHECK(item->value->type == JSON_STRING);
-        vector_push(syntax->file_exts, item->value->string);
+    for (size_t i = 0; i < extensions->array->size; i++) {
+        JsonValue* item = extensions->array->data[i];
+        CHECK(item->type == JSON_STRING);
+        vector_push(syntax->file_exts, item->string);
     }
     vector_shrink(syntax->file_exts);
 
@@ -323,13 +324,13 @@ bool editorLoadHLDB(const char* json_file) {
     JsonValue* multi_comment = jsonObjectFind(object, "multiline-comment");
     if (multi_comment && multi_comment->type != JSON_NULL) {
         CHECK(multi_comment->type == JSON_ARRAY);
-        JsonValue* mcs = multi_comment->array->value;
+        CHECK(multi_comment->array->size == 2);
+        JsonValue* mcs = multi_comment->array->data[0];
         CHECK(mcs && mcs->type == JSON_STRING);
         syntax->multiline_comment_start = mcs->string;
-        JsonValue* mce = multi_comment->array->next->value;
+        JsonValue* mce = multi_comment->array->data[1];
         CHECK(mce && mce->type == JSON_STRING);
         syntax->multiline_comment_end = mce->string;
-        CHECK(multi_comment->array->next->next == NULL);
     } else {
         syntax->multiline_comment_start = NULL;
         syntax->multiline_comment_end = NULL;
@@ -340,9 +341,10 @@ bool editorLoadHLDB(const char* json_file) {
         JsonValue* keywords = jsonObjectFind(object, kw_fields[i]);
         if (keywords && keywords->type != JSON_NULL) {
             CHECK(keywords->type == JSON_ARRAY);
-            for (JsonArray* item = keywords->array; item; item = item->next) {
-                CHECK(item->value->type == JSON_STRING);
-                vector_push(syntax->keywords[i], item->value->string);
+            for (size_t j = 0; j < keywords->array->size; j++) {
+                JsonValue* item = keywords->array->data[j];
+                CHECK(item->type == JSON_STRING);
+                vector_push(syntax->keywords[i], item->string);
             }
         }
         vector_shrink(syntax->keywords[i]);

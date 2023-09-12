@@ -33,29 +33,6 @@ void *_realloc_s(const char *file, int line, void *ptr, size_t size) {
     return ptr;
 }
 
-void arenaInit(Arena *arena, size_t capacity) {
-    arena->capacity = capacity;
-    arena->size = 0;
-    arena->data = malloc_s(capacity);
-}
-
-void *arenaAlloc(Arena *arena, size_t size) {
-    if (arena->size + size > arena->capacity) {
-        PANIC("arenaAlloc");
-    }
-
-    void *result = arena->data + arena->size;
-    arena->size += size;
-    return result;
-}
-
-void arenaDeinit(Arena *arena) {
-    arena->size = 0;
-    arena->capacity = 0;
-    free(arena->data);
-    arena->data = NULL;
-}
-
 void _vector_make_room(_Vector *_vec, size_t item_size) {
     if (!_vec->capacity) {
         _vec->data = malloc_s(item_size * VECTOR_MIN_CAPACITY);
