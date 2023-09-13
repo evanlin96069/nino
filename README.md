@@ -29,7 +29,7 @@ nino requires a sufficiently Unix-like C library and a C11 compiler.
 
 #### Build nino:
 ```
-git clone https://github.com/evanlin96069/nino.git
+git clone --recurse-submodules https://github.com/evanlin96069/nino.git
 cd nino
 make && sudo make install
 ```

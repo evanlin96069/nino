@@ -14,6 +14,8 @@ endif
 # Compiler flags
 CC = gcc
 CFLAGS = -pedantic -std=gnu11 -Wall -Wextra
+CFLAGS += -Ijson/include
+LIBFLAGS = -Ljson/lib -ljson
 
 # Project files
 SRCDIR = src
@@ -51,14 +53,16 @@ all: prep release
 # Release build
 release: $(RELEXE)
 $(RELEXE): $(RELOBJS)
-	$(CC) $(CFLAGS) $(RELCFLAGS) -s -o $(RELEXE) $^
+	make -C json/
+	$(CC) $(CFLAGS) $(RELCFLAGS) -s -o $(RELEXE) $^ $(LIBFLAGS)
 $(RELDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -c -MMD $(CFLAGS) $(RELCFLAGS) -o $@ $<
 
 # Debug build
 debug: $(DBGEXE)
 $(DBGEXE): $(DBGOBJS)
-	$(CC) $(CFLAGS) $(DBGCFLAGS) -o $(DBGEXE) $^
+	make -C json/
+	$(CC) $(CFLAGS) $(DBGCFLAGS) -o $(DBGEXE) $^ $(LIBFLAGS)
 $(DBGDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -c -MMD $(CFLAGS) $(DBGCFLAGS) -o $@ $<
 
@@ -72,6 +76,7 @@ prep:
 # Clean target
 clean:
 	$(call rm, $(RELEXE) $(RELDEPS) $(RELOBJS) $(DBGEXE) $(DBGDEPS) $(DBGOBJS))
+	make clean -C json/
 
 # Format all files
 format:
