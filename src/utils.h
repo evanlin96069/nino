@@ -6,30 +6,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// OS
-#ifdef _WIN32
-// Windows
-#include <windows.h>
-#define EDITOR_PATH_MAX MAX_PATH
-#elif __linux__
-// Linux
-#include <linux/limits.h>
-#define EDITOR_PATH_MAX PATH_MAX
-#else
-// Other
-#define EDITOR_PATH_MAX 4096
-#endif
-
-#ifdef _WIN32
-#define ENV_HOME "USERPROFILE"
-#define CONF_DIR ".nino"
-#define DIR_SEP "\\"
-#else
-#define ENV_HOME "HOME"
-#define CONF_DIR ".config/nino"
-#define DIR_SEP "/"
-#endif
-
 // Macros
 #define _DO02(m, sep, x, y) m(x) sep m(y)
 #define _DO03(m, sep, x, y, z) \

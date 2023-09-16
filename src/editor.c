@@ -3,11 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "defines.h"
 #include "highlight.h"
 #include "output.h"
-#include "row.h"
 #include "status.h"
 #include "terminal.h"
 #include "utils.h"

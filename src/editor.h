@@ -9,6 +9,7 @@
 #include "file_io.h"
 #include "row.h"
 #include "select.h"
+#include "os.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
 
@@ -17,7 +18,6 @@
 
 #ifdef _WIN32
 #define NL_DEFAULT NL_DOS
-#include <windows.h>
 extern HANDLE hStdin;
 extern HANDLE hStdout;
 #else
@@ -48,11 +48,7 @@ typedef struct EditorFile {
     int dirty;
     uint8_t newline;
     char* filename;
-#ifdef _WIN32
-    BY_HANDLE_FILE_INFORMATION file_info;
-#else
-    ino_t file_inode;
-#endif
+    FileInfo file_info;
 
     // Text buffers
     EditorRow* row;

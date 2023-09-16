@@ -5,14 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <dirent.h>
-#include <unistd.h>
-#endif
 
 #include "editor.h"
 #include "highlight.h"
@@ -21,29 +13,14 @@
 #include "row.h"
 #include "status.h"
 
-#ifdef _WIN32
-static int isFileOpened(BY_HANDLE_FILE_INFORMATION fileInfo) {
+static int isFileOpened(FileInfo info) {
     for (int i = 0; i < gEditor.file_count; i++) {
-        const BY_HANDLE_FILE_INFORMATION* cur_file =
-            &gEditor.files[i].file_info;
-        if (cur_file->dwVolumeSerialNumber == fileInfo.dwVolumeSerialNumber &&
-            cur_file->nFileIndexHigh == fileInfo.nFileIndexHigh &&
-            cur_file->nFileIndexLow == fileInfo.nFileIndexLow) {
+        if (areFilesEqual(gEditor.files[i].file_info, info)) {
             return i;
         }
     }
     return -1;
 }
-#else
-static int isFileOpened(ino_t inode) {
-    for (int i = 0; i < gEditor.file_count; i++) {
-        if (gEditor.files[i].file_inode == inode) {
-            return i;
-        }
-    }
-    return -1;
-}
-#endif
 
 static char* editroRowsToString(EditorFile* file, size_t* len) {
     size_t total_len = 0;
@@ -97,48 +74,41 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
 bool editorOpen(EditorFile* file, const char* path) {
     editorInitFile(file);
 
-    struct stat file_info;
-    if (stat(path, &file_info) != -1) {
-        if (S_ISDIR(file_info.st_mode)) {
-            if (gEditor.explorer.node)
-                editorExplorerFreeNode(gEditor.explorer.node);
-            gEditor.explorer.node = editorExplorerCreate(path);
-            gEditor.explorer.node->is_open = true;
-            editorExplorerRefresh();
 
-            gEditor.explorer.offset = 0;
-            gEditor.explorer.selected_index = 0;
-            return false;
-        }
+    FileType type = getFileType(path);
+    if (type == FT_INVALID)
+        return false;
 
-        if (!S_ISREG(file_info.st_mode)) {
-            editorSetStatusMsg("Can't load! \"%s\" is not a regular file.",
-                               path);
-            return false;
-        }
-#ifdef _WIN32
-        HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL,
-                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (hFile == INVALID_HANDLE_VALUE)
-            return false;
+    if (type == FT_DIR) {
+        if (gEditor.explorer.node)
+            editorExplorerFreeNode(gEditor.explorer.node);
+        gEditor.explorer.node = editorExplorerCreate(path);
+        gEditor.explorer.node->is_open = true;
+        editorExplorerRefresh();
 
-        BY_HANDLE_FILE_INFORMATION fileInfo;
-        WINBOOL result = GetFileInformationByHandle(hFile, &fileInfo);
-        CloseHandle(hFile);
-        if (!result)
-            return false;
+        gEditor.explorer.offset = 0;
+        gEditor.explorer.selected_index = 0;
+        return false;
+    }
 
-        int open_index = isFileOpened(fileInfo);
-        file->file_info = fileInfo;
+    if (type != FT_REG) {
+        editorSetStatusMsg("Can't load! \"%s\" is not a regular file.",
+                           path);
+        return false;
+    }
 
-#else
-        int open_index = isFileOpened(file_info.st_ino);
-        file->file_inode = file_info.st_ino;
-#endif
-        if (open_index != -1) {
-            editorChangeToFile(open_index);
-            return false;
-        }
+    FileInfo file_info = getFileInfo(path);
+    if (file_info.error) {
+        editorSetStatusMsg("Can't load! Failed to get file info of \"%s\".",
+                           path);
+        return false;
+    }
+    file->file_info = file_info;
+    int open_index = isFileOpened(file_info);
+
+    if (open_index != -1) {
+        editorChangeToFile(open_index);
+        return false;
     }
 
     FILE* f = fopen(path, "rb");
@@ -324,51 +294,19 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
     if (!node->is_directory)
         return;
 
-#ifdef _WIN32
-    WIN32_FIND_DATAA find_data;
-    HANDLE find_handle;
-
-    char entry_path[EDITOR_PATH_MAX];
-    snprintf(entry_path, sizeof(entry_path), "%s\\*", node->filename);
-
-    if ((find_handle = FindFirstFileA(entry_path, &find_data)) ==
-        INVALID_HANDLE_VALUE)
+    DirIter iter = dirFindFirst(node->filename);
+    if (iter.error)
         return;
 
     do {
-        if (strcmp(find_data.cFileName, ".") == 0 ||
-            strcmp(find_data.cFileName, "..") == 0)
-            continue;
-
-        snprintf(entry_path, sizeof(entry_path), "%s\\%s", node->filename,
-                 find_data.cFileName);
-
-        EditorExplorerNode* child = editorExplorerCreate(entry_path);
-        if (!child)
-            continue;
-
-        child->depth = node->depth + 1;
-
-        if (child->is_directory) {
-            insertExplorerNode(child, &node->dir);
-        } else {
-            insertExplorerNode(child, &node->file);
-        }
-    } while (FindNextFileA(find_handle, &find_data));
-    FindClose(find_handle);
-#else
-    DIR* dir;
-    if ((dir = opendir(node->filename)) == NULL)
-        return;
-
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        const char* filename = dirGetName(iter);
+        if (strcmp(filename, ".") == 0 ||
+            strcmp(filename, "..") == 0)
             continue;
 
         char entry_path[EDITOR_PATH_MAX];
-        snprintf(entry_path, sizeof(entry_path), "%s/%s", node->filename,
-                 entry->d_name);
+        snprintf(entry_path, sizeof(entry_path), PATH_CAT("%s","%s"), node->filename,
+                 filename);
 
         EditorExplorerNode* child = editorExplorerCreate(entry_path);
         if (!child)
@@ -381,9 +319,9 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
         } else {
             insertExplorerNode(child, &node->file);
         }
-    }
-    closedir(dir);
-#endif
+    } while (dirNext(&iter));
+    dirClose(&iter);
+
     node->loaded = true;
 }
 
