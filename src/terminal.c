@@ -441,9 +441,9 @@ void editorInitTerminal(void) {
 }
 
 void terminalExit(void) {
-    disableRawMode();
-    disableSwap();
     disableMouse();
+    disableSwap();
     // Show cursor
     UNUSED(write(STDOUT_FILENO, "\x1b[?25h", 6));
+    disableRawMode();
 }
