@@ -111,7 +111,9 @@ char* getDirName(char* path);
 void gotoXY(abuf* ab, int x, int y);
 int getDigit(int n);
 
+// String
 int64_t getLine(char** lineptr, size_t* n, FILE* stream);
+int strCaseCmp(const char* s1, const char* s2);
 char* strCaseStr(const char* str, const char* sub_str);
 
 #endif

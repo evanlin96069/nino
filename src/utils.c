@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "defines.h"
 #include "editor.h"
@@ -148,9 +147,9 @@ int getDigit(int n) {
 char *getBaseName(char *path) {
     char *file = path + strlen(path);
     for (; file > path; file--) {
-        if ((*file == '/')
+        if (*file == '/'
 #ifdef _WIN32
-            || (*file == '\\')
+            || *file == '\\'
 #endif
         ) {
             file++;
@@ -213,6 +212,20 @@ int64_t getLine(char **lineptr, size_t *n, FILE *stream) {
     *n = capacity;
 
     return size;
+}
+
+int strCaseCmp(const char *s1, const char *s2) {
+    if (s1 == s2)
+        return 0;
+
+    int result;
+    while ((result = tolower(*s1) - tolower(*s2)) == 0) {
+        if (*s1 == '\0')
+            break;
+        s1++;
+        s2++;
+    }
+    return result;
 }
 
 char *strCaseStr(const char *str, const char *sub_str) {

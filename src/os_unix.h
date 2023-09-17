@@ -65,3 +65,9 @@ static inline const char* dirGetName(const DirIter* iter) {
         return NULL;
     return iter->entry->d_name;
 }
+
+static inline int64_t getTime(void) {
+    struct timeval time_val;
+    gettimeofday(&time_val, NULL);
+    return time_val.tv_sec * 1000000 + time_val.tv_usec;
+}

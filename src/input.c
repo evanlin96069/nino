@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 
 #include "config.h"
 #include "defines.h"
@@ -528,7 +526,7 @@ void editorProcessKeypress(void) {
     static bool quit_protect = true;
 
     static bool pressed = false;
-    static struct timeval prev_click_time = {0};
+    static int64_t prev_click_time = 0;
     static int mouse_click = 0;
     static int curr_x = 0;
     static int curr_y = 0;
@@ -1181,11 +1179,9 @@ void editorProcessKeypress(void) {
                 break;
             }
 
-            struct timeval click_time;
-            gettimeofday(&click_time, NULL);
-            int64_t time_diff =
-                (click_time.tv_sec - prev_click_time.tv_sec) * 1000000 +
-                (click_time.tv_usec - prev_click_time.tv_usec);
+            int64_t click_time = getTime();
+            int64_t time_diff = click_time - prev_click_time;
+
             if (x == curr_x && y == curr_y && time_diff / 1000 < 500) {
                 mouse_click++;
             } else {

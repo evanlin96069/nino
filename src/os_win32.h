@@ -1,4 +1,14 @@
+#include <stdio.h>
+
 #include "os.h"
+
+#ifndef STDIN_FILENO
+#define STDIN_FILENO _fileno(stdin)
+#endif
+
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO _fileno(stdout)
+#endif
 
 struct FileInfo {
     BY_HANDLE_FILE_INFORMATION info;
@@ -13,7 +23,7 @@ static inline FileInfo getFileInfo(const char* path) {
     if (hFile == INVALID_HANDLE_VALUE)
         goto defer;
 
-    WINBOOL result = GetFileInformationByHandle(hFile, &info.info);
+    BOOL result = GetFileInformationByHandle(hFile, &info.info);
     if (result == 0)
         goto defer;
 
@@ -74,4 +84,20 @@ static inline const char* dirGetName(const DirIter* iter) {
     if (iter->error)
         return NULL;
     return iter->find_data.cFileName;
+}
+
+static inline int64_t getTime(void) {
+    static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
+
+    SYSTEMTIME system_time;
+    FILETIME file_time;
+    uint64_t time;
+
+    GetSystemTime(&system_time);
+    SystemTimeToFileTime(&system_time, &file_time);
+    time = ((uint64_t)file_time.dwLowDateTime);
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+    int64_t sec = ((time - EPOCH) / 10000000);
+    int64_t usec = (system_time.wMilliseconds * 1000);
+    return sec * 1000000 + usec;
 }

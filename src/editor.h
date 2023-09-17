@@ -2,7 +2,6 @@
 #define EDITOR_H
 
 #include <stdint.h>
-#include <sys/types.h>
 
 #include "action.h"
 #include "config.h"

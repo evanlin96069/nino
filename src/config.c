@@ -181,9 +181,9 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
         return;
     }
 
-    if (strcasecmp(args.argv[1], "lf") == 0) {
+    if (strCaseCmp(args.argv[1], "lf") == 0) {
         gCurFile->newline = NL_UNIX;
-    } else if (strcasecmp(args.argv[1], "crlf") == 0) {
+    } else if (strCaseCmp(args.argv[1], "crlf") == 0) {
         gCurFile->newline = NL_DOS;
     } else {
         editorSetStatusMsg("Usage: newline <LF/CRLF>");
@@ -397,7 +397,7 @@ EditorConCmd* editorFindCmd(const char* name) {
     EditorConCmd* result = NULL;
     EditorConCmd* curr = gEditor.cvars;
     while (curr) {
-        if (strcasecmp(name, curr->name) == 0) {
+        if (strCaseCmp(name, curr->name) == 0) {
             result = curr;
             break;
         }

@@ -20,6 +20,8 @@ static inline bool dirNext(DirIter* iter);
 static inline void dirClose(DirIter* iter);
 static inline const char* dirGetName(const DirIter* iter);
 
+static inline int64_t getTime(void);
+
 #ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
@@ -38,6 +40,7 @@ static inline const char* dirGetName(const DirIter* iter);
 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #define ENV_HOME "HOME"
