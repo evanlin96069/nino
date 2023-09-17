@@ -70,8 +70,8 @@ static inline void dirClose(DirIter* iter) {
     FindClose(iter->handle);
 }
 
-static inline const char* dirGetName(DirIter iter) {
-    if (iter.error)
+static inline const char* dirGetName(const DirIter* iter) {
+    if (iter->error)
         return NULL;
-    return iter.find_data.cFileName;
+    return iter->find_data.cFileName;
 }

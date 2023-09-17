@@ -7,9 +7,9 @@
 #include "action.h"
 #include "config.h"
 #include "file_io.h"
+#include "os.h"
 #include "row.h"
 #include "select.h"
-#include "os.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
 

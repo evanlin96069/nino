@@ -28,7 +28,7 @@ static inline FileType getFileType(const char* path) {
 }
 
 struct DirIter {
-    DIR * dp;
+    DIR* dp;
     struct dirent* entry;
 
     bool error;
@@ -39,8 +39,9 @@ static inline DirIter dirFindFirst(const char* path) {
     iter.dp = opendir(path);
     if (iter.dp != NULL) {
         iter.entry = readdir(iter.dp);
-        iter.error = (iter.entry == NULL);;
-    }else {
+        iter.error = (iter.entry == NULL);
+        ;
+    } else {
         iter.error = true;
     }
     return iter;
@@ -59,8 +60,8 @@ static inline void dirClose(DirIter* iter) {
     closedir(iter->dp);
 }
 
-static inline const char* dirGetName(DirIter iter) {
-    if (iter.error || !iter.entry)
+static inline const char* dirGetName(const DirIter* iter) {
+    if (iter->error || !iter->entry)
         return NULL;
-    return iter.entry->d_name;
+    return iter->entry->d_name;
 }

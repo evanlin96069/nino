@@ -145,17 +145,29 @@ int getDigit(int n) {
     return 10;
 }
 
-const char *getBaseName(const char *path) {
-    const char *name = strrchr(path, STR2CHAR(DIR_SEP));
-    return name ? name + 1 : path;
+char *getBaseName(char *path) {
+    char *file = path + strlen(path);
+    for (; file > path; file--) {
+        if ((*file == '/')
+#ifdef _WIN32
+            || (*file == '\\')
+#endif
+        ) {
+            file++;
+            break;
+        }
+    }
+    return file;
 }
 
 char *getDirName(char *path) {
-    char *name = strrchr(path, STR2CHAR(DIR_SEP));
-    if (!name) {
+    char *name = getBaseName(path);
+    if (name == path) {
         name = path;
         *name = '.';
         name++;
+    } else {
+        path--;
     }
     *name = '\0';
     return path;

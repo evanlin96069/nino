@@ -74,41 +74,38 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
 bool editorOpen(EditorFile* file, const char* path) {
     editorInitFile(file);
 
-
     FileType type = getFileType(path);
-    if (type == FT_INVALID)
-        return false;
+    if (type != FT_INVALID) {
+        if (type == FT_DIR) {
+            if (gEditor.explorer.node)
+                editorExplorerFreeNode(gEditor.explorer.node);
+            gEditor.explorer.node = editorExplorerCreate(path);
+            gEditor.explorer.node->is_open = true;
+            editorExplorerRefresh();
 
-    if (type == FT_DIR) {
-        if (gEditor.explorer.node)
-            editorExplorerFreeNode(gEditor.explorer.node);
-        gEditor.explorer.node = editorExplorerCreate(path);
-        gEditor.explorer.node->is_open = true;
-        editorExplorerRefresh();
+            gEditor.explorer.offset = 0;
+            gEditor.explorer.selected_index = 0;
+            return false;
+        }
 
-        gEditor.explorer.offset = 0;
-        gEditor.explorer.selected_index = 0;
-        return false;
-    }
+        if (type != FT_REG) {
+            editorSetStatusMsg("Can't load \"%s\"! Not a regular file.", path);
+            return false;
+        }
 
-    if (type != FT_REG) {
-        editorSetStatusMsg("Can't load! \"%s\" is not a regular file.",
-                           path);
-        return false;
-    }
+        FileInfo file_info = getFileInfo(path);
+        if (file_info.error) {
+            editorSetStatusMsg("Can't load \"%s\"! Failed to get file info.",
+                               path);
+            return false;
+        }
+        file->file_info = file_info;
+        int open_index = isFileOpened(file_info);
 
-    FileInfo file_info = getFileInfo(path);
-    if (file_info.error) {
-        editorSetStatusMsg("Can't load! Failed to get file info of \"%s\".",
-                           path);
-        return false;
-    }
-    file->file_info = file_info;
-    int open_index = isFileOpened(file_info);
-
-    if (open_index != -1) {
-        editorChangeToFile(open_index);
-        return false;
+        if (open_index != -1) {
+            editorChangeToFile(open_index);
+            return false;
+        }
     }
 
     FILE* f = fopen(path, "rb");
@@ -116,12 +113,6 @@ bool editorOpen(EditorFile* file, const char* path) {
         editorSetStatusMsg("Can't load \"%s\"! %s", path, strerror(errno));
         return false;
     }
-
-    free(file->filename);
-    size_t fnlen = strlen(path) + 1;
-    file->filename = malloc_s(fnlen);
-    memcpy(file->filename, path, fnlen);
-    editorSelectSyntaxHighlight(file);
 
     if (!f && errno == ENOENT) {
         // file doesn't exist
@@ -138,6 +129,15 @@ bool editorOpen(EditorFile* file, const char* path) {
                                strerror(errno));
             return false;
         }
+    }
+
+    free(file->filename);
+    size_t fnlen = strlen(path) + 1;
+    file->filename = malloc_s(fnlen);
+    memcpy(file->filename, path, fnlen);
+    editorSelectSyntaxHighlight(file);
+
+    if (!f && errno == ENOENT) {
         editorInsertRow(file, file->cursor.y, "", 0);
     } else {
         bool has_end_nl = true;
@@ -268,17 +268,14 @@ static void insertExplorerNode(EditorExplorerNode* node,
 }
 
 EditorExplorerNode* editorExplorerCreate(const char* path) {
-    struct stat file_info;
-    if (stat(path, &file_info) == -1)
-        return NULL;
-
     EditorExplorerNode* node = malloc_s(sizeof(EditorExplorerNode));
 
     int len = strlen(path);
     node->filename = malloc_s(len + 1);
     snprintf(node->filename, len + 1, "%s", path);
 
-    node->is_directory = S_ISDIR(file_info.st_mode);
+    node->is_directory = (getFileType(path) == FT_DIR);
+    ;
     node->is_open = false;
     node->loaded = false;
     node->depth = 0;
@@ -299,14 +296,13 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
         return;
 
     do {
-        const char* filename = dirGetName(iter);
-        if (strcmp(filename, ".") == 0 ||
-            strcmp(filename, "..") == 0)
+        const char* filename = dirGetName(&iter);
+        if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0)
             continue;
 
         char entry_path[EDITOR_PATH_MAX];
-        snprintf(entry_path, sizeof(entry_path), PATH_CAT("%s","%s"), node->filename,
-                 filename);
+        snprintf(entry_path, sizeof(entry_path), PATH_CAT("%s", "%s"),
+                 node->filename, filename);
 
         EditorExplorerNode* child = editorExplorerCreate(entry_path);
         if (!child)

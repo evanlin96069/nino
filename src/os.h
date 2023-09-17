@@ -3,7 +3,6 @@
 
 #include <stdbool.h>
 
-
 typedef struct FileInfo FileInfo;
 static inline FileInfo getFileInfo(const char* path);
 static inline bool areFilesEqual(FileInfo f1, FileInfo f2);
@@ -19,13 +18,13 @@ typedef struct DirIter DirIter;
 static inline DirIter dirFindFirst(const char* path);
 static inline bool dirNext(DirIter* iter);
 static inline void dirClose(DirIter* iter);
-static inline const char* dirGetName(DirIter iter);
+static inline const char* dirGetName(const DirIter* iter);
 
 #ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <io.h>
+#include <windows.h>
 
 #define ENV_HOME "USERPROFILE"
 #define CONF_DIR ".nino"
@@ -37,9 +36,9 @@ static inline const char* dirGetName(DirIter iter);
 
 #else
 
-#include <unistd.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define ENV_HOME "HOME"
 #define CONF_DIR ".config/nino"

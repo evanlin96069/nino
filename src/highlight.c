@@ -5,14 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <dirent.h>
-#include <sys/stat.h>
-#endif
-
 #include "config.h"
+#include "os.h"
 
 void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
     row->hl = realloc_s(row->hl, row->size);
@@ -206,53 +200,28 @@ void editorInitHLDB(void) {
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
              getenv(ENV_HOME));
 
-#ifdef _WIN32
-    char search_path[EDITOR_PATH_MAX];
-    snprintf(search_path, sizeof(search_path), "%s\\*.json", path);
-
-    WIN32_FIND_DATA findData;
-    HANDLE hFind = FindFirstFile(search_path, &findData);
-    if (hFind == INVALID_HANDLE_VALUE)
+    DirIter iter = dirFindFirst(path);
+    if (iter.error)
         return;
 
     do {
-        if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            char file_path[EDITOR_PATH_MAX];
-            snprintf(file_path, sizeof(file_path), "%s\\%s", path,
-                     findData.cFileName);
-            editorLoadHLDB(file_path);
-        }
-    } while (FindNextFile(hFind, &findData) != 0);
-
-    FindClose(hFind);
-#else
-    DIR* directory = opendir(path);
-    if (!directory)
-        return;
-
-    struct dirent* entry;
-    while ((entry = readdir(directory)) != NULL) {
+        const char* filename = dirGetName(&iter);
         char file_path[EDITOR_PATH_MAX];
-        int len = snprintf(file_path, sizeof(file_path), "%s/%s", path,
-                           entry->d_name);
+        int len = snprintf(file_path, sizeof(file_path), PATH_CAT("%s", "%s"),
+                           path, filename);
 
         // This is just to suppress Wformat-truncation
         if (len < 0)
             continue;
 
-        struct stat file_info;
-        if (stat(file_path, &file_info) == -1)
-            continue;
-
-        if (S_ISREG(file_info.st_mode)) {
-            const char* ext = strrchr(entry->d_name, '.');
+        if (getFileType(file_path) == FT_REG) {
+            const char* ext = strrchr(filename, '.');
             if (ext && strcmp(ext, ".json") == 0) {
                 editorLoadHLDB(file_path);
             }
         }
-    }
-    closedir(directory);
-#endif
+    } while (dirNext(&iter));
+    dirClose(&iter);
 }
 
 #define ARENA_SIZE (1 << 12)

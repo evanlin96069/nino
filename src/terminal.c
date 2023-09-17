@@ -10,17 +10,15 @@
 
 #include "defines.h"
 #include "editor.h"
+#include "os.h"
 #include "output.h"
 
 #ifdef _WIN32
-#include <io.h>
-#include <windows.h>
 static DWORD orig_in_mode;
 static DWORD orig_out_mode;
 #else
 #include <sys/ioctl.h>
 #include <termios.h>
-#include <unistd.h>
 
 static struct termios orig_termios;
 #endif

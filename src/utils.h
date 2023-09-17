@@ -17,7 +17,6 @@
 
 #define _NOP(s) s
 
-#define STR2CHAR(s) (*s)
 #define PATH_CAT(...) _MAP(_NOP, DIR_SEP, __VA_ARGS__)
 
 #define UNUSED(x) (void)!(x)
@@ -105,7 +104,7 @@ int isIdentifierChar(int c);
 int isNonSpace(int c);
 
 // File
-const char* getBaseName(const char* path);
+char* getBaseName(char* path);
 char* getDirName(char* path);
 
 // Misc

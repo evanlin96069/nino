@@ -6,16 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
-
 #include "config.h"
 #include "defines.h"
 #include "editor.h"
 #include "highlight.h"
+#include "os.h"
 #include "select.h"
 #include "status.h"
 #include "unicode.h"
