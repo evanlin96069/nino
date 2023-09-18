@@ -14,6 +14,9 @@
 #include "output.h"
 
 #ifdef _WIN32
+static HANDLE hStdin = INVALID_HANDLE_VALUE;
+static HANDLE hStdout = INVALID_HANDLE_VALUE;
+
 static DWORD orig_in_mode;
 static DWORD orig_out_mode;
 #else
@@ -423,6 +426,15 @@ void resizeWindow(void) {
 }
 
 void editorInitTerminal(void) {
+#ifdef _WIN32
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE)
+        PANIC("GetStdHandle(STD_INPUT_HANDLE)");
+    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hStdout == INVALID_HANDLE_VALUE)
+        PANIC("GetStdHandle(STD_OUTPUT_HANDLE)");
+#endif
+
     enableRawMode();
     enableSwap();
     // Mouse mode default on

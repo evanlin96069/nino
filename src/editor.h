@@ -12,17 +12,6 @@
 
 #define EDITOR_FILE_MAX_SLOT 32
 
-#define NL_UNIX 0
-#define NL_DOS 1
-
-#ifdef _WIN32
-#define NL_DEFAULT NL_DOS
-extern HANDLE hStdin;
-extern HANDLE hStdout;
-#else
-#define NL_DEFAULT NL_UNIX
-#endif
-
 typedef struct EditorSyntax EditorSyntax;
 
 typedef struct EditorFile {

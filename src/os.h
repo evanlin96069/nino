@@ -22,6 +22,9 @@ static inline const char* dirGetName(const DirIter* iter);
 
 static inline int64_t getTime(void);
 
+#define NL_UNIX 0
+#define NL_DOS 1
+
 #ifdef _WIN32
 
 #define WIN32_LEAN_AND_MEAN
@@ -31,6 +34,8 @@ static inline int64_t getTime(void);
 #define ENV_HOME "USERPROFILE"
 #define CONF_DIR ".nino"
 #define DIR_SEP "\\"
+
+#define NL_DEFAULT NL_DOS
 
 #define EDITOR_PATH_MAX MAX_PATH
 
@@ -46,6 +51,8 @@ static inline int64_t getTime(void);
 #define ENV_HOME "HOME"
 #define CONF_DIR ".config/nino"
 #define DIR_SEP "/"
+
+#define NL_DEFAULT NL_UNIX
 
 #ifdef __linux__
 // Linux

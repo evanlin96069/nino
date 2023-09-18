@@ -10,24 +10,10 @@
 #include "terminal.h"
 #include "utils.h"
 
-#ifdef _WIN32
-HANDLE hStdin = INVALID_HANDLE_VALUE;
-HANDLE hStdout = INVALID_HANDLE_VALUE;
-#endif
-
 Editor gEditor;
 EditorFile* gCurFile;
 
 void editorInit(void) {
-#ifdef _WIN32
-    hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    if (hStdin == INVALID_HANDLE_VALUE)
-        PANIC("GetStdHandle(STD_INPUT_HANDLE)");
-    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hStdout == INVALID_HANDLE_VALUE)
-        PANIC("GetStdHandle(STD_OUTPUT_HANDLE)");
-#endif
-
     memset(&gEditor, 0, sizeof(Editor));
     gEditor.loading = true;
     gEditor.state = EDIT_MODE;
