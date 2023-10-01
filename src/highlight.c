@@ -228,6 +228,8 @@ void editorInitHLDB(void) {
 
 static void* mallocWrapper(size_t size) { return malloc_s(size); }
 
+static Allocator allocator = {.malloc = mallocWrapper, .free = free};
+
 static EditorSyntax* HLDB_tail = NULL;
 bool editorLoadHLDB(const char* json_file) {
     FILE* fp;
@@ -253,7 +255,6 @@ bool editorLoadHLDB(const char* json_file) {
     fclose(fp);
 
     // Parse json
-    Allocator allocator = {.malloc = mallocWrapper, .free = free};
     Arena arena;
     arenaInit(&arena, ARENA_SIZE, &allocator);
     JsonValue* value = jsonParse(buffer, &arena);

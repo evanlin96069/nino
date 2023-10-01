@@ -377,7 +377,7 @@ static void SIGSEGV_handler(int sig) {
     if (sig != SIGSEGV)
         return;
     terminalExit();
-    UNUSED(write(STDOUT_FILENO, "Exit from SIGSEGV_handler\r\n", 20));
+    UNUSED(write(STDOUT_FILENO, "Exit from SIGSEGV_handler\r\n", 27));
     _exit(EXIT_FAILURE);
 }
 
