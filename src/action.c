@@ -43,14 +43,16 @@ void editorAppendAction(EditorAction* action) {
 
     gCurFile->dirty++;
 
+    editorFreeActionList(gCurFile->action_current->next);
+
     if (gCurFile->action_current == gCurFile->action_head) {
         gCurFile->action_head->next = node;
         node->prev = gCurFile->action_head;
         gCurFile->action_current = node;
         return;
     }
+
     node->prev = gCurFile->action_current;
-    editorFreeActionList(gCurFile->action_current->next);
     gCurFile->action_current->next = node;
     gCurFile->action_current = gCurFile->action_current->next;
 }
