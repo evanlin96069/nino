@@ -195,7 +195,17 @@ void editorCopyToSysClipboard(EditorClipboard* clipboard) {
 
     b64_len = base64Encode(ab.buf, ab.len, b64_buf);
 
+    bool tmux = (getenv("TMUX") != NULL);
+    if (tmux) {
+        fprintf(stdout, "\x1bPtmux;\x1b");
+    }
+
     fprintf(stdout, "\x1b]52;c;%.*s\x07", b64_len, b64_buf);
+
+    if (tmux) {
+        fprintf(stdout, "\x1b\\");
+    }
+
     fflush(stdout);
 
     free(b64_buf);
