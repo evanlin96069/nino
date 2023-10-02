@@ -846,13 +846,14 @@ void editorProcessKeypress(void) {
                 action->deleted_range = range;
                 editorCopyText(&action->deleted_text, action->deleted_range);
                 editorDeleteText(action->deleted_range);
-                break;
+            } else {
+                getSelectStartEnd(&action->deleted_range);
+                editorCopyText(&action->deleted_text, action->deleted_range);
+                editorCopyText(&gEditor.clipboard, action->deleted_range);
+                editorDeleteText(action->deleted_range);
+                gCurFile->cursor.is_selected = false;
             }
-            getSelectStartEnd(&action->deleted_range);
-            editorCopyText(&action->deleted_text, action->deleted_range);
-            editorCopyText(&gEditor.clipboard, action->deleted_range);
-            editorDeleteText(action->deleted_range);
-            gCurFile->cursor.is_selected = false;
+            editorCopyToSysClipboard(&gEditor.clipboard);
         } break;
 
         // Copy
@@ -872,6 +873,7 @@ void editorProcessKeypress(void) {
                     gCurFile->cursor.y};
                 editorCopyText(&gEditor.clipboard, range);
             }
+            editorCopyToSysClipboard(&gEditor.clipboard);
         } break;
 
         // Action: Paste

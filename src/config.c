@@ -26,6 +26,7 @@ CONVAR(helpinfo, "Show the help information.", "1", NULL);
 CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smart case.",
        "2", NULL);
 CONVAR(mouse, "Enable mouse mode.", "1", cvarMouseCallback);
+CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
 
 static void cvarSyntaxCallback(void) {
     // Reload all
@@ -327,6 +328,7 @@ void editorInitConfig(void) {
     INIT_CONVAR(helpinfo);
     INIT_CONVAR(ignorecase);
     INIT_CONVAR(mouse);
+    INIT_CONVAR(osc52_copy);
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(exec);

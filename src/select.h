@@ -25,4 +25,6 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y);
 
 void editorFreeClipboardContent(EditorClipboard* clipboard);
 
+void editorCopyToSysClipboard(EditorClipboard* clipboard);
+
 #endif

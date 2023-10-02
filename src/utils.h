@@ -116,4 +116,9 @@ int64_t getLine(char** lineptr, size_t* n, FILE* stream);
 int strCaseCmp(const char* s1, const char* s2);
 char* strCaseStr(const char* str, const char* sub_str);
 
+// Base64
+static inline int base64EncodeLen(int len) { return ((len + 2) / 3 * 4) + 1; }
+
+int base64Encode(const char* string, int len, char* output);
+
 #endif

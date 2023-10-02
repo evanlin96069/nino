@@ -1,8 +1,10 @@
 #include "select.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "editor.h"
 #include "row.h"
 #include "utils.h"
@@ -172,4 +174,30 @@ void editorFreeClipboardContent(EditorClipboard* clipboard) {
     }
     clipboard->size = 0;
     free(clipboard->data);
+}
+
+void editorCopyToSysClipboard(EditorClipboard* clipboard) {
+    if (!CONVAR_GETINT(osc52_copy))
+        return;
+
+    if (!clipboard || !clipboard->size)
+        return;
+
+    abuf ab = ABUF_INIT;
+    for (size_t i = 0; i < clipboard->size; i++) {
+        if (i != 0)
+            abufAppendN(&ab, "\n", 1);
+        abufAppend(&ab, clipboard->data[i]);
+    }
+
+    int b64_len = base64EncodeLen(ab.len);
+    char* b64_buf = malloc_s(b64_len * sizeof(char));
+
+    b64_len = base64Encode(ab.buf, ab.len, b64_buf);
+
+    fprintf(stdout, "\x1b]52;c;%.*s\x07", b64_len, b64_buf);
+    fflush(stdout);
+
+    free(b64_buf);
+    abufFree(&ab);
 }
