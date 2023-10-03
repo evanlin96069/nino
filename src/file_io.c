@@ -184,7 +184,9 @@ bool editorOpen(EditorFile* file, const char* path) {
             editorInsertRow(file, file->num_rows, "", 0);
         }
 
-        if (has_cr) {
+        if (file->num_rows < 2) {
+            file->newline = NL_DEFAULT;
+        } else if (has_cr) {
             file->newline = NL_DOS;
         } else if (file->num_rows) {
             file->newline = NL_UNIX;
