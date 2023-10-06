@@ -13,7 +13,7 @@ endif
 
 # Compiler flags
 CC = gcc
-CFLAGS = -pedantic -std=gnu11 -Wall -Wextra
+CFLAGS = -pedantic -std=c11 -Wall -Wextra
 CFLAGS += -Ijson/include
 LIBFLAGS = -Ljson/lib -ljson
 
@@ -38,14 +38,14 @@ RELDIR = release
 RELEXE = $(RELDIR)/$(EXE)
 RELOBJS = $(addprefix $(RELDIR)/, $(OBJS))
 RELDEPS = $(addprefix $(RELDIR)/, $(DEPS))
-RELCFLAGS = -O2
+RELCFLAGS = -O2 -DNDEBUG
 
 # Debug build settings
 DBGDIR = debug
 DBGEXE = $(DBGDIR)/$(EXE)
 DBGOBJS = $(addprefix $(DBGDIR)/, $(OBJS))
 DBGDEPS = $(addprefix $(DBGDIR)/, $(DEPS))
-DBGCFLAGS = -Og -g3 -D_DEBUG
+DBGCFLAGS = -Og -g3
 
 # Default target
 all: prep release

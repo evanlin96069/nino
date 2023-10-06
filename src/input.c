@@ -186,7 +186,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
 
         case CTRL_KEY('q'):
             if (gEditor.file_count == 0) {
-#ifdef _DEBUG
+#ifndef NDEBUG
                 editorFree();
 #endif
                 exit(EXIT_SUCCESS);
@@ -594,7 +594,7 @@ void editorProcessKeypress(void) {
                 quit_protect = false;
                 return;
             }
-#ifdef _DEBUG
+#ifndef NDEBUG
             editorFree();
 #endif
             exit(EXIT_SUCCESS);
