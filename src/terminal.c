@@ -381,6 +381,14 @@ static void SIGSEGV_handler(int sig) {
     _exit(EXIT_FAILURE);
 }
 
+static void SIGABRT_handler(int sig) {
+    if (sig != SIGABRT)
+        return;
+    terminalExit();
+    UNUSED(write(STDOUT_FILENO, "Exit from SIGABRT_handler\r\n", 27));
+    _exit(EXIT_FAILURE);
+}
+
 static void enableSwap(void) {
     UNUSED(write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11));
 }
@@ -445,6 +453,11 @@ void editorInitTerminal(void) {
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
         PANIC("SIGSEGV_handler");
     }
+
+    if (signal(SIGABRT, SIGABRT_handler) == SIG_ERR) {
+        PANIC("SIGABRT_handler");
+    }
+
 #ifndef _WIN32
     if (signal(SIGWINCH, SIGWINCH_handler) == SIG_ERR) {
         PANIC("SIGWINCH_handler");

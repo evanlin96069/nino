@@ -205,6 +205,29 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
     editorSetStatusMsg("\"%s\" - %s", cmd->name, cmd->help_string);
 }
 
+#ifdef _DEBUG
+
+CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
+    int crash_type = 0;
+    if (args.argc > 1) {
+        crash_type = atoi(args.argv[1]);
+    }
+
+    switch (crash_type) {
+        case 0:
+            // SIGABRT
+            *(char*)0 = 0;
+            break;
+        case 1:
+            // SIGSEGV
+            abort();
+        default:
+            editorSetStatusMsg("Unknown crash type.");
+    }
+}
+
+#endif
+
 const EditorColorScheme color_default = {
     .bg = {30, 30, 30},
     .top_status =
@@ -336,6 +359,10 @@ void editorInitConfig(void) {
     INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(newline);
     INIT_CONCOMMAND(help);
+
+#ifdef _DEBUG
+    INIT_CONCOMMAND(crash);
+#endif
 
     // Load defualt config
     char path[EDITOR_PATH_MAX] = {0};
