@@ -1,3 +1,5 @@
+#define _GNU_SOURCE // SIGWINCH
+
 #include "terminal.h"
 
 #include <ctype.h>
