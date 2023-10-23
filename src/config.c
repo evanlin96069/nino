@@ -14,7 +14,7 @@
 static void cvarSyntaxCallback(void);
 static void cvarMouseCallback(void);
 
-CONVAR(tabsize, "Tab size.", "4", NULL);
+CONVAR(tabsize, "Tab size.", "4", cvarSyntaxCallback);
 CONVAR(whitespace, "Use whitespace instead of tab.", "1", NULL);
 CONVAR(autoindent, "Enable auto indent.", "0", NULL);
 CONVAR(backspace, "Use hungry backspace.", "1", NULL);
