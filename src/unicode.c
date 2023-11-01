@@ -1,6 +1,7 @@
 #include "unicode.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 struct interval {
     uint32_t start, end;
@@ -264,4 +265,18 @@ uint32_t decodeUTF8(const char *str, size_t len, size_t *byte_size) {
     }
     *byte_size = bytes;
     return result;
+}
+
+int strUTF8Width(const char *str) {
+    const char *p = str;
+    int width = 0;
+    size_t len = strlen(str);
+
+    while (*p != '\0') {
+        size_t byte_size;
+        width += unicodeWidth(decodeUTF8(p, len, &byte_size));
+        p += byte_size;
+        len -= byte_size;
+    }
+    return width;
 }

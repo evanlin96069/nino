@@ -15,6 +15,7 @@
 #include "select.h"
 #include "status.h"
 #include "terminal.h"
+#include "unicode.h"
 #include "utils.h"
 
 static void editorExplorerNodeClicked(void) {
@@ -454,24 +455,24 @@ static int handleTabClick(int x) {
         const EditorFile* file = &gEditor.files[i];
         const char* filename =
             file->filename ? getBaseName(file->filename) : "Untitled";
-        int buf_len = strlen(filename) + 2;
+        int tab_width = strUTF8Width(filename) + 2;
 
         if (file->dirty)
-            buf_len++;
+            tab_width++;
 
-        if (gEditor.screen_cols - len < buf_len ||
+        if (gEditor.screen_cols - len < tab_width ||
             (i != gEditor.file_count - 1 &&
-             gEditor.screen_cols - len == buf_len)) {
+             gEditor.screen_cols - len == tab_width)) {
             has_more_files = true;
             if (tab_displayed == 0) {
                 // Display at least one tab
-                buf_len = gEditor.screen_cols - len - 1;
+                tab_width = gEditor.screen_cols - len - 1;
             } else {
                 break;
             }
         }
 
-        len += buf_len;
+        len += tab_width;
         if (len > x)
             return i;
 

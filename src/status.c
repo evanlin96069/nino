@@ -7,6 +7,7 @@
 
 #include "editor.h"
 #include "highlight.h"
+#include "unicode.h"
 #include "utils.h"
 #include "version.h"
 
@@ -67,13 +68,16 @@ void editorDrawTopStatusBar(abuf* ab) {
                 file->filename ? getBaseName(file->filename) : "Untitled";
             int buf_len = snprintf(buf, sizeof(buf), " %s%s ",
                                    file->dirty ? "*" : "", filename);
+            int tab_width = strUTF8Width(buf);
 
-            if (gEditor.screen_cols - len < buf_len ||
+            if (gEditor.screen_cols - len < tab_width ||
                 (i != gEditor.file_count - 1 &&
-                 gEditor.screen_cols - len == buf_len)) {
+                 gEditor.screen_cols - len == tab_width)) {
                 has_more_files = true;
                 if (gEditor.tab_displayed == 0) {
                     // Display at least one tab
+                    // TODO: This is wrong
+                    tab_width = gEditor.screen_cols - len - 1;
                     buf_len = gEditor.screen_cols - len - 1;
                 } else {
                     break;
@@ -81,11 +85,11 @@ void editorDrawTopStatusBar(abuf* ab) {
             }
 
             // Not enough space to even show one tab
-            if (buf_len < 0)
+            if (tab_width < 0)
                 break;
 
             abufAppendN(ab, buf, buf_len);
-            len += buf_len;
+            len += tab_width;
             gEditor.tab_displayed++;
         }
     }
