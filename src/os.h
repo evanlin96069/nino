@@ -1,6 +1,7 @@
 #ifndef OS_H
 #define OS_H
 
+#include <stdio.h>
 #include <stdbool.h>
 
 typedef struct FileInfo FileInfo;
@@ -19,6 +20,8 @@ static inline DirIter dirFindFirst(const char* path);
 static inline bool dirNext(DirIter* iter);
 static inline void dirClose(DirIter* iter);
 static inline const char* dirGetName(const DirIter* iter);
+
+static inline FILE* openFile(const char* path, const char* mode);
 
 static inline int64_t getTime(void);
 

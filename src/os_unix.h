@@ -66,6 +66,10 @@ static inline const char* dirGetName(const DirIter* iter) {
     return iter->entry->d_name;
 }
 
+static inline FILE* openFile(const char* path, const char* mode) {
+    return fopen(path, mode);
+}
+
 static inline int64_t getTime(void) {
     struct timeval time_val;
     gettimeofday(&time_val, NULL);

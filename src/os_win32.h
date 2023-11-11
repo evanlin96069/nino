@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "os.h"
 
 #ifndef STDIN_FILENO
@@ -18,20 +16,23 @@ struct FileInfo {
 
 static inline FileInfo getFileInfo(const char* path) {
     FileInfo info;
-    HANDLE hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL,
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
+
+    HANDLE hFile = CreateFileW(w_path, GENERIC_READ, FILE_SHARE_READ, NULL,
                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
-        goto defer;
+        goto errdefer;
 
     BOOL result = GetFileInformationByHandle(hFile, &info.info);
     if (result == 0)
-        goto defer;
+        goto errdefer;
 
     CloseHandle(hFile);
     info.error = false;
     return info;
 
-defer:
+errdefer:
     CloseHandle(hFile);
     info.error = true;
     return info;
@@ -54,24 +55,30 @@ static inline FileType getFileType(const char* path) {
 
 struct DirIter {
     HANDLE handle;
-    WIN32_FIND_DATAA find_data;
+    WIN32_FIND_DATAW find_data;
 
     bool error;
 };
 
 static inline DirIter dirFindFirst(const char* path) {
     DirIter iter;
-    char entry_path[EDITOR_PATH_MAX];
-    snprintf(entry_path, sizeof(entry_path), "%s\\*", path);
-    iter.handle = FindFirstFileA(entry_path, &iter.find_data);
+
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
+
+    wchar_t entry_path[EDITOR_PATH_MAX];
+    swprintf(entry_path, EDITOR_PATH_MAX, L"%ls\\*", w_path);
+
+    iter.handle = FindFirstFileW(entry_path, &iter.find_data);
     iter.error = (iter.handle == INVALID_HANDLE_VALUE);
+
     return iter;
 }
 
 static inline bool dirNext(DirIter* iter) {
     if (iter->error)
         return false;
-    return FindNextFileA(iter->handle, &iter->find_data) != 0;
+    return FindNextFileW(iter->handle, &iter->find_data) != 0;
 }
 
 static inline void dirClose(DirIter* iter) {
@@ -80,10 +87,23 @@ static inline void dirClose(DirIter* iter) {
     FindClose(iter->handle);
 }
 
+static char dir_name[EDITOR_PATH_MAX * 4];
 static inline const char* dirGetName(const DirIter* iter) {
     if (iter->error)
         return NULL;
-    return iter->find_data.cFileName;
+
+    WideCharToMultiByte(CP_UTF8, 0, iter->find_data.cFileName, -1, dir_name, EDITOR_PATH_MAX, NULL, false);
+    return dir_name;
+}
+
+static inline FILE* openFile(const char* path, const char* mode) {
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    wchar_t short_path[EDITOR_PATH_MAX + 1];
+    char c_path[EDITOR_PATH_MAX * 4];
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
+    GetShortPathNameW(w_path, short_path, EDITOR_PATH_MAX);
+    WideCharToMultiByte(CP_UTF8, 0, short_path, -1, c_path, EDITOR_PATH_MAX, NULL, false);
+    return fopen(c_path, mode);
 }
 
 static inline int64_t getTime(void) {

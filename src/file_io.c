@@ -108,7 +108,7 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
     }
 
-    FILE* f = fopen(path, "rb");
+    FILE* f = openFile(path, "rb");
     if (!f && errno != ENOENT) {
         editorSetStatusMsg("Can't load \"%s\"! %s", path, strerror(errno));
         return false;
@@ -213,7 +213,7 @@ void editorSave(EditorFile* file, int save_as) {
     size_t len;
     char* buf = editroRowsToString(file, &len);
 
-    FILE* fp = fopen(file->filename, "wb");
+    FILE* fp = openFile(file->filename, "wb");
     if (fp) {
         if (fwrite(buf, sizeof(char), len, fp) == len) {
             fclose(fp);
@@ -277,7 +277,6 @@ EditorExplorerNode* editorExplorerCreate(const char* path) {
     snprintf(node->filename, len + 1, "%s", path);
 
     node->is_directory = (getFileType(path) == FT_DIR);
-    ;
     node->is_open = false;
     node->loaded = false;
     node->depth = 0;

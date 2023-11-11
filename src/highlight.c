@@ -237,7 +237,7 @@ bool editorLoadHLDB(const char* json_file) {
     char* buffer;
 
     // Load file
-    fp = fopen(json_file, "rb");
+    fp = openFile(json_file, "rb");
     if (!fp)
         return false;
 
