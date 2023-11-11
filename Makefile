@@ -2,11 +2,9 @@
 
 # Platform detection
 ifeq ($(OS),Windows_NT)
-    EXE_EXT = .exe
     mkdir = mkdir $(subst /,\,$(1)) > nul 2>&1 || (exit 0)
     rm = $(wordlist 2,65535,$(foreach FILE,$(subst /,\,$(1)),& del $(FILE) > nul 2>&1)) || (exit 0)
 else
-    EXE_EXT =
     mkdir = mkdir -p $(1)
     rm = rm $(1) > /dev/null 2>&1 || true
 endif
@@ -19,7 +17,18 @@ LIBFLAGS = -Ljson/lib -ljson
 
 # Project files
 SRCDIR = src
-SOURCES = $(wildcard $(SRCDIR)/*.c)
+
+ifeq ($(OS),Windows_NT)
+    # Windows build
+    EXE_EXT = .exe
+    EXCLUDED_SOURCES = $(SRCDIR)/os_unix.c
+else
+    # Unix build
+    EXE_EXT =
+    EXCLUDED_SOURCES = $(SRCDIR)/os_win32.c
+endif
+
+SOURCES = $(filter-out $(EXCLUDED_SOURCES), $(wildcard $(SRCDIR)/*.c))
 OBJS = $(patsubst $(SRCDIR)/%.c, %.o, $(SOURCES))
 DEPS = $(patsubst $(SRCDIR)/%.c, %.d, $(SOURCES))
 EXE = nino$(EXE_EXT)

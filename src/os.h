@@ -1,73 +1,40 @@
 #ifndef OS_H
 #define OS_H
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
 typedef struct FileInfo FileInfo;
-static inline FileInfo getFileInfo(const char* path);
-static inline bool areFilesEqual(FileInfo f1, FileInfo f2);
+FileInfo getFileInfo(const char* path);
+bool areFilesEqual(FileInfo f1, FileInfo f2);
 
 typedef enum FileType {
     FT_INVALID = -1,
     FT_REG,
     FT_DIR,
 } FileType;
-static inline FileType getFileType(const char* path);
+FileType getFileType(const char* path);
 
 typedef struct DirIter DirIter;
-static inline DirIter dirFindFirst(const char* path);
-static inline bool dirNext(DirIter* iter);
-static inline void dirClose(DirIter* iter);
-static inline const char* dirGetName(const DirIter* iter);
+DirIter dirFindFirst(const char* path);
+bool dirNext(DirIter* iter);
+void dirClose(DirIter* iter);
+const char* dirGetName(const DirIter* iter);
 
-static inline FILE* openFile(const char* path, const char* mode);
+FILE* openFile(const char* path, const char* mode);
 
-static inline int64_t getTime(void);
+int64_t getTime(void);
 
 #define NL_UNIX 0
 #define NL_DOS 1
 
 #ifdef _WIN32
-
-#define WIN32_LEAN_AND_MEAN
-#include <io.h>
-#include <windows.h>
-
-#define ENV_HOME "USERPROFILE"
-#define CONF_DIR ".nino"
-#define DIR_SEP "\\"
-
 #define NL_DEFAULT NL_DOS
-
-#define EDITOR_PATH_MAX MAX_PATH
-
 #include "os_win32.h"
-
 #else
-
-#include <dirent.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-#define ENV_HOME "HOME"
-#define CONF_DIR ".config/nino"
-#define DIR_SEP "/"
-
 #define NL_DEFAULT NL_UNIX
-
-#ifdef __linux__
-// Linux
-#include <linux/limits.h>
-#define EDITOR_PATH_MAX PATH_MAX
-#else
-// Other
-#define EDITOR_PATH_MAX 4096
-#endif
-
 #include "os_unix.h"
-
 #endif
 
 #endif
