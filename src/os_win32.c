@@ -83,14 +83,20 @@ const char* dirGetName(const DirIter* iter) {
 }
 
 FILE* openFile(const char* path, const char* mode) {
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    wchar_t short_path[EDITOR_PATH_MAX + 1];
-    char c_path[EDITOR_PATH_MAX * 4];
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
-    GetShortPathNameW(w_path, short_path, EDITOR_PATH_MAX);
-    WideCharToMultiByte(CP_UTF8, 0, short_path, -1, c_path, EDITOR_PATH_MAX,
-                        NULL, false);
-    return fopen(c_path, mode);
+    int size = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+    wchar_t* w_path = malloc_s(size * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, size);
+
+    size = MultiByteToWideChar(CP_UTF8, 0, mode, -1, NULL, 0);
+    wchar_t* w_mode = malloc_s(size * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, mode, -1, w_mode, size);
+
+    FILE* file = _wfopen(w_path, w_mode);
+
+    free(w_path);
+    free(w_mode);
+
+    return file;
 }
 
 int64_t getTime(void) {
