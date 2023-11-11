@@ -1,8 +1,9 @@
 #ifndef OS_WIN32_H
 #define OS_WIN32_H
 
+#include <stdbool.h>
+
 #define WIN32_LEAN_AND_MEAN
-#include <io.h>
 #include <windows.h>
 
 #define ENV_HOME "USERPROFILE"
@@ -11,6 +12,7 @@
 
 #define EDITOR_PATH_MAX MAX_PATH
 
+#include <io.h>
 #ifndef STDIN_FILENO
 #define STDIN_FILENO _fileno(stdin)
 #endif

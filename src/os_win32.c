@@ -1,4 +1,10 @@
+#include "os_win32.h"
+
+#include <shellapi.h>
+#include <stdlib.h>
+
 #include "os.h"
+#include "utils.h"
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;
@@ -101,4 +107,32 @@ int64_t getTime(void) {
     int64_t sec = ((time - EPOCH) / 10000000);
     int64_t usec = (system_time.wMilliseconds * 1000);
     return sec * 1000000 + usec;
+}
+
+Args argsGet(int num_args, char** args) {
+    UNUSED(num_args);
+    UNUSED(args);
+
+    int argc;
+    LPWSTR* w_argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (!w_argv)
+        PANIC("GetCommandLine");
+
+    char** utf8_argv = malloc_s(argc * sizeof(char*));
+    for (int i = 0; i < argc; i++) {
+        int size =
+            WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, NULL, 0, NULL, NULL);
+        utf8_argv[i] = malloc_s(size);
+        WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, utf8_argv[i], size, NULL,
+                            NULL);
+    }
+
+    return (Args){.count = argc, .args = utf8_argv};
+}
+
+void argsFree(Args args) {
+    for (int i = 0; i < args.count; i++) {
+        free(args.args[i]);
+    }
+    free(args.args);
 }

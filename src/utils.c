@@ -9,6 +9,12 @@
 #include "editor.h"
 #include "terminal.h"
 
+void panic(const char *file, int line, const char *s) {
+    terminalExit();
+    fprintf(stderr, "Error at %s: %d: %s\r\n", file, line, s);
+    exit(EXIT_FAILURE);
+}
+
 void *_malloc_s(const char *file, int line, size_t size) {
     void *ptr = malloc(size);
     if (!ptr && size != 0)

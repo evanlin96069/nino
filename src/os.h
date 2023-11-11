@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+// File
 typedef struct FileInfo FileInfo;
 FileInfo getFileInfo(const char* path);
 bool areFilesEqual(FileInfo f1, FileInfo f2);
@@ -24,8 +25,19 @@ const char* dirGetName(const DirIter* iter);
 
 FILE* openFile(const char* path, const char* mode);
 
+// Time
 int64_t getTime(void);
 
+// Command line
+typedef struct Args {
+    int count;
+    char** args;
+} Args;
+
+Args argsGet(int num_args, char** args);
+void argsFree(Args args);
+
+// New Line
 #define NL_UNIX 0
 #define NL_DOS 1
 

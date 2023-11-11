@@ -1,6 +1,11 @@
 #ifndef OS_UNIX_H
 #define OS_UNIX_H
 
+#include <dirent.h>
+#include <stdbool.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #define ENV_HOME "HOME"
 #define CONF_DIR ".config/nino"
 #define DIR_SEP "/"

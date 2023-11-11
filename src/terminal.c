@@ -28,12 +28,6 @@ static DWORD orig_out_mode;
 static struct termios orig_termios;
 #endif
 
-void panic(const char* file, int line, const char* s) {
-    terminalExit();
-    fprintf(stderr, "Error at %s: %d: %s\r\n", file, line, s);
-    exit(EXIT_FAILURE);
-}
-
 static void disableRawMode(void) {
 #ifdef _WIN32
     SetConsoleMode(hStdin, orig_in_mode);
@@ -420,7 +414,9 @@ static void SIGWINCH_handler(int sig) {
 #endif
 
 void resizeWindow(void) {
-    int rows, cols;
+    int rows = 0;
+    int cols = 0;
+
     if (getWindowSize(&rows, &cols) == -1)
         PANIC("getWindowSize");
 

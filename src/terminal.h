@@ -3,9 +3,6 @@
 
 #include <stdint.h>
 
-#define PANIC(s) panic(__FILE__, __LINE__, s)
-void panic(const char* file, int line, const char* s);
-
 typedef struct EditorInput {
     int type;
     union {

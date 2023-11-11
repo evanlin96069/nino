@@ -1,9 +1,9 @@
-#include <dirent.h>
-#include <sys/stat.h>
+#include "os_unix.h"
+
 #include <sys/time.h>
-#include <unistd.h>
 
 #include "os.h"
+#include "utils.h"
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;
@@ -26,20 +26,12 @@ FileType getFileType(const char* path) {
     return FT_INVALID;
 }
 
-struct DirIter {
-    DIR* dp;
-    struct dirent* entry;
-
-    bool error;
-};
-
 DirIter dirFindFirst(const char* path) {
     DirIter iter;
     iter.dp = opendir(path);
     if (iter.dp != NULL) {
         iter.entry = readdir(iter.dp);
         iter.error = (iter.entry == NULL);
-        ;
     } else {
         iter.error = true;
     }
@@ -72,3 +64,9 @@ int64_t getTime(void) {
     gettimeofday(&time_val, NULL);
     return time_val.tv_sec * 1000000 + time_val.tv_usec;
 }
+
+Args argsGet(int num_args, char** args) {
+    return (Args){.count = num_args, .args = args};
+}
+
+void argsFree(Args args) { UNUSED(args.count); }
