@@ -195,10 +195,20 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
     }
 }
 
+#define ARENA_SIZE (1 << 12)
+
+static Arena hldb_arena;
+
+static void* mallocWrapper(size_t size) { return malloc_s(size); }
+
+static Allocator allocator = {.malloc = mallocWrapper, .free = free};
+
 void editorInitHLDB(void) {
     char path[EDITOR_PATH_MAX];
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
              getenv(ENV_HOME));
+
+    arenaInit(&hldb_arena, ARENA_SIZE, &allocator);
 
     DirIter iter = dirFindFirst(path);
     if (iter.error)
@@ -223,12 +233,6 @@ void editorInitHLDB(void) {
     } while (dirNext(&iter));
     dirClose(&iter);
 }
-
-#define ARENA_SIZE (1 << 12)
-
-static void* mallocWrapper(size_t size) { return malloc_s(size); }
-
-static Allocator allocator = {.malloc = mallocWrapper, .free = free};
 
 static EditorSyntax* HLDB_tail = NULL;
 bool editorLoadHLDB(const char* json_file) {
@@ -255,12 +259,9 @@ bool editorLoadHLDB(const char* json_file) {
     fclose(fp);
 
     // Parse json
-    Arena arena;
-    arenaInit(&arena, ARENA_SIZE, &allocator);
-    JsonValue* value = jsonParse(buffer, &arena);
+    JsonValue* value = jsonParse(buffer, &hldb_arena);
     free(buffer);
     if (value->type != JSON_OBJECT) {
-        arenaDeinit(&arena);
         return false;
     }
 
@@ -327,8 +328,6 @@ bool editorLoadHLDB(const char* json_file) {
     // TODO: Add flags option in json file
     syntax->flags = HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS;
 
-    syntax->arena = arena;
-
     // Add to HLDB
     if (!HLDB_tail) {
         gEditor.HLDB = HLDB_tail = syntax;
@@ -339,7 +338,6 @@ bool editorLoadHLDB(const char* json_file) {
 
     return true;
 END:
-    arenaDeinit(&arena);
     free(syntax);
     return false;
 }
@@ -349,13 +347,13 @@ void editorFreeHLDB(void) {
     while (HLDB) {
         EditorSyntax* temp = HLDB;
         HLDB = HLDB->next;
-        arenaDeinit(&temp->arena);
         free(temp->file_exts.data);
         free(temp->keywords[0].data);
         free(temp->keywords[1].data);
         free(temp->keywords[2].data);
         free(temp);
     }
+    arenaDeinit(&hldb_arena);
     gEditor.HLDB = NULL;
     HLDB_tail = NULL;
 }

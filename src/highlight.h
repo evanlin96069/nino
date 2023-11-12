@@ -15,7 +15,6 @@ typedef struct EditorSyntax {
     VECTOR(char*) keywords[3];
     int flags;
 
-    Arena arena;
     JsonValue* value;
 } EditorSyntax;
 
