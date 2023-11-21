@@ -33,6 +33,7 @@ The command will first search for the file in the current directory, then the co
 | `hldb_load` | cmd | Load a syntax highlighting JSON file. |
 | `hldb_reload_all` | cmd | Reload syntax highlighting database. |
 | `newline` | cmd | Set the EOL sequence (LF/CRLF). |
+| `echo` | cmd | Echo text to console. |
 | `help` | cmd | Find help about a convar/concommand. |
 
 ## Color

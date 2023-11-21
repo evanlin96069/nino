@@ -191,6 +191,18 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
     }
 }
 
+CON_COMMAND(echo, "Echo text to console.") {
+    if (args.argc < 2)
+        return;
+
+    char buf[COMMAND_MAX_LENGTH] = {0};
+    snprintf(buf, sizeof(buf), "%s", args.argv[1]);
+    for (int i = 2; i < args.argc; i++) {
+        snprintf(buf, sizeof(buf), "%s %s", buf, args.argv[i]);
+    }
+    editorSetStatusMsg("%s", buf);
+}
+
 CON_COMMAND(help, "Find help about a convar/concommand.") {
     if (args.argc != 2) {
         editorSetStatusMsg("Usage: help <command>");
@@ -358,6 +370,7 @@ void editorInitConfig(void) {
     INIT_CONCOMMAND(hldb_load);
     INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(newline);
+    INIT_CONCOMMAND(echo);
     INIT_CONCOMMAND(help);
 
 #ifdef _DEBUG
