@@ -39,6 +39,7 @@ void editorFree(void) {
     editorFreeClipboardContent(&gEditor.clipboard);
     editorExplorerFree();
     editorFreeHLDB();
+    editorFreeConfig();
 }
 
 void editorInitFile(EditorFile* file) {

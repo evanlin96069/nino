@@ -10,6 +10,7 @@
 #include "input.h"
 #include "status.h"
 #include "terminal.h"
+#include "utils.h"
 
 static void cvarSyntaxCallback(void);
 static void cvarMouseCallback(void);
@@ -28,6 +29,8 @@ CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smart case.",
 CONVAR(mouse, "Enable mouse mode.", "1", cvarMouseCallback);
 CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
 
+CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "100", NULL);
+
 static void cvarSyntaxCallback(void) {
     // Reload all
     for (int i = 0; i < gEditor.file_count; i++) {
@@ -40,10 +43,11 @@ static void cvarSyntaxCallback(void) {
 static void cvarMouseCallback(void) {
     bool mode = CONVAR_GETINT(mouse);
     if (gEditor.mouse_mode != mode) {
-        if (mode)
+        if (mode) {
             enableMouse();
-        else
+        } else {
             disableMouse();
+        }
     }
 }
 
@@ -195,7 +199,7 @@ CON_COMMAND(echo, "Echo text to console.") {
     if (args.argc < 2)
         return;
 
-    char buf[COMMAND_MAX_LENGTH] = {0};
+    char buf[COMMAND_MAX_LENGTH];
     snprintf(buf, sizeof(buf), "%s", args.argv[1]);
     for (int i = 2; i < args.argc; i++) {
         snprintf(buf, sizeof(buf), "%s %s", buf, args.argv[i]);
@@ -299,7 +303,7 @@ const EditorColorScheme color_default = {
         },
 };
 
-static void ConVarCmdCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
+static void cvarCmdCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
     if (args.argc < 2) {
         editorSetStatusMsg("%s = %s - %s", thisptr->name,
                            thisptr->cvar.string_val, thisptr->help_string);
@@ -308,32 +312,122 @@ static void ConVarCmdCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
     editorSetConVar(&thisptr->cvar, args.argv[1]);
 }
 
-static void parseLine(char* line) {
-    // remove comment
-    char* hash = strchr(line, '#');
-    if (hash)
-        *hash = '\0';
+#define MAX_ALIAS_NAME 32
 
-    char* token = strtok(line, " ");
-    EditorConCmdArgs args = {.argc = 0};
-    for (int i = 0; token && i < 4; i++, args.argc++) {
-        snprintf(args.argv[i], COMMAND_MAX_LENGTH, "%s", token);
-        token = strtok(NULL, " ");
+typedef struct CmdAlias CmdAlias;
+struct CmdAlias {
+    CmdAlias* next;
+    char name[MAX_ALIAS_NAME];
+    char* value;
+};
+
+static CmdAlias* cmd_alias = NULL;
+
+static CmdAlias* findAlias(const char* name) {
+    CmdAlias* a = cmd_alias;
+    while (a) {
+        if (strcmp(name, a->name) == 0) {
+            break;
+        }
+        a = a->next;
     }
 
-    if (args.argc < 1)
-        return;
+    return a;
+}
 
+CON_COMMAND(alias, "Alias a command.") {
+    if (args.argc < 2) {
+        editorSetStatusMsg("Usage: alias <name> [value]");
+        return;
+    }
+
+    char* s = args.argv[1];
+    if (strlen(s) >= MAX_ALIAS_NAME) {
+        editorSetStatusMsg("Alias name is too long");
+        return;
+    }
+
+    // If the alias already exists, reuse it
+    CmdAlias* a = findAlias(s);
+    if (args.argc == 2) {
+        if (!a) {
+            editorSetStatusMsg("\"%s\" is not aliased", s);
+        } else {
+            editorSetStatusMsg("\"%s\" = \"%s\"", s, a->value);
+        }
+        return;
+    }
+
+    if (!a) {
+        a = malloc_s(sizeof(CmdAlias));
+        a->next = cmd_alias;
+        cmd_alias = a;
+    } else {
+        free(a->value);
+    }
+
+    snprintf(a->name, MAX_ALIAS_NAME, "%s", s);
+
+    // Copy the rest of the command line
+    char cmd[COMMAND_MAX_LENGTH];
+    snprintf(cmd, sizeof(cmd), "%s", args.argv[2]);
+    for (int i = 3; i < args.argc; i++) {
+        snprintf(cmd, sizeof(cmd), "%s %s", cmd, args.argv[i]);
+    }
+
+    size_t size = strlen(cmd) + 1;
+    a->value = malloc_s(size);
+    snprintf(a->value, size, "%s", cmd);
+}
+
+static void executeCommand(EditorConCmdArgs args) {
     EditorConCmd* cmd = editorFindCmd(args.argv[0]);
     if (!cmd) {
         editorSetStatusMsg("Unknown command \"%s\".", args.argv[0]);
         return;
     }
 
-    if (cmd->has_callback)
+    if (cmd->has_callback) {
         cmd->callback(args);
-    else
-        ConVarCmdCallback(cmd, args);
+    } else {
+        cvarCmdCallback(cmd, args);
+    }
+}
+
+static void parseLine(const char* cmd, int depth) {
+    if (depth > CONVAR_GETINT(cmd_expand_depth)) {
+        editorSetStatusMsg("Reached max alias expansion depth.");
+        return;
+    }
+
+    size_t size = strlen(cmd) + 1;
+    char* line = malloc_s(size);
+    snprintf(line, size, "%s", cmd);
+
+    // remove comment
+    char* hash = strchr(line, '#');
+    if (hash)
+        *hash = '\0';
+
+    char* token = strtok(line, " ");
+    EditorConCmdArgs args = {0};
+    for (int i = 0; token && i < 4; i++, args.argc++) {
+        snprintf(args.argv[i], COMMAND_MAX_LENGTH, "%s", token);
+        token = strtok(NULL, " ");
+    }
+
+    free(line);
+
+    if (args.argc < 1)
+        return;
+
+    CmdAlias* a = findAlias(args.argv[0]);
+    if (a) {
+        parseLine(a->value, depth + 1);
+        return;
+    }
+
+    executeCommand(args);
 }
 
 bool editorLoadConfig(const char* path) {
@@ -344,7 +438,7 @@ bool editorLoadConfig(const char* path) {
     char buf[128] = {0};
     while (fgets(buf, sizeof(buf), fp)) {
         buf[strcspn(buf, "\r\n")] = '\0';
-        parseLine(buf);
+        parseLine(buf, 0);
     }
     fclose(fp);
     return true;
@@ -366,10 +460,13 @@ void editorInitConfig(void) {
     INIT_CONVAR(osc52_copy);
 
     INIT_CONCOMMAND(color);
-    INIT_CONCOMMAND(exec);
     INIT_CONCOMMAND(hldb_load);
     INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(newline);
+
+    INIT_CONVAR(cmd_expand_depth);
+    INIT_CONCOMMAND(alias);
+    INIT_CONCOMMAND(exec);
     INIT_CONCOMMAND(echo);
     INIT_CONCOMMAND(help);
 
@@ -387,12 +484,23 @@ void editorInitConfig(void) {
     }
 }
 
+void editorFreeConfig(void) {
+    CmdAlias* a = cmd_alias;
+
+    while (a) {
+        CmdAlias* temp = a;
+        a = a->next;
+        free(temp->value);
+        free(temp);
+    }
+}
+
 void editorSetting(void) {
     char* query = editorPrompt("Config: %s", SETTING_MODE, NULL);
     if (query == NULL)
         return;
 
-    parseLine(query);
+    parseLine(query, 0);
     free(query);
 }
 
