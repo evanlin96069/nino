@@ -231,11 +231,11 @@ CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
 
     switch (crash_type) {
         case 0:
-            // SIGABRT
+            // SIGSEGV
             *(char*)0 = 0;
             break;
         case 1:
-            // SIGSEGV
+            // SIGABRT
             abort();
         default:
             editorSetStatusMsg("Unknown crash type.");
@@ -326,7 +326,7 @@ static CmdAlias* cmd_alias = NULL;
 static CmdAlias* findAlias(const char* name) {
     CmdAlias* a = cmd_alias;
     while (a) {
-        if (strcmp(name, a->name) == 0) {
+        if (strCaseCmp(name, a->name) == 0) {
             break;
         }
         a = a->next;
@@ -380,7 +380,18 @@ CON_COMMAND(alias, "Alias a command.") {
     snprintf(a->value, size, "%s", cmd);
 }
 
-static void executeCommand(EditorConCmdArgs args) {
+static void parseLine(const char* cmd, int depth);
+
+static void executeCommand(EditorConCmdArgs args, int depth) {
+    if (args.argc < 1)
+        return;
+
+    CmdAlias* a = findAlias(args.argv[0]);
+    if (a) {
+        parseLine(a->value, depth + 1);
+        return;
+    }
+
     EditorConCmd* cmd = editorFindCmd(args.argv[0]);
     if (!cmd) {
         editorSetStatusMsg("Unknown command \"%s\".", args.argv[0]);
@@ -400,34 +411,46 @@ static void parseLine(const char* cmd, int depth) {
         return;
     }
 
-    size_t size = strlen(cmd) + 1;
-    char* line = malloc_s(size);
-    snprintf(line, size, "%s", cmd);
-
-    // remove comment
-    char* hash = strchr(line, '#');
-    if (hash)
-        *hash = '\0';
-
-    char* token = strtok(line, " ");
+    // Command line parsing
     EditorConCmdArgs args = {0};
-    for (int i = 0; token && i < 4; i++, args.argc++) {
-        snprintf(args.argv[i], COMMAND_MAX_LENGTH, "%s", token);
-        token = strtok(NULL, " ");
+    while (*cmd != '\0' && *cmd != '#') {
+        switch (*cmd) {
+            case '\t':
+            case ' ':
+                cmd++;
+                break;
+
+            case '"':
+                cmd++;
+                for (int i = 0; *cmd != '\0' && *cmd != '"'; i++) {
+                    args.argv[args.argc][i] = *cmd;
+                    cmd++;
+                }
+
+                if (*cmd == '"') {
+                    cmd++;
+                }
+                args.argc++;
+                break;
+
+            case ';':
+                executeCommand(args, depth);
+                memset(&args, 0, sizeof(EditorConCmdArgs));
+                cmd++;
+                break;
+
+            default:
+                for (int i = 0;
+                     *cmd != '\0' && *cmd != '#' && *cmd != ';' && *cmd != ' ';
+                     i++) {
+                    args.argv[args.argc][i] = *cmd;
+                    cmd++;
+                }
+                args.argc++;
+        }
     }
 
-    free(line);
-
-    if (args.argc < 1)
-        return;
-
-    CmdAlias* a = findAlias(args.argv[0]);
-    if (a) {
-        parseLine(a->value, depth + 1);
-        return;
-    }
-
-    executeCommand(args);
+    executeCommand(args, depth);
 }
 
 bool editorLoadConfig(const char* path) {

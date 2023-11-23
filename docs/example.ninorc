@@ -1,15 +1,13 @@
 # cvars
 # helpinfo 0
-tabsize 4
-whitespace 1
 autoindent 1
-backspace 1
 bracket 1
-trailing 1
-ignorecase 2
-syntax 1
-mouse 1
 
 # color
 # color status.fg f3f3f3
 # color status.bg 007acc
+
+# toggle autoindent
+# alias id "id_off"
+# alias id_on "autoindent 1; alias id id_off; echo autoindent on;"
+# alias id_off "autoindent 0; alias id id_on; echo autoindent off;"
