@@ -124,7 +124,6 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
 
         case END_KEY:
             gEditor.explorer.selected_index = gEditor.explorer.flatten.size - 1;
-            ;
             editorExplorerScrollToSelect();
             break;
 

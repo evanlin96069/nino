@@ -229,8 +229,10 @@ void editorRefreshScreen(void) {
     editorDrawRows(&ab);
     editorDrawFileExplorer(&ab);
 
-    if (gEditor.state != EDIT_MODE || *gEditor.status_msg[0] != '\0')
+    if (gEditor.state != EDIT_MODE || *gEditor.status_msg[0] != '\0') {
         editorDrawPrompt(&ab);
+    }
+
     editorDrawStatusBar(&ab);
 
     bool should_show_cursor = true;
@@ -241,22 +243,27 @@ void editorRefreshScreen(void) {
                    gCurFile->col_offset) +
                   1 + gCurFile->lineno_width;
         if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 1 ||
-            col > gEditor.screen_cols - gEditor.explorer.width)
+            col > gEditor.screen_cols - gEditor.explorer.width ||
+            (row == gEditor.screen_rows - 1 &&
+             *gEditor.status_msg[0] != '\0')) {
             should_show_cursor = false;
-        else
+        } else {
             gotoXY(&ab, row, col + gEditor.explorer.width);
+        }
     } else {
         // prompt
         gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
     }
 
-    if (gEditor.explorer.focused)
+    if (gEditor.explorer.focused) {
         should_show_cursor = false;
+    }
 
-    if (should_show_cursor)
+    if (should_show_cursor) {
         abufAppend(&ab, "\x1b[?25h");
-    else
+    } else {
         abufAppend(&ab, "\x1b[?25l");
+    }
 
     UNUSED(write(STDOUT_FILENO, ab.buf, ab.len));
     abufFree(&ab);
