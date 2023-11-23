@@ -219,6 +219,21 @@ CON_COMMAND(echo, "Echo text to console.") {
     editorSetStatusMsg("%s", buf);
 }
 
+static void showCmdHelp(const EditorConCmd* cmd) {
+    if (cmd->has_callback) {
+        editorSetStatusMsg("\"%s\" - %s", cmd->name, cmd->help_string);
+    } else {
+        if (strcmp(cmd->cvar.default_string, cmd->cvar.string_val) == 0) {
+            editorSetStatusMsg("\"%s\" = \"%s\" - %s", cmd->name,
+                               cmd->cvar.string_val, cmd->help_string);
+        } else {
+            editorSetStatusMsg("\"%s\" = \"%s\" (def. \"%s\" ) - %s", cmd->name,
+                               cmd->cvar.string_val, cmd->cvar.default_string,
+                               cmd->help_string);
+        }
+    }
+}
+
 CON_COMMAND(help, "Find help about a convar/concommand.") {
     if (args.argc != 2) {
         editorSetStatusMsg("Usage: help <command>");
@@ -230,7 +245,7 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
                            args.argv[1]);
         return;
     }
-    editorSetStatusMsg("\"%s\" - %s", cmd->name, cmd->help_string);
+    showCmdHelp(cmd);
 }
 
 #ifdef _DEBUG
@@ -315,15 +330,6 @@ const EditorColorScheme color_default = {
         },
 };
 
-static void cvarCmdCallback(EditorConCmd* thisptr, EditorConCmdArgs args) {
-    if (args.argc < 2) {
-        editorSetStatusMsg("%s = %s - %s", thisptr->name,
-                           thisptr->cvar.string_val, thisptr->help_string);
-        return;
-    }
-    editorSetConVar(&thisptr->cvar, args.argv[1]);
-}
-
 #define MAX_ALIAS_NAME 32
 
 typedef struct CmdAlias CmdAlias;
@@ -378,7 +384,7 @@ CON_COMMAND(alias, "Alias a command.") {
         free(a->value);
     }
 
-    strcpy (a->name, s);
+    strcpy(a->name, s);
 
     // Copy the rest of the command line
     int total_len = 0;
@@ -405,6 +411,14 @@ CON_COMMAND(alias, "Alias a command.") {
 }
 
 static void parseLine(const char* cmd, int depth);
+
+static void cvarCmdCallback(EditorConCmd* cmd, EditorConCmdArgs args) {
+    if (args.argc < 2) {
+        showCmdHelp(cmd);
+        return;
+    }
+    editorSetConVar(&cmd->cvar, args.argv[1]);
+}
 
 static void executeCommand(EditorConCmdArgs args, int depth) {
     if (args.argc < 1)
