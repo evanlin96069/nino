@@ -199,10 +199,22 @@ CON_COMMAND(echo, "Echo text to console.") {
     if (args.argc < 2)
         return;
 
+    int total_len = 0;
     char buf[COMMAND_MAX_LENGTH];
-    snprintf(buf, sizeof(buf), "%s", args.argv[1]);
-    for (int i = 2; i < args.argc; i++) {
-        snprintf(buf, sizeof(buf), "%s %s", buf, args.argv[i]);
+    memset(buf, 0, sizeof(buf));
+
+    for (int i = 1; i < args.argc; i++) {
+        int arg_len = strlen(args.argv[i]);
+        if (total_len + arg_len + 1 <= COMMAND_MAX_LENGTH) {
+            if (i > 1) {
+                strcat(buf, " ");
+                total_len++;
+            }
+            strcat(buf, args.argv[i]);
+            total_len += arg_len;
+        } else {
+            break;
+        }
     }
     editorSetStatusMsg("%s", buf);
 }
@@ -366,16 +378,28 @@ CON_COMMAND(alias, "Alias a command.") {
         free(a->value);
     }
 
-    snprintf(a->name, MAX_ALIAS_NAME, "%s", s);
+    strcpy (a->name, s);
 
     // Copy the rest of the command line
+    int total_len = 0;
     char cmd[COMMAND_MAX_LENGTH];
-    snprintf(cmd, sizeof(cmd), "%s", args.argv[2]);
-    for (int i = 3; i < args.argc; i++) {
-        snprintf(cmd, sizeof(cmd), "%s %s", cmd, args.argv[i]);
+    memset(cmd, 0, sizeof(cmd));
+
+    for (int i = 2; i < args.argc; i++) {
+        int arg_len = strlen(args.argv[i]);
+        if (total_len + arg_len + 1 <= COMMAND_MAX_LENGTH) {
+            if (i > 2) {
+                strcat(cmd, " ");
+                total_len++;
+            }
+            strcat(cmd, args.argv[i]);
+            total_len += arg_len;
+        } else {
+            break;
+        }
     }
 
-    size_t size = strlen(cmd) + 1;
+    size_t size = total_len + 1;
     a->value = malloc_s(size);
     snprintf(a->value, size, "%s", cmd);
 }
