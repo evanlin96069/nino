@@ -16,6 +16,8 @@
 #include "unicode.h"
 
 void editorDrawRows(abuf* ab) {
+    setColor(ab, gEditor.color_cfg.bg, 1);
+
     EditorSelectRange range = {0};
     if (gCurFile->cursor.is_selected)
         getSelectStartEnd(&range);
