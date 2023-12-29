@@ -174,7 +174,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
 }
 
 static void editorGotoCallback(char* query, int key) {
-    if (query == NULL || key == ESC)
+    if (query == NULL || key == ESC || key == CTRL_KEY('q'))
         return;
 
     int line = atoi(query);
