@@ -14,6 +14,7 @@
 #define PROMPT_BUF_INIT_SIZE 64
 #define PROMPT_BUF_GROWTH_RATE 2.0f
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
+    int old_state = gEditor.state;
     gEditor.state = state;
 
     size_t bufsize = PROMPT_BUF_INIT_SIZE;
@@ -127,7 +128,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             case CTRL_KEY('q'):
             case ESC:
                 editorSetStatusMsg("");
-                gEditor.state = EDIT_MODE;
+                gEditor.state = old_state;
                 if (callback)
                     callback(buf, input.type);
                 free(buf);
@@ -136,7 +137,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             case '\r':
                 if (buflen != 0) {
                     editorSetStatusMsg("");
-                    gEditor.state = EDIT_MODE;
+                    gEditor.state = old_state;
                     if (callback)
                         callback(buf, input.type);
                     return buf;

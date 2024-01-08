@@ -23,7 +23,6 @@ typedef struct EditorExplorerNode {
 } EditorExplorerNode;
 
 typedef struct EditorExplorer {
-    bool focused;
     int prefered_width;
     int width;
     int offset;

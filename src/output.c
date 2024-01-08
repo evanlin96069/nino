@@ -166,7 +166,7 @@ static void editorDrawFileExplorer(abuf* ab) {
     gotoXY(ab, 1, 1);
 
     setColor(ab, gEditor.color_cfg.explorer[3], 0);
-    if (gEditor.explorer.focused)
+    if (gEditor.state == EXPLORER_MODE)
         setColor(ab, gEditor.color_cfg.explorer[4], 1);
     else
         setColor(ab, gEditor.color_cfg.explorer[0], 1);
@@ -231,7 +231,8 @@ void editorRefreshScreen(void) {
     editorDrawRows(&ab);
     editorDrawFileExplorer(&ab);
 
-    if (gEditor.state != EDIT_MODE || *gEditor.status_msg[0] != '\0') {
+    if ((gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE) ||
+        *gEditor.status_msg[0] != '\0') {
         editorDrawPrompt(&ab);
     }
 
@@ -257,7 +258,7 @@ void editorRefreshScreen(void) {
         gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
     }
 
-    if (gEditor.explorer.focused) {
+    if (gEditor.state == EXPLORER_MODE) {
         should_show_cursor = false;
     }
 

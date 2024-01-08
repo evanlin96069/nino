@@ -15,10 +15,10 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Focus Explorer | `Ctrl+e` |
 | Toggle Explorer | `Ctrl+b` |
 
-## Configs
+## Prompt
 | Action | Keybinding |
 | - | - |
-| Configs | `Ctrl+P` |
+| Prompt | `Ctrl+P` |
 
 ## Edit
 | Action | Keybinding |

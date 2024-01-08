@@ -163,7 +163,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
         case MOUSE_PRESSED:
             if (getMousePosField(input.data.cursor.x, input.data.cursor.y) !=
                 FIELD_EXPLORER) {
-                gEditor.explorer.focused = false;
+                gEditor.state = EDIT_MODE;
                 return false;
             }
 
@@ -172,7 +172,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
             }
 
             if (input.data.cursor.y == 0) {
-                gEditor.explorer.focused = true;
+                gEditor.state = EXPLORER_MODE;
                 break;
             }
 
@@ -203,7 +203,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
 
         case CTRL_KEY('e'):
             if (gEditor.file_count != 0) {
-                gEditor.explorer.focused = false;
+                gEditor.state = EDIT_MODE;
             }
             break;
     }
@@ -245,7 +245,8 @@ int getMousePosField(int x, int y) {
         return FIELD_ERROR;
     if (y == 0)
         return x < gEditor.explorer.width ? FIELD_EXPLORER : FIELD_TOP_STATUS;
-    if (y == gEditor.screen_rows - 2 && gEditor.state != EDIT_MODE)
+    if (y == gEditor.screen_rows - 2 && gEditor.state != EDIT_MODE &&
+        gEditor.state != EXPLORER_MODE)
         return FIELD_PROMPT;
     if (y == gEditor.screen_rows - 1)
         return FIELD_STATUS;
@@ -511,7 +512,7 @@ static void editorCloseFile(int index) {
 
     editorRemoveFile(index);
     if (gEditor.file_count == 0) {
-        gEditor.explorer.focused = true;
+        gEditor.state = EXPLORER_MODE;
         editorExplorerShow();
     }
 
@@ -534,11 +535,17 @@ void editorProcessKeypress(void) {
 
     EditorInput input = editorReadKey();
 
-    if (gEditor.explorer.focused && editorExplorerProcessKeypress(input))
+    // Prompt
+    if (input.type == CTRL_KEY('p')) {
+        editorConfigPrompt();
+        return;
+    }
+
+    if (gEditor.state == EXPLORER_MODE && editorExplorerProcessKeypress(input))
         return;
 
     if (gEditor.file_count == 0) {
-        gEditor.explorer.focused = true;
+        gEditor.state = EXPLORER_MODE;
         return;
     }
 
@@ -644,14 +651,14 @@ void editorProcessKeypress(void) {
                 editorExplorerShow();
             } else {
                 gEditor.explorer.width = 0;
-                gEditor.explorer.focused = false;
+                gEditor.state = EDIT_MODE;
             }
             break;
 
         // Focus explorer
         case CTRL_KEY('e'):
             should_scroll = false;
-            gEditor.explorer.focused = true;
+            gEditor.state = EXPLORER_MODE;
             editorExplorerShow();
             break;
 
@@ -708,14 +715,6 @@ void editorProcessKeypress(void) {
             gCurFile->cursor.is_selected = false;
             gCurFile->bracket_autocomplete = 0;
             editorGotoLine();
-            break;
-
-        // Prompt
-        case CTRL_KEY('p'):
-            should_scroll = false;
-            gCurFile->cursor.is_selected = false;
-            gCurFile->bracket_autocomplete = 0;
-            editorSetting();
             break;
 
         case CTRL_KEY('a'):
@@ -1175,7 +1174,7 @@ void editorProcessKeypress(void) {
                         pressed_explorer = true;
                         break;
                     }
-                    gEditor.explorer.focused = true;
+                    gEditor.state = EXPLORER_MODE;
                     editorExplorerProcessKeypress(input);
                 }
                 break;
@@ -1258,7 +1257,7 @@ void editorProcessKeypress(void) {
             if (pressed_explorer) {
                 gEditor.explorer.width = gEditor.explorer.prefered_width = x;
                 if (x == 0)
-                    gEditor.explorer.focused = false;
+                    gEditor.state = EDIT_MODE;
             } else if (moveMouse(x, y)) {
                 curr_x = x;
                 curr_y = y;

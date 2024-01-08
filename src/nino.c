@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 
     if (gEditor.file_count == 0) {
         if (gEditor.explorer.node) {
-            gEditor.explorer.focused = true;
+            gEditor.state = EXPLORER_MODE;
         } else {
             editorAddFile(&file);
             editorInsertRow(gCurFile, 0, "", 0);

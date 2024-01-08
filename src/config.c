@@ -556,7 +556,7 @@ void editorFreeConfig(void) {
     }
 }
 
-void editorSetting(void) {
+void editorConfigPrompt(void) {
     char* query = editorPrompt("Config: %s", SETTING_MODE, NULL);
     if (query == NULL)
         return;
