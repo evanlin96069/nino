@@ -24,7 +24,7 @@ void editorInit(void) {
     editorInitHLDB();
 
     gEditor.explorer.prefered_width = gEditor.explorer.width =
-        gEditor.screen_cols * 0.2f;
+        CONVAR_GETINT(ex_default_width);
 
     // Draw loading
     memset(&gEditor.files[0], 0, sizeof(EditorFile));

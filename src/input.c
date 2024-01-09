@@ -56,7 +56,7 @@ static inline void editorExplorerShow(void) {
     if (gEditor.explorer.width == 0) {
         gEditor.explorer.width = gEditor.explorer.prefered_width
                                      ? gEditor.explorer.prefered_width
-                                     : gEditor.screen_cols * 0.2f;
+                                     : CONVAR_GETINT(ex_default_width);
     }
 }
 

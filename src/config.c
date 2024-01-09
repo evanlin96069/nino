@@ -31,6 +31,8 @@ CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
 
 CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "100", NULL);
 
+CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
+
 static void cvarSyntaxCallback(void) {
     // Reload all
     for (int i = 0; i < gEditor.file_count; i++) {
@@ -519,6 +521,7 @@ void editorInitConfig(void) {
     INIT_CONVAR(ignorecase);
     INIT_CONVAR(mouse);
     INIT_CONVAR(osc52_copy);
+    INIT_CONVAR(ex_default_width);
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(hldb_load);

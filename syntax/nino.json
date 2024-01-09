@@ -28,7 +28,8 @@
         "ignorecase",
         "mouse",
         "osc52_copy",
-        "cmd_expand_depth"
+        "cmd_expand_depth",
+        "ex_default_width"
     ],
     "keywords3": [
         "bg",
