@@ -29,7 +29,8 @@
         "mouse",
         "osc52_copy",
         "cmd_expand_depth",
-        "ex_default_width"
+        "ex_default_width",
+        "ex_show_hidden"
     ],
     "keywords3": [
         "bg",
@@ -65,10 +66,6 @@
         "hl.space",
         "hl.match",
         "hl.select",
-        "hl.trailing",
-        "hl.trailing",
-        "hl.trailing",
-        "hl.trailing",
         "hl.trailing"
     ]
 }

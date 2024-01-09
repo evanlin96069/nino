@@ -14,6 +14,7 @@
 
 static void cvarSyntaxCallback(void);
 static void cvarMouseCallback(void);
+static void cvarExplorerCallback(void);
 
 CONVAR(tabsize, "Tab size.", "4", cvarSyntaxCallback);
 CONVAR(whitespace, "Use whitespace instead of tab.", "1", NULL);
@@ -32,6 +33,8 @@ CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
 CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "100", NULL);
 
 CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
+CONVAR(ex_show_hidden, "Show hidden files in the file explorer.", "1",
+       cvarExplorerCallback);
 
 static void cvarSyntaxCallback(void) {
     // Reload all
@@ -39,6 +42,18 @@ static void cvarSyntaxCallback(void) {
         for (int j = 0; j < gEditor.files[i].num_rows; j++) {
             editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
         }
+    }
+}
+
+static void cvarExplorerCallback(void) {
+    // Reload explorer
+    if (gEditor.explorer.node) {
+        gEditor.explorer.node = editorExplorerCreate(".");
+        gEditor.explorer.node->is_open = true;
+        editorExplorerRefresh();
+
+        gEditor.explorer.offset = 0;
+        gEditor.explorer.selected_index = 0;
     }
 }
 
@@ -522,6 +537,7 @@ void editorInitConfig(void) {
     INIT_CONVAR(mouse);
     INIT_CONVAR(osc52_copy);
     INIT_CONVAR(ex_default_width);
+    INIT_CONVAR(ex_show_hidden);
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(hldb_load);

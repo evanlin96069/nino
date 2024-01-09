@@ -21,6 +21,7 @@ extern EditorConCmd cvar_ignorecase;
 extern EditorConCmd cvar_mouse;
 extern EditorConCmd cvar_osc52_copy;
 extern EditorConCmd cvar_ex_default_width;
+extern EditorConCmd cvar_ex_show_hidden;
 
 typedef struct EditorColorScheme EditorColorScheme;
 

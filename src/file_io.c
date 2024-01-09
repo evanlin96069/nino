@@ -318,6 +318,8 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
 
     do {
         const char* filename = dirGetName(&iter);
+        if (CONVAR_GETINT(ex_show_hidden) == 0 && filename[0] == '.')
+            continue;
         if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0)
             continue;
 

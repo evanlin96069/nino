@@ -28,6 +28,7 @@ The command will first search for the file in the current directory, then the co
 | `ignorecase` | 2 | Use case insensitive search. Set to 2 to use smart case. |
 | `mouse` | 1 | Enable mouse mode. |
 | `ex_default_width` | 40 | File explorer default width. |
+| `ex_show_hidden` | 1 | Show hidden files in the file explorer. |
 | `osc52_copy` | 1 | Copy to system clipboard using OSC52. |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |
