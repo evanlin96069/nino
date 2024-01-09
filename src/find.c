@@ -178,7 +178,7 @@ static void editorFindCallback(char* query, int key) {
 }
 
 void editorFind(void) {
-    char* query = editorPrompt("Search: %s", FIND_MODE, editorFindCallback);
+    char* query = editorPrompt("Find: %s", FIND_MODE, editorFindCallback);
     if (query) {
         free(query);
     }

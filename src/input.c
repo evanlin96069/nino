@@ -535,10 +535,17 @@ void editorProcessKeypress(void) {
 
     EditorInput input = editorReadKey();
 
-    // Prompt
-    if (input.type == CTRL_KEY('p')) {
-        editorConfigPrompt();
-        return;
+    // Global keybinds
+    switch (input.type) {
+        // Prompt
+        case CTRL_KEY('p'):
+            editorOpenConfigPrompt();
+            return;
+
+        // Open file
+        case CTRL_KEY('o'):
+            editorOpenFilePrompt();
+            return;
     }
 
     if (gEditor.state == EXPLORER_MODE && editorExplorerProcessKeypress(input))
@@ -636,12 +643,6 @@ void editorProcessKeypress(void) {
         case CTRL_KEY('n'):
             should_scroll = false;
             editorSave(gCurFile, 1);
-            break;
-
-        // Open file
-        case CTRL_KEY('o'):
-            should_scroll = false;
-            editorOpenFilePrompt();
             break;
 
         // Toggle explorer

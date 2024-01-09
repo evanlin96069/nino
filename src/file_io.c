@@ -79,7 +79,8 @@ bool editorOpen(EditorFile* file, const char* path) {
         if (type == FT_DIR) {
             if (gEditor.explorer.node)
                 editorExplorerFreeNode(gEditor.explorer.node);
-            gEditor.explorer.node = editorExplorerCreate(path);
+            changeDir(path);
+            gEditor.explorer.node = editorExplorerCreate(".");
             gEditor.explorer.node->is_open = true;
             editorExplorerRefresh();
 
@@ -108,13 +109,13 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
     }
 
-    FILE* f = openFile(path, "rb");
-    if (!f && errno != ENOENT) {
-        editorSetStatusMsg("Can't load \"%s\"! %s", path, strerror(errno));
-        return false;
-    }
+    FILE* fp = openFile(path, "rb");
+    if (!fp) {
+        if (errno != ENOENT) {
+            editorSetStatusMsg("Can't load \"%s\"! %s", path, strerror(errno));
+            return false;
+        }
 
-    if (!f && errno == ENOENT) {
         // file doesn't exist
         char parent_dir[EDITOR_PATH_MAX];
         snprintf(parent_dir, sizeof(parent_dir), "%s", path);
@@ -131,85 +132,103 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
     }
 
+    const char* full_path = getFullPath(path);
+    size_t path_len = strlen(full_path) + 1;
     free(file->filename);
-    size_t fnlen = strlen(path) + 1;
-    file->filename = malloc_s(fnlen);
-    memcpy(file->filename, path, fnlen);
+    file->filename = malloc_s(path_len);
+    memcpy(file->filename, full_path, path_len);
+
     editorSelectSyntaxHighlight(file);
 
-    if (!f && errno == ENOENT) {
-        editorInsertRow(file, file->cursor.y, "", 0);
-    } else {
-        bool has_end_nl = true;
-        bool has_cr = false;
-        size_t at = 0;
-        size_t cap = 16;
-
-        char* line = NULL;
-        size_t n = 0;
-        int64_t len;
-
-        file->row = malloc_s(sizeof(EditorRow) * cap);
-
-        while ((len = getLine(&line, &n, f)) != -1) {
-            has_end_nl = false;
-            while (len > 0 &&
-                   (line[len - 1] == '\n' || line[len - 1] == '\r')) {
-                if (line[len - 1] == '\r')
-                    has_cr = true;
-                has_end_nl = true;
-                len--;
-            }
-            // editorInsertRow but faster
-            if (at >= cap) {
-                cap *= 2;
-                file->row = realloc_s(file->row, sizeof(EditorRow) * cap);
-            }
-            file->row[at].size = len;
-            file->row[at].data = line;
-
-            file->row[at].hl = NULL;
-            file->row[at].hl_open_comment = 0;
-            editorUpdateRow(file, &file->row[at]);
-
-            line = NULL;
-            n = 0;
-            at++;
-        }
-        file->row = realloc_s(file->row, sizeof(EditorRow) * at);
-        file->num_rows = at;
-        file->lineno_width = getDigit(file->num_rows) + 2;
-
-        if (has_end_nl) {
-            editorInsertRow(file, file->num_rows, "", 0);
-        }
-
-        if (file->num_rows < 2) {
-            file->newline = NL_DEFAULT;
-        } else if (has_cr) {
-            file->newline = NL_DOS;
-        } else if (file->num_rows) {
-            file->newline = NL_UNIX;
-        }
-
-        free(line);
-        fclose(f);
-    }
     file->dirty = 0;
+
+    if (!fp) {
+        editorInsertRow(file, file->cursor.y, "", 0);
+        return true;
+    }
+
+    bool has_end_nl = true;
+    bool has_cr = false;
+    size_t at = 0;
+    size_t cap = 16;
+
+    char* line = NULL;
+    size_t n = 0;
+    int64_t len;
+
+    file->row = malloc_s(sizeof(EditorRow) * cap);
+
+    while ((len = getLine(&line, &n, fp)) != -1) {
+        has_end_nl = false;
+        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            if (line[len - 1] == '\r')
+                has_cr = true;
+            has_end_nl = true;
+            len--;
+        }
+        // editorInsertRow but faster
+        if (at >= cap) {
+            cap *= 2;
+            file->row = realloc_s(file->row, sizeof(EditorRow) * cap);
+        }
+        file->row[at].size = len;
+        file->row[at].data = line;
+
+        file->row[at].hl = NULL;
+        file->row[at].hl_open_comment = 0;
+        editorUpdateRow(file, &file->row[at]);
+
+        line = NULL;
+        n = 0;
+        at++;
+    }
+    file->row = realloc_s(file->row, sizeof(EditorRow) * at);
+    file->num_rows = at;
+    file->lineno_width = getDigit(file->num_rows) + 2;
+
+    if (has_end_nl) {
+        editorInsertRow(file, file->num_rows, "", 0);
+    }
+
+    if (file->num_rows < 2) {
+        file->newline = NL_DEFAULT;
+    } else if (has_cr) {
+        file->newline = NL_DOS;
+    } else if (file->num_rows) {
+        file->newline = NL_UNIX;
+    }
+
+    free(line);
+    fclose(fp);
+
     return true;
 }
 
 void editorSave(EditorFile* file, int save_as) {
     if (!file->filename || save_as) {
-        char* filename = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
-        if (!filename) {
+        char* path = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
+        if (!path) {
             editorSetStatusMsg("Save aborted.");
             return;
         }
+
+        // Check path is valid
+        FILE* fp = openFile(path, "wb");
+        if (!fp) {
+            editorSetStatusMsg("Can't save \"%s\"! %s", path, strerror(errno));
+            return;
+        }
+        fclose(fp);
+
+        const char* full_path = getFullPath(path);
+        size_t path_len = strlen(full_path) + 1;
         free(file->filename);
-        file->filename = filename;
+        file->filename = malloc_s(path_len);
+        memcpy(file->filename, full_path, path_len);
+
         editorSelectSyntaxHighlight(file);
     }
+
     size_t len;
     char* buf = editroRowsToString(file, &len);
 
@@ -236,13 +255,14 @@ void editorOpenFilePrompt(void) {
         return;
     }
 
-    char* path = editorPrompt("Open file: %s", OPEN_FILE_MODE, NULL);
+    char* path = editorPrompt("Open: %s", OPEN_FILE_MODE, NULL);
     if (!path)
         return;
 
     EditorFile file;
     if (editorOpen(&file, path)) {
         int index = editorAddFile(&file);
+        gEditor.state = EDIT_MODE;
         // hack: refresh screen to update gEditor.tab_displayed
         editorRefreshScreen();
         editorChangeToFile(index);

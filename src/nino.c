@@ -36,8 +36,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (gEditor.explorer.node == NULL)
+    if (gEditor.explorer.node == NULL) {
         gEditor.explorer.width = 0;
+    }
 
     gEditor.loading = false;
 

@@ -152,10 +152,10 @@ void editorDrawStatusBar(abuf* ab) {
 
     const char* help_str = "";
     const char* help_info[] = {
-        " ^Q: Quit  ^S: Save  ^F: Find  ^G: Goto  ^P: Prompt",
-        " ^Q: Quit  ^P: Prompt",
-        " ^Q: Cancel",
+        " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: Goto",
+        " ^Q: Quit  ^O: Open  ^P: Prompt",
         " ^Q: Cancel  Up: back  Down: Next",
+        " ^Q: Cancel",
         " ^Q: Cancel",
         " ^Q: Cancel",
         " ^Q: Cancel",

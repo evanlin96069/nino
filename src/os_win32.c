@@ -72,8 +72,9 @@ void dirClose(DirIter* iter) {
     FindClose(iter->handle);
 }
 
-static char dir_name[EDITOR_PATH_MAX * 4];
 const char* dirGetName(const DirIter* iter) {
+    static char dir_name[EDITOR_PATH_MAX * 4];
+
     if (iter->error)
         return NULL;
 
@@ -97,6 +98,26 @@ FILE* openFile(const char* path, const char* mode) {
     free(w_mode);
 
     return file;
+}
+
+bool changeDir(const char* path) { return SetCurrentDirectory(path); }
+
+char* getFullPath(const char* path) {
+    static char resolved_path[EDITOR_PATH_MAX * 4];
+
+    int size = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+    wchar_t* w_path = malloc_s(size * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, size);
+
+    wchar_t w_resolved_path[EDITOR_PATH_MAX];
+    GetFullPathNameW(w_path, EDITOR_PATH_MAX, w_resolved_path, NULL);
+
+    WideCharToMultiByte(CP_UTF8, 0, w_resolved_path, -1, resolved_path,
+                        EDITOR_PATH_MAX, NULL, false);
+
+    free(w_path);
+
+    return resolved_path;
 }
 
 int64_t getTime(void) {

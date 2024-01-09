@@ -59,11 +59,11 @@ enum EditorKey {
 enum EditorState {
     EDIT_MODE = 0,
     EXPLORER_MODE,
-    SAVE_AS_MODE,
     FIND_MODE,
     GOTO_LINE_MODE,
-    SETTING_MODE,
     OPEN_FILE_MODE,
+    CONFIG_MODE,
+    SAVE_AS_MODE,
 };
 
 #define HL_FG_MASK 0x0F

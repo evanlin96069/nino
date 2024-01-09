@@ -1,5 +1,6 @@
 #include "os_unix.h"
 
+#include <stdlib.h>
 #include <sys/time.h>
 
 #include "os.h"
@@ -58,6 +59,35 @@ const char* dirGetName(const DirIter* iter) {
 }
 
 FILE* openFile(const char* path, const char* mode) { return fopen(path, mode); }
+
+bool changeDir(const char* path) { return chdir(path) == 0; }
+
+char* getFullPath(const char* path) {
+    static char resolved_path[EDITOR_PATH_MAX];
+    if (realpath(path, resolved_path) == NULL) {
+        char parent_dir[EDITOR_PATH_MAX];
+        char base_name[EDITOR_PATH_MAX];
+
+        snprintf(parent_dir, sizeof(parent_dir), "%s", path);
+        snprintf(base_name, sizeof(base_name), "%s", getBaseName(parent_dir));
+        getDirName(parent_dir);
+        if (parent_dir[0] == '\0') {
+            parent_dir[0] = '.';
+            parent_dir[1] = '\0';
+        }
+
+        char resolved_parent_dir[EDITOR_PATH_MAX];
+        if (realpath(parent_dir, resolved_parent_dir) == NULL)
+            return NULL;
+
+        int len = snprintf(resolved_path, sizeof(resolved_path), "%s/%s",
+                           resolved_parent_dir, base_name);
+        // This is just to suppress Wformat-truncation
+        if (len < 0)
+            return NULL;
+    }
+    return resolved_path;
+}
 
 int64_t getTime(void) {
     struct timeval time_val;

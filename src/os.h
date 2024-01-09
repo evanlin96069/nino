@@ -24,6 +24,8 @@ void dirClose(DirIter* iter);
 const char* dirGetName(const DirIter* iter);
 
 FILE* openFile(const char* path, const char* mode);
+bool changeDir(const char* path);
+char* getFullPath(const char* path);
 
 // Time
 int64_t getTime(void);
