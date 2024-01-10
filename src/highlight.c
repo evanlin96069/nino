@@ -203,6 +203,8 @@ static void* mallocWrapper(size_t size) { return malloc_s(size); }
 
 static Allocator allocator = {.malloc = mallocWrapper, .free = free};
 
+static void editorLoadNinoConfigHLDB(void);
+
 void editorInitHLDB(void) {
     char path[EDITOR_PATH_MAX];
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
@@ -232,9 +234,38 @@ void editorInitHLDB(void) {
         }
     } while (dirNext(&iter));
     dirClose(&iter);
+
+    editorLoadNinoConfigHLDB();
 }
 
-static EditorSyntax* HLDB_tail = NULL;
+// Built-in syntax highlighting for nino config
+static void editorLoadNinoConfigHLDB(void) {
+    EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
+
+    syntax->file_type = "nino";
+    vector_push(syntax->file_exts, "ninorc");
+    vector_push(syntax->file_exts, ".nino");
+    syntax->singleline_comment_start = "#";
+    syntax->multiline_comment_start = NULL;
+    syntax->multiline_comment_end = NULL;
+
+    EditorConCmd* curr = gEditor.cvars;
+    while (curr) {
+        vector_push(syntax->keywords[curr->has_callback ? 0 : 1], curr->name);
+        curr = curr->next;
+    }
+
+    for (int i = 0; i < EDITOR_COLOR_COUNT; i++) {
+        vector_push(syntax->keywords[2], color_element_map[i].label);
+    }
+
+    syntax->flags = HL_HIGHLIGHT_STRINGS;
+
+    // Add to HLDB
+    syntax->next = gEditor.HLDB;
+    gEditor.HLDB = syntax;
+}
+
 bool editorLoadHLDB(const char* json_file) {
     FILE* fp;
     size_t size;
@@ -329,12 +360,8 @@ bool editorLoadHLDB(const char* json_file) {
     syntax->flags = HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS;
 
     // Add to HLDB
-    if (!HLDB_tail) {
-        gEditor.HLDB = HLDB_tail = syntax;
-    } else {
-        HLDB_tail->next = syntax;
-        HLDB_tail = HLDB_tail->next;
-    }
+    syntax->next = gEditor.HLDB;
+    gEditor.HLDB = syntax;
 
     return true;
 END:
@@ -355,5 +382,4 @@ void editorFreeHLDB(void) {
     }
     arenaDeinit(&hldb_arena);
     gEditor.HLDB = NULL;
-    HLDB_tail = NULL;
 }

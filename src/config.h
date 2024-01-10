@@ -24,8 +24,16 @@ extern EditorConCmd cvar_ex_default_width;
 extern EditorConCmd cvar_ex_show_hidden;
 
 typedef struct EditorColorScheme EditorColorScheme;
-
 extern const EditorColorScheme color_default;
+
+#define EDITOR_COLOR_COUNT 34
+
+typedef struct {
+    const char* label;
+    Color* color;
+} ColorElement;
+
+extern const ColorElement color_element_map[EDITOR_COLOR_COUNT];
 
 #define CONVAR(_name, _help_string, _default_string, _callback) \
     EditorConCmd cvar_##_name = {                               \

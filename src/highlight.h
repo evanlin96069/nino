@@ -11,8 +11,8 @@ typedef struct EditorSyntax {
     const char* singleline_comment_start;
     const char* multiline_comment_start;
     const char* multiline_comment_end;
-    VECTOR(char*) file_exts;
-    VECTOR(char*) keywords[3];
+    VECTOR(const char*) file_exts;
+    VECTOR(const char*) keywords[3];
     int flags;
 
     JsonValue* value;

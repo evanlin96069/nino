@@ -68,12 +68,7 @@ static void cvarMouseCallback(void) {
     }
 }
 
-typedef struct {
-    const char* label;
-    Color* color;
-} ColorElement;
-
-static const ColorElement color_element_map[] = {
+const ColorElement color_element_map[EDITOR_COLOR_COUNT] = {
     {"bg", &gEditor.color_cfg.bg},
 
     {"top.fg", &gEditor.color_cfg.top_status[0]},
@@ -594,18 +589,9 @@ void editorSetConVar(EditorConVar* thisptr, const char* string_val) {
     }
 }
 
-static void registerConCmd(EditorConCmd* thisptr) {
-    EditorConCmd* curr = gEditor.cvars;
-    if (!curr) {
-        gEditor.cvars = thisptr;
-        return;
-    }
-
-    while (curr->next) {
-        curr = curr->next;
-    }
-
-    curr->next = thisptr;
+static inline void registerConCmd(EditorConCmd* thisptr) {
+    thisptr->next = gEditor.cvars;
+    gEditor.cvars = thisptr;
 }
 
 void editorInitConCmd(EditorConCmd* thisptr) {
