@@ -252,6 +252,8 @@ int getMousePosField(int x, int y) {
         return FIELD_STATUS;
     if (x < gEditor.explorer.width)
         return FIELD_EXPLORER;
+    if (gEditor.file_count == 0)
+        return FIELD_EMPTY;
     if (x < gEditor.explorer.width + gCurFile->lineno_width)
         return FIELD_LINENO;
     return FIELD_TEXT;

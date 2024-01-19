@@ -93,6 +93,7 @@ enum EditorHighlightBg {
 };
 
 enum EditorField {
+    FIELD_EMPTY,
     FIELD_TOP_STATUS,
     FIELD_TEXT,
     FIELD_LINENO,
