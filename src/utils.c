@@ -178,6 +178,25 @@ char *getDirName(char *path) {
     return path;
 }
 
+// if path doesn't have a .EXT, append extension
+void addDefaultExtension(char *path, const char *extension, int path_length) {
+    char *src = path + strlen(path) - 1;
+
+    while (!(*src == '/'
+#ifdef _WIN32
+             || *src == '\\'
+#endif
+             ) &&
+           src > path) {
+        if (*src == '.') {
+            return;
+        }
+        src--;
+    }
+
+    strncat(path, extension, path_length);
+}
+
 int64_t getLine(char **lineptr, size_t *n, FILE *stream) {
     char *buf = NULL;
     size_t capacity;

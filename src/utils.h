@@ -110,6 +110,7 @@ int isNonSpace(int c);
 // File
 char* getBaseName(char* path);
 char* getDirName(char* path);
+void addDefaultExtension(char* path, const char* extension, int path_length);
 
 // Misc
 void gotoXY(abuf* ab, int x, int y);

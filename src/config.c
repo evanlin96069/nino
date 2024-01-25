@@ -13,8 +13,8 @@
 #include "utils.h"
 
 static void cvarSyntaxCallback(void);
-static void cvarMouseCallback(void);
 static void cvarExplorerCallback(void);
+static void cvarMouseCallback(void);
 
 CONVAR(tabsize, "Tab size.", "4", cvarSyntaxCallback);
 CONVAR(whitespace, "Use whitespace instead of tab.", "1", NULL);
@@ -36,8 +36,7 @@ CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
 CONVAR(ex_show_hidden, "Show hidden files in the file explorer.", "1",
        cvarExplorerCallback);
 
-static void cvarSyntaxCallback(void) {
-    // Reload all
+static void reloadSyntax(void) {
     for (int i = 0; i < gEditor.file_count; i++) {
         for (int j = 0; j < gEditor.files[i].num_rows; j++) {
             editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
@@ -45,8 +44,7 @@ static void cvarSyntaxCallback(void) {
     }
 }
 
-static void cvarExplorerCallback(void) {
-    // Reload explorer
+static void reloadExplorer(void) {
     if (gEditor.explorer.node) {
         gEditor.explorer.node = editorExplorerCreate(".");
         gEditor.explorer.node->is_open = true;
@@ -56,6 +54,10 @@ static void cvarExplorerCallback(void) {
         gEditor.explorer.selected_index = 0;
     }
 }
+
+static void cvarSyntaxCallback(void) { reloadSyntax(); }
+
+static void cvarExplorerCallback(void) { reloadExplorer(); }
 
 static void cvarMouseCallback(void) {
     bool mode = CONVAR_GETINT(mouse);
@@ -146,14 +148,20 @@ CON_COMMAND(exec, "Execute a config file.") {
         editorSetStatusMsg("Usage: exec <file>");
         return;
     }
-    if (!editorLoadConfig(args.argv[1])) {
-        // Try configs dir
-        char path[EDITOR_PATH_MAX];
-        snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "%s"),
-                 getenv(ENV_HOME), args.argv[1]);
 
-        if (!editorLoadConfig(path)) {
-            editorSetStatusMsg("Cannot open file \"%s\"", args.argv[1]);
+    char filename[EDITOR_PATH_MAX] = "";
+    snprintf(filename, sizeof(filename), "%s", args.argv[1]);
+    addDefaultExtension(filename, ".nino", sizeof(filename));
+
+    if (!editorLoadConfig(filename)) {
+        // Try config directory
+        char config_path[EDITOR_PATH_MAX];
+        snprintf(config_path, sizeof(config_path),
+                 PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME), filename);
+
+        if (!editorLoadConfig(config_path)) {
+            editorSetStatusMsg("exec: Failed to exec \"%s\"", args.argv[1]);
+            return;
         }
     }
 }
@@ -163,17 +171,25 @@ CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
         editorSetStatusMsg("Usage: hldb_load <json file>");
         return;
     }
-    if (!editorLoadHLDB(args.argv[1])) {
-        editorSetStatusMsg("Failed to load file \"%s\"", args.argv[1]);
-    }
 
-    // Reload all
-    for (int i = 0; i < gEditor.file_count; i++) {
-        editorSelectSyntaxHighlight(&gEditor.files[i]);
-        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
-            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
+    char filename[EDITOR_PATH_MAX] = "";
+    snprintf(filename, sizeof(filename), "%s", args.argv[1]);
+    addDefaultExtension(filename, ".json", sizeof(filename));
+
+    if (!editorLoadHLDB(filename)) {
+        // Try config directory
+        char config_path[EDITOR_PATH_MAX];
+        snprintf(config_path, sizeof(config_path),
+                 PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME), filename);
+
+        if (!editorLoadHLDB(config_path)) {
+            editorSetStatusMsg("hldb_load: Failed to load \"%s\"",
+                               args.argv[1]);
+            return;
         }
     }
+
+    reloadSyntax();
 }
 
 CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
@@ -181,14 +197,7 @@ CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
 
     editorFreeHLDB();
     editorInitHLDB();
-
-    // Reload all
-    for (int i = 0; i < gEditor.file_count; i++) {
-        editorSelectSyntaxHighlight(&gEditor.files[i]);
-        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
-            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
-        }
-    }
+    reloadSyntax();
 }
 
 CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
