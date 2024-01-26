@@ -11,6 +11,7 @@
 #include "select.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
+#define EDITOR_STATUS_BUF_LENGTH 128
 
 typedef struct EditorSyntax EditorSyntax;
 
@@ -74,9 +75,6 @@ typedef struct Editor {
     // ConCmd linked list
     EditorConCmd* cvars;
 
-    // Prompt message (left/right)
-    char status_msg[2][64];
-
     // Files
     EditorFile files[EDITOR_FILE_MAX_SLOT];
     int file_count;
@@ -89,6 +87,9 @@ typedef struct Editor {
 
     // File explorer
     EditorExplorer explorer;
+
+    // Prompt message (left/right)
+    char status_msg[2][EDITOR_STATUS_BUF_LENGTH];
 } Editor;
 
 // Text editor
