@@ -9,7 +9,6 @@
 #include "defines.h"
 #include "editor.h"
 #include "file_io.h"
-#include "find.h"
 #include "output.h"
 #include "prompt.h"
 #include "select.h"
