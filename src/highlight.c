@@ -8,6 +8,10 @@
 #include "config.h"
 #include "os.h"
 
+#define JSON_IMPLEMENTATION
+#define JSON_MALLOC malloc_s
+#include "json.h"
+
 void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
     row->hl = realloc_s(row->hl, row->size);
     memset(row->hl, HL_NORMAL, row->size);
@@ -197,11 +201,7 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
 
 #define ARENA_SIZE (1 << 12)
 
-static Arena hldb_arena;
-
-static void* mallocWrapper(size_t size) { return malloc_s(size); }
-
-static Allocator allocator = {.malloc = mallocWrapper, .free = free};
+static JsonArena hldb_arena;
 
 static void editorLoadNinoConfigHLDB(void);
 
@@ -210,7 +210,7 @@ void editorInitHLDB(void) {
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
              getenv(ENV_HOME));
 
-    arenaInit(&hldb_arena, ARENA_SIZE, &allocator);
+    json_arena_init(&hldb_arena, ARENA_SIZE);
 
     DirIter iter = dirFindFirst(path);
     if (iter.error)
@@ -290,7 +290,7 @@ bool editorLoadHLDB(const char* json_file) {
     fclose(fp);
 
     // Parse json
-    JsonValue* value = jsonParse(buffer, &hldb_arena);
+    JsonValue* value = json_parse(buffer, &hldb_arena);
     free(buffer);
     if (value->type != JSON_OBJECT) {
         return false;
@@ -306,11 +306,11 @@ bool editorLoadHLDB(const char* json_file) {
     EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
     JsonObject* object = value->object;
 
-    JsonValue* name = jsonObjectFind(object, "name");
+    JsonValue* name = json_object_find(object, "name");
     CHECK(name && name->type == JSON_STRING);
     syntax->file_type = name->string;
 
-    JsonValue* extensions = jsonObjectFind(object, "extensions");
+    JsonValue* extensions = json_object_find(object, "extensions");
     CHECK(extensions && extensions->type == JSON_ARRAY);
     for (size_t i = 0; i < extensions->array->size; i++) {
         JsonValue* item = extensions->array->data[i];
@@ -319,7 +319,7 @@ bool editorLoadHLDB(const char* json_file) {
     }
     vector_shrink(syntax->file_exts);
 
-    JsonValue* comment = jsonObjectFind(object, "comment");
+    JsonValue* comment = json_object_find(object, "comment");
     if (comment && comment->type != JSON_NULL) {
         CHECK(comment->type == JSON_STRING);
         syntax->singleline_comment_start = comment->string;
@@ -327,7 +327,7 @@ bool editorLoadHLDB(const char* json_file) {
         syntax->singleline_comment_start = NULL;
     }
 
-    JsonValue* multi_comment = jsonObjectFind(object, "multiline-comment");
+    JsonValue* multi_comment = json_object_find(object, "multiline-comment");
     if (multi_comment && multi_comment->type != JSON_NULL) {
         CHECK(multi_comment->type == JSON_ARRAY);
         CHECK(multi_comment->array->size == 2);
@@ -344,7 +344,7 @@ bool editorLoadHLDB(const char* json_file) {
     const char* kw_fields[] = {"keywords1", "keywords2", "keywords3"};
 
     for (int i = 0; i < 3; i++) {
-        JsonValue* keywords = jsonObjectFind(object, kw_fields[i]);
+        JsonValue* keywords = json_object_find(object, kw_fields[i]);
         if (keywords && keywords->type != JSON_NULL) {
             CHECK(keywords->type == JSON_ARRAY);
             for (size_t j = 0; j < keywords->array->size; j++) {
@@ -380,6 +380,6 @@ void editorFreeHLDB(void) {
         free(temp->keywords[2].data);
         free(temp);
     }
-    arenaDeinit(&hldb_arena);
+    json_arena_deinit(&hldb_arena);
     gEditor.HLDB = NULL;
 }

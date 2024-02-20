@@ -2,7 +2,6 @@
 #define HIGHLIGHT_H
 
 #include "editor.h"
-#include "json.h"
 
 typedef struct EditorSyntax {
     struct EditorSyntax* next;
@@ -15,7 +14,7 @@ typedef struct EditorSyntax {
     VECTOR(const char*) keywords[3];
     int flags;
 
-    JsonValue* value;
+    struct JsonValue* value;
 } EditorSyntax;
 
 void editorUpdateSyntax(EditorFile* file, EditorRow* row);
