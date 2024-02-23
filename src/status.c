@@ -11,17 +11,40 @@
 #include "utils.h"
 #include "version.h"
 
-void editorSetStatusMsg(const char* fmt, ...) {
+void editorMsg(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(gEditor.status_msg[0], sizeof(gEditor.status_msg[0]), fmt, ap);
+    vsnprintf(gEditor.con_msg[gEditor.con_rear], sizeof(gEditor.con_msg[0]),
+              fmt, ap);
+    va_end(ap);
+
+    if (gEditor.con_front == gEditor.con_rear) {
+        gEditor.con_front = (gEditor.con_front + 1) % EDITOR_CON_COUNT;
+        gEditor.con_size--;
+    } else if (gEditor.con_front == -1) {
+        gEditor.con_front = 0;
+    }
+    gEditor.con_size++;
+    gEditor.con_rear = (gEditor.con_rear + 1) % EDITOR_CON_COUNT;
+}
+
+void editorMsgClear(void) {
+    gEditor.con_front = -1;
+    gEditor.con_rear = 0;
+    gEditor.con_size = 0;
+}
+
+void editorSetPrompt(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(gEditor.prompt, sizeof(gEditor.prompt), fmt, ap);
     va_end(ap);
 }
 
-void editorSetRStatusMsg(const char* fmt, ...) {
+void editorSetRightPrompt(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(gEditor.status_msg[1], sizeof(gEditor.status_msg[1]), fmt, ap);
+    vsnprintf(gEditor.prompt_right, sizeof(gEditor.prompt_right), fmt, ap);
     va_end(ap);
 }
 
@@ -113,14 +136,68 @@ void editorDrawTopStatusBar(abuf* ab) {
     }
 }
 
-static void drawLeftRightMsg(abuf* ab, const char* left, const char* right) {
+void editorDrawConMsg(abuf* ab) {
+    if (gEditor.con_size == 0) {
+        return;
+    }
+
+    setColor(ab, gEditor.color_cfg.prompt[0], 0);
+    setColor(ab, gEditor.color_cfg.prompt[1], 1);
+
+    bool should_draw_prompt =
+        (gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE);
+    int draw_x = gEditor.screen_rows - gEditor.con_size;
+    if (should_draw_prompt) {
+        draw_x--;
+    }
+
+    int index = gEditor.con_front;
+    for (int i = 0; i < gEditor.con_size; i++) {
+        gotoXY(ab, draw_x, 0);
+        draw_x++;
+
+        const char* buf = gEditor.con_msg[index];
+        index = (index + 1) % EDITOR_CON_COUNT;
+
+        int len = strlen(buf);
+        if (len > gEditor.screen_cols) {
+            len = gEditor.screen_cols;
+        }
+
+        abufAppendN(ab, buf, len);
+
+        while (len < gEditor.screen_cols) {
+            abufAppend(ab, " ");
+            len++;
+        }
+    }
+}
+
+void editorDrawPrompt(abuf* ab) {
+    bool should_draw_prompt =
+        (gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE);
+    if (!should_draw_prompt) {
+        return;
+    }
+
+    setColor(ab, gEditor.color_cfg.prompt[0], 0);
+    setColor(ab, gEditor.color_cfg.prompt[1], 1);
+
+    gotoXY(ab, gEditor.screen_rows - 1, 0);
+
+    const char* left = gEditor.prompt;
     int len = strlen(left);
+
+    const char* right = gEditor.prompt_right;
     int rlen = strlen(right);
 
-    if (rlen > gEditor.screen_cols)
+    if (rlen > gEditor.screen_cols) {
         rlen = 0;
-    if (len + rlen > gEditor.screen_cols)
+    }
+
+    if (len + rlen > gEditor.screen_cols) {
         len = gEditor.screen_cols - rlen;
+    }
 
     abufAppendN(ab, left, len);
 
@@ -133,15 +210,6 @@ static void drawLeftRightMsg(abuf* ab, const char* left, const char* right) {
             len++;
         }
     }
-}
-
-void editorDrawPrompt(abuf* ab) {
-    gotoXY(ab, gEditor.screen_rows - 1, 0);
-
-    setColor(ab, gEditor.color_cfg.prompt[0], 0);
-    setColor(ab, gEditor.color_cfg.prompt[1], 1);
-
-    drawLeftRightMsg(ab, gEditor.status_msg[0], gEditor.status_msg[1]);
 }
 
 void editorDrawStatusBar(abuf* ab) {

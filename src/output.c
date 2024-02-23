@@ -231,10 +231,8 @@ void editorRefreshScreen(void) {
     editorDrawRows(&ab);
     editorDrawFileExplorer(&ab);
 
-    if ((gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE) ||
-        *gEditor.status_msg[0] != '\0') {
-        editorDrawPrompt(&ab);
-    }
+    editorDrawConMsg(&ab);
+    editorDrawPrompt(&ab);
 
     editorDrawStatusBar(&ab);
 
@@ -247,8 +245,7 @@ void editorRefreshScreen(void) {
                   1 + gCurFile->lineno_width;
         if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 1 ||
             col > gEditor.screen_cols - gEditor.explorer.width ||
-            (row == gEditor.screen_rows - 1 &&
-             *gEditor.status_msg[0] != '\0')) {
+            row >= gEditor.screen_rows - gEditor.con_size) {
             should_show_cursor = false;
         } else {
             gotoXY(&ab, row, col + gEditor.explorer.width);

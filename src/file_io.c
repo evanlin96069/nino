@@ -90,14 +90,13 @@ bool editorOpen(EditorFile* file, const char* path) {
         }
 
         if (type != FT_REG) {
-            editorSetStatusMsg("Can't load \"%s\"! Not a regular file.", path);
+            editorMsg("Can't load \"%s\"! Not a regular file.", path);
             return false;
         }
 
         FileInfo file_info = getFileInfo(path);
         if (file_info.error) {
-            editorSetStatusMsg("Can't load \"%s\"! Failed to get file info.",
-                               path);
+            editorMsg("Can't load \"%s\"! Failed to get file info.", path);
             return false;
         }
         file->file_info = file_info;
@@ -112,7 +111,7 @@ bool editorOpen(EditorFile* file, const char* path) {
     FILE* fp = openFile(path, "rb");
     if (!fp) {
         if (errno != ENOENT) {
-            editorSetStatusMsg("Can't load \"%s\"! %s", path, strerror(errno));
+            editorMsg("Can't load \"%s\"! %s", path, strerror(errno));
             return false;
         }
 
@@ -121,13 +120,11 @@ bool editorOpen(EditorFile* file, const char* path) {
         snprintf(parent_dir, sizeof(parent_dir), "%s", path);
         getDirName(parent_dir);
         if (access(parent_dir, 0) != 0) {  // F_OK
-            editorSetStatusMsg("Can't create \"%s\"! %s", path,
-                               strerror(errno));
+            editorMsg("Can't create \"%s\"! %s", path, strerror(errno));
             return false;
         }
         if (access(parent_dir, 2) != 0) {  // W_OK
-            editorSetStatusMsg("Can't write to \"%s\"! %s", path,
-                               strerror(errno));
+            editorMsg("Can't write to \"%s\"! %s", path, strerror(errno));
             return false;
         }
     }
@@ -208,14 +205,14 @@ void editorSave(EditorFile* file, int save_as) {
     if (!file->filename || save_as) {
         char* path = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
         if (!path) {
-            editorSetStatusMsg("Save aborted.");
+            editorMsg("Save aborted.");
             return;
         }
 
         // Check path is valid
         FILE* fp = openFile(path, "wb");
         if (!fp) {
-            editorSetStatusMsg("Can't save \"%s\"! %s", path, strerror(errno));
+            editorMsg("Can't save \"%s\"! %s", path, strerror(errno));
             return;
         }
         fclose(fp);
@@ -238,20 +235,19 @@ void editorSave(EditorFile* file, int save_as) {
             fclose(fp);
             free(buf);
             file->dirty = 0;
-            editorSetStatusMsg("%d bytes written to disk.", len);
+            editorMsg("%d bytes written to disk.", len);
             return;
         }
         fclose(fp);
     }
     free(buf);
-    editorSetStatusMsg("Can't save \"%s\"! %s", file->filename,
-                       strerror(errno));
+    editorMsg("Can't save \"%s\"! %s", file->filename, strerror(errno));
 }
 
 void editorOpenFilePrompt(void) {
     if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
-        editorSetStatusMsg("Reached max file slots! Cannot open more files.",
-                           strerror(errno));
+        editorMsg("Reached max file slots! Cannot open more files.",
+                  strerror(errno));
         return;
     }
 

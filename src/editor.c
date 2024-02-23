@@ -19,6 +19,8 @@ void editorInit(void) {
     gEditor.state = EDIT_MODE;
     gEditor.color_cfg = color_default;
 
+    gEditor.con_front = -1;
+
     editorInitTerminal();
     editorInitConfig();
     editorInitHLDB();
@@ -58,7 +60,7 @@ void editorFreeFile(EditorFile* file) {
 
 int editorAddFile(EditorFile* file) {
     if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
-        editorSetStatusMsg("Already opened too many files!");
+        editorMsg("Already opened too many files!");
         return -1;
     }
 

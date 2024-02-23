@@ -504,7 +504,7 @@ static void editorCloseFile(int index) {
     }
 
     if (gEditor.files[index].dirty && close_protect != index) {
-        editorSetStatusMsg(
+        editorMsg(
             "File has unsaved changes. Press again to close file "
             "anyway.");
         close_protect = index;
@@ -549,8 +549,12 @@ void editorProcessKeypress(void) {
             return;
     }
 
-    if (gEditor.state == EXPLORER_MODE && editorExplorerProcessKeypress(input))
+    editorMsgClear();
+
+    if (gEditor.state == EXPLORER_MODE &&
+        editorExplorerProcessKeypress(input)) {
         return;
+    }
 
     if (gEditor.file_count == 0) {
         gEditor.state = EXPLORER_MODE;
@@ -558,8 +562,6 @@ void editorProcessKeypress(void) {
     }
 
     bool should_scroll = true;
-
-    editorSetStatusMsg("");
 
     bool should_record_action = false;
     EditorAction* action = calloc_s(1, sizeof(EditorAction));
@@ -603,7 +605,7 @@ void editorProcessKeypress(void) {
                 }
             }
             if (dirty && quit_protect) {
-                editorSetStatusMsg(
+                editorMsg(
                     "Files have unsaved changes. Press ^Q again to quit "
                     "anyway.");
                 quit_protect = false;

@@ -12,6 +12,8 @@
 #include "terminal.h"
 #include "utils.h"
 
+EditorConCmdArgs args;
+
 static void cvarSyntaxCallback(void);
 static void cvarExplorerCallback(void);
 static void cvarMouseCallback(void);
@@ -30,7 +32,7 @@ CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smart case.",
 CONVAR(mouse, "Enable mouse mode.", "1", cvarMouseCallback);
 CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
 
-CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "100", NULL);
+CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "1024", NULL);
 
 CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
 CONVAR(ex_show_hidden, "Show hidden files in the file explorer.", "1",
@@ -117,7 +119,7 @@ const ColorElement color_element_map[EDITOR_COLOR_COUNT] = {
 
 CON_COMMAND(color, "Change the color of an element.") {
     if (args.argc != 2 && args.argc != 3) {
-        editorSetStatusMsg("Usage: color <element> [color]");
+        editorMsg("Usage: color <element> [color]");
         return;
     }
 
@@ -130,14 +132,14 @@ CON_COMMAND(color, "Change the color of an element.") {
         }
     }
     if (!target) {
-        editorSetStatusMsg("Unknown element \"%s\".", args.argv[1]);
+        editorMsg("Unknown element \"%s\".", args.argv[1]);
         return;
     }
 
     if (args.argc == 2) {
         char buf[8];
         colorToStr(*target, buf);
-        editorSetStatusMsg("%s = %s", args.argv[1], buf);
+        editorMsg("%s = %s", args.argv[1], buf);
     } else if (args.argc == 3) {
         *target = strToColor(args.argv[2]);
     }
@@ -145,7 +147,7 @@ CON_COMMAND(color, "Change the color of an element.") {
 
 CON_COMMAND(exec, "Execute a config file.") {
     if (args.argc != 2) {
-        editorSetStatusMsg("Usage: exec <file>");
+        editorMsg("Usage: exec <file>");
         return;
     }
 
@@ -160,7 +162,7 @@ CON_COMMAND(exec, "Execute a config file.") {
                  PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME), filename);
 
         if (!editorLoadConfig(config_path)) {
-            editorSetStatusMsg("exec: Failed to exec \"%s\"", args.argv[1]);
+            editorMsg("exec: Failed to exec \"%s\"", args.argv[1]);
             return;
         }
     }
@@ -168,7 +170,7 @@ CON_COMMAND(exec, "Execute a config file.") {
 
 CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
     if (args.argc != 2) {
-        editorSetStatusMsg("Usage: hldb_load <json file>");
+        editorMsg("Usage: hldb_load <json file>");
         return;
     }
 
@@ -183,8 +185,7 @@ CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
                  PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME), filename);
 
         if (!editorLoadHLDB(config_path)) {
-            editorSetStatusMsg("hldb_load: Failed to load \"%s\"",
-                               args.argv[1]);
+            editorMsg("hldb_load: Failed to load \"%s\"", args.argv[1]);
             return;
         }
     }
@@ -202,8 +203,7 @@ CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
 
 CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
     if (args.argc == 1) {
-        editorSetStatusMsg("%s",
-                           (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF");
+        editorMsg("%s", (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF");
         return;
     }
 
@@ -212,7 +212,7 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
     } else if (strCaseCmp(args.argv[1], "crlf") == 0) {
         gCurFile->newline = NL_DOS;
     } else {
-        editorSetStatusMsg("Usage: newline <LF/CRLF>");
+        editorMsg("Usage: newline <LF/CRLF>");
     }
 }
 
@@ -237,33 +237,37 @@ CON_COMMAND(echo, "Echo text to console.") {
             break;
         }
     }
-    editorSetStatusMsg("%s", buf);
+    editorMsg("%s", buf);
+}
+
+CON_COMMAND(clear, "Clear all console output.") {
+    UNUSED(args.argc);
+    editorMsgClear();
 }
 
 static void showCmdHelp(const EditorConCmd* cmd) {
     if (cmd->has_callback) {
-        editorSetStatusMsg("\"%s\" - %s", cmd->name, cmd->help_string);
+        editorMsg("\"%s\" - %s", cmd->name, cmd->help_string);
     } else {
         if (strcmp(cmd->cvar.default_string, cmd->cvar.string_val) == 0) {
-            editorSetStatusMsg("\"%s\" = \"%s\" - %s", cmd->name,
-                               cmd->cvar.string_val, cmd->help_string);
+            editorMsg("\"%s\" = \"%s\" - %s", cmd->name, cmd->cvar.string_val,
+                      cmd->help_string);
         } else {
-            editorSetStatusMsg("\"%s\" = \"%s\" (def. \"%s\" ) - %s", cmd->name,
-                               cmd->cvar.string_val, cmd->cvar.default_string,
-                               cmd->help_string);
+            editorMsg("\"%s\" = \"%s\" (def. \"%s\" ) - %s", cmd->name,
+                      cmd->cvar.string_val, cmd->cvar.default_string,
+                      cmd->help_string);
         }
     }
 }
 
 CON_COMMAND(help, "Find help about a convar/concommand.") {
     if (args.argc != 2) {
-        editorSetStatusMsg("Usage: help <command>");
+        editorMsg("Usage: help <command>");
         return;
     }
     EditorConCmd* cmd = editorFindCmd(args.argv[1]);
     if (!cmd) {
-        editorSetStatusMsg("help: No cvar or command named \"%s\".",
-                           args.argv[1]);
+        editorMsg("help: No cvar or command named \"%s\".", args.argv[1]);
         return;
     }
     showCmdHelp(cmd);
@@ -286,7 +290,7 @@ CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
             // SIGABRT
             abort();
         default:
-            editorSetStatusMsg("Unknown crash type.");
+            editorMsg("Unknown crash type.");
     }
 }
 
@@ -376,13 +380,13 @@ static CmdAlias* findAlias(const char* name) {
 
 CON_COMMAND(alias, "Alias a command.") {
     if (args.argc < 2) {
-        editorSetStatusMsg("Usage: alias <name> [value]");
+        editorMsg("Usage: alias <name> [value]");
         return;
     }
 
     char* s = args.argv[1];
     if (strlen(s) >= MAX_ALIAS_NAME) {
-        editorSetStatusMsg("Alias name is too long");
+        editorMsg("Alias name is too long");
         return;
     }
 
@@ -390,9 +394,9 @@ CON_COMMAND(alias, "Alias a command.") {
     CmdAlias* a = findAlias(s);
     if (args.argc == 2) {
         if (!a) {
-            editorSetStatusMsg("\"%s\" is not aliased", s);
+            editorMsg("\"%s\" is not aliased", s);
         } else {
-            editorSetStatusMsg("\"%s\" = \"%s\"", s, a->value);
+            editorMsg("\"%s\" = \"%s\"", s, a->value);
         }
         return;
     }
@@ -433,7 +437,7 @@ CON_COMMAND(alias, "Alias a command.") {
 
 static void parseLine(const char* cmd, int depth);
 
-static void cvarCmdCallback(EditorConCmd* cmd, EditorConCmdArgs args) {
+static void cvarCmdCallback(EditorConCmd* cmd) {
     if (args.argc < 2) {
         showCmdHelp(cmd);
         return;
@@ -441,9 +445,14 @@ static void cvarCmdCallback(EditorConCmd* cmd, EditorConCmdArgs args) {
     editorSetConVar(&cmd->cvar, args.argv[1]);
 }
 
-static void executeCommand(EditorConCmdArgs args, int depth) {
+static void executeCommand(int depth) {
     if (args.argc < 1)
         return;
+
+    if (args.argc > COMMAND_MAX_ARGC) {
+        editorMsg("Command overflows the argument buffer. Clamped!");
+        args.argc = COMMAND_MAX_ARGC;
+    }
 
     CmdAlias* a = findAlias(args.argv[0]);
     if (a) {
@@ -453,25 +462,32 @@ static void executeCommand(EditorConCmdArgs args, int depth) {
 
     EditorConCmd* cmd = editorFindCmd(args.argv[0]);
     if (!cmd) {
-        editorSetStatusMsg("Unknown command \"%s\".", args.argv[0]);
+        editorMsg("Unknown command \"%s\".", args.argv[0]);
         return;
     }
 
     if (cmd->has_callback) {
-        cmd->callback(args);
+        cmd->callback();
     } else {
-        cvarCmdCallback(cmd, args);
+        cvarCmdCallback(cmd);
     }
+}
+
+static void resetArgs() {
+    for (int i = 0; i < args.argc; i++) {
+        free(args.argv[i]);
+    }
+    args.argc = 0;
 }
 
 static void parseLine(const char* cmd, int depth) {
     if (depth > CONVAR_GETINT(cmd_expand_depth)) {
-        editorSetStatusMsg("Reached max alias expansion depth.");
+        editorMsg("Reached max alias expansion depth.");
         return;
     }
 
     // Command line parsing
-    EditorConCmdArgs args = {0};
+    resetArgs();
     while (*cmd != '\0' && *cmd != '#') {
         switch (*cmd) {
             case '\t':
@@ -479,37 +495,47 @@ static void parseLine(const char* cmd, int depth) {
                 cmd++;
                 break;
 
-            case '"':
-                cmd++;
-                for (int i = 0; *cmd != '\0' && *cmd != '"'; i++) {
-                    args.argv[args.argc][i] = *cmd;
-                    cmd++;
-                }
-
-                if (*cmd == '"') {
-                    cmd++;
-                }
-                args.argc++;
-                break;
-
             case ';':
-                executeCommand(args, depth);
-                memset(&args, 0, sizeof(EditorConCmdArgs));
+                executeCommand(depth);
+                resetArgs();
                 cmd++;
                 break;
 
-            default:
-                for (int i = 0;
-                     *cmd != '\0' && *cmd != '#' && *cmd != ';' && *cmd != ' ';
-                     i++) {
-                    args.argv[args.argc][i] = *cmd;
+            default: {
+                bool in_quote = (*cmd == '"');
+                if (in_quote) {
                     cmd++;
                 }
+
+                char* buf = calloc_s(sizeof(char), COMMAND_MAX_LENGTH);
+
+                for (int i = 0;
+                     *cmd != '\0' &&
+                     (in_quote ? (*cmd != '"')
+                               : (*cmd != '#' && *cmd != ';' && *cmd != ' '));
+                     i++) {
+                    buf[i] = *cmd;
+                    cmd++;
+                }
+
+                if (in_quote) {
+                    cmd++;
+                }
+
+                if (args.argc < COMMAND_MAX_ARGC) {
+                    args.argv[args.argc] = buf;
+                } else {
+                    free(buf);
+                }
+
+                // Let argc go pass COMMAND_MAX_ARGC.
+                // We will detect it in executeCommand.
                 args.argc++;
+            }
         }
     }
 
-    executeCommand(args, depth);
+    executeCommand(depth);
 }
 
 bool editorLoadConfig(const char* path) {
@@ -517,7 +543,7 @@ bool editorLoadConfig(const char* path) {
     if (!fp)
         return false;
 
-    char buf[128] = {0};
+    char buf[COMMAND_MAX_LENGTH] = {0};
     while (fgets(buf, sizeof(buf), fp)) {
         buf[strcspn(buf, "\r\n")] = '\0';
         parseLine(buf, 0);
@@ -552,6 +578,7 @@ void editorInitConfig(void) {
     INIT_CONCOMMAND(alias);
     INIT_CONCOMMAND(exec);
     INIT_CONCOMMAND(echo);
+    INIT_CONCOMMAND(clear);
     INIT_CONCOMMAND(help);
 
 #ifdef _DEBUG
@@ -577,6 +604,8 @@ void editorFreeConfig(void) {
         free(temp->value);
         free(temp);
     }
+
+    resetArgs();
 }
 
 void editorOpenConfigPrompt(void) {

@@ -42,11 +42,11 @@ extern const ColorElement color_element_map[EDITOR_COLOR_COUNT];
         .cvar = {.default_string = _default_string, .callback = _callback}}
 
 #define CON_COMMAND(_name, _help_string)                        \
-    static void _name##_callback(EditorConCmdArgs args);        \
+    static void _name##_callback(void);                         \
     EditorConCmd ccmd_##_name = {.name = #_name,                \
                                  .help_string = _help_string,   \
                                  .callback = _name##_callback}; \
-    void _name##_callback(EditorConCmdArgs args)
+    void _name##_callback(void)
 
 #define INIT_CONVAR(name) editorInitConVar(&cvar_##name)
 #define INIT_CONCOMMAND(name) editorInitConCmd(&ccmd_##name)
@@ -54,15 +54,17 @@ extern const ColorElement color_element_map[EDITOR_COLOR_COUNT];
 #define CONVAR_GETINT(name) cvar_##name.cvar.int_val
 #define CONVAR_GETSTR(name) cvar_##name.cvar.string_val
 
-#define COMMAND_MAX_ARGC 16
-#define COMMAND_MAX_LENGTH 64
+#define COMMAND_MAX_ARGC 64
+#define COMMAND_MAX_LENGTH 512
 
 typedef struct EditorConCmdArgs {
     int argc;
-    char argv[COMMAND_MAX_ARGC][COMMAND_MAX_LENGTH];
+    char* argv[COMMAND_MAX_ARGC];
 } EditorConCmdArgs;
 
-typedef void (*CommandCallback)(EditorConCmdArgs args);
+extern EditorConCmdArgs args;
+
+typedef void (*CommandCallback)(void);
 typedef void (*ConVarCallback)(void);
 
 typedef struct EditorConVar {

@@ -11,7 +11,12 @@
 #include "select.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
-#define EDITOR_STATUS_BUF_LENGTH 128
+
+#define EDITOR_CON_COUNT 16
+#define EDITOR_CON_LENGTH 255
+
+#define EDITOR_PROMPT_LENGTH 255
+#define EDITOR_RIGHT_PROMPT_LENGTH 32
 
 typedef struct EditorSyntax EditorSyntax;
 
@@ -88,8 +93,15 @@ typedef struct Editor {
     // File explorer
     EditorExplorer explorer;
 
-    // Prompt message (left/right)
-    char status_msg[2][EDITOR_STATUS_BUF_LENGTH];
+    // Console
+    int con_front;
+    int con_rear;
+    int con_size;
+    char con_msg[EDITOR_CON_COUNT][EDITOR_CON_LENGTH];
+
+    // Prompt
+    char prompt[EDITOR_PROMPT_LENGTH];
+    char prompt_right[EDITOR_RIGHT_PROMPT_LENGTH];
 } Editor;
 
 // Text editor

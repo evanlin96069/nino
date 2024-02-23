@@ -29,7 +29,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     }
     gEditor.px = start;
     while (true) {
-        editorSetStatusMsg(prompt, buf);
+        editorSetPrompt(prompt, buf);
         editorRefreshScreen();
 
         EditorInput input = editorReadKey();
@@ -127,7 +127,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
             }
             case CTRL_KEY('q'):
             case ESC:
-                editorSetStatusMsg("");
+                editorSetPrompt("");
                 gEditor.state = old_state;
                 if (callback)
                     callback(buf, input.type);
@@ -136,7 +136,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
 
             case '\r':
                 if (buflen != 0) {
-                    editorSetStatusMsg("");
+                    editorSetPrompt("");
                     gEditor.state = old_state;
                     if (callback)
                         callback(buf, input.type);
@@ -191,8 +191,7 @@ static void editorGotoCallback(char* query, int key) {
         gCurFile->cursor.y = line - 1;
         editorScrollToCursorCenter();
     } else {
-        editorSetStatusMsg("Type a line number between 1 to %d.",
-                           gCurFile->num_rows);
+        editorMsg("Type a line number between 1 to %d.", gCurFile->num_rows);
     }
 }
 
@@ -255,13 +254,13 @@ static void editorFindCallback(char* query, int key) {
         }
         findListFree(head.next);
         head.next = NULL;
-        editorSetRStatusMsg("");
+        editorSetRightPrompt("");
         return;
     }
 
     size_t len = strlen(query);
     if (len == 0) {
-        editorSetRStatusMsg("");
+        editorSetRightPrompt("");
         return;
     }
 
@@ -330,7 +329,7 @@ static void editorFindCallback(char* query, int key) {
         }
 
         if (!head.next) {
-            editorSetRStatusMsg("  No results");
+            editorSetRightPrompt("  No results");
             return;
         }
 
@@ -356,7 +355,7 @@ static void editorFindCallback(char* query, int key) {
         else
             current--;
     }
-    editorSetRStatusMsg("  %d of %d", current, total);
+    editorSetRightPrompt("  %d of %d", current, total);
 
     gCurFile->cursor.x = match_node->col;
     gCurFile->cursor.y = match_node->row;
