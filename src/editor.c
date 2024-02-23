@@ -6,7 +6,7 @@
 #include "defines.h"
 #include "highlight.h"
 #include "output.h"
-#include "status.h"
+#include "prompt.h"
 #include "terminal.h"
 #include "utils.h"
 

@@ -1,18 +1,57 @@
 #include "prompt.h"
 
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "editor.h"
 #include "input.h"
 #include "output.h"
-#include "status.h"
+#include "prompt.h"
 #include "terminal.h"
 #include "unicode.h"
 
+void editorMsg(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(gEditor.con_msg[gEditor.con_rear], sizeof(gEditor.con_msg[0]),
+              fmt, ap);
+    va_end(ap);
+
+    if (gEditor.con_front == gEditor.con_rear) {
+        gEditor.con_front = (gEditor.con_front + 1) % EDITOR_CON_COUNT;
+        gEditor.con_size--;
+    } else if (gEditor.con_front == -1) {
+        gEditor.con_front = 0;
+    }
+    gEditor.con_size++;
+    gEditor.con_rear = (gEditor.con_rear + 1) % EDITOR_CON_COUNT;
+}
+
+void editorMsgClear(void) {
+    gEditor.con_front = -1;
+    gEditor.con_rear = 0;
+    gEditor.con_size = 0;
+}
+
+static void editorSetPrompt(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(gEditor.prompt, sizeof(gEditor.prompt), fmt, ap);
+    va_end(ap);
+}
+
+static void editorSetRightPrompt(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(gEditor.prompt_right, sizeof(gEditor.prompt_right), fmt, ap);
+    va_end(ap);
+}
+
 #define PROMPT_BUF_INIT_SIZE 64
 #define PROMPT_BUF_GROWTH_RATE 2.0f
+
 char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
     int old_state = gEditor.state;
     gEditor.state = state;

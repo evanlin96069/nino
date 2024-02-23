@@ -6,13 +6,11 @@
 #include <string.h>
 
 #include "config.h"
-#include "defines.h"
 #include "editor.h"
 #include "file_io.h"
 #include "output.h"
 #include "prompt.h"
 #include "select.h"
-#include "status.h"
 #include "terminal.h"
 #include "unicode.h"
 #include "utils.h"

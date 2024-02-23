@@ -10,8 +10,8 @@
 #include "highlight.h"
 #include "input.h"
 #include "output.h"
+#include "prompt.h"
 #include "row.h"
-#include "status.h"
 
 static int isFileOpened(FileInfo info) {
     for (int i = 0; i < gEditor.file_count; i++) {

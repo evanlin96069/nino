@@ -8,7 +8,7 @@
 #include "editor.h"
 #include "highlight.h"
 #include "input.h"
-#include "status.h"
+#include "prompt.h"
 #include "terminal.h"
 #include "utils.h"
 
