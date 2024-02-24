@@ -216,10 +216,35 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
 // Goto
 
 static void editorGotoCallback(char* query, int key) {
-    if (query == NULL || key == ESC || key == CTRL_KEY('q'))
+    if (key == ESC || key == CTRL_KEY('q')) {
         return;
+    }
 
-    int line = atoi(query);
+    editorMsgClear();
+
+    if (query == NULL || query[0] == '\0') {
+        return;
+    }
+
+    int line = 0;
+
+    int sign = 1;
+    for (int i = 0; query[i]; i++) {
+        if (query[i] >= '0' && query[i] <= '9') {
+            line *= 10;
+            line += query[i] - '0';
+        } else if (i == 0 && (query[i] == '+' || query[i] == '-')) {
+            if (query[i] == '-') {
+                sign = -1;
+            }
+        } else {
+            line = 0;
+            break;
+        }
+    }
+
+    line *= sign;
+
     if (line < 0) {
         line = gCurFile->num_rows + 1 + line;
     }
@@ -230,7 +255,8 @@ static void editorGotoCallback(char* query, int key) {
         gCurFile->cursor.y = line - 1;
         editorScrollToCursorCenter();
     } else {
-        editorMsg("Type a line number between 1 to %d.", gCurFile->num_rows);
+        editorMsg("Type a line number between 1 to %d (negative too).",
+                  gCurFile->num_rows);
     }
 }
 
