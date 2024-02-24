@@ -47,6 +47,7 @@ int main(int argc, char* argv[]) {
         }
 
         fprintf(out, "\n};\n\n");
+        fclose(fp);
     }
 
     fprintf(out, "const char* bundle[] = {\n");
@@ -56,6 +57,6 @@ int main(int argc, char* argv[]) {
     fprintf(out, "};\n\n");
 
     fprintf(out, "#endif\n");
-
+    fclose(out);
     return 0;
 }
