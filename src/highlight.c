@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../resources/bundle.h"
 #include "config.h"
 #include "os.h"
 
@@ -204,8 +205,12 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
 static JsonArena hldb_arena;
 
 static void editorLoadNinoConfigHLDB(void);
+static void editorLoadBundledHLDB(void);
 
 void editorInitHLDB(void) {
+    editorLoadNinoConfigHLDB();
+    editorLoadBundledHLDB();
+
     char path[EDITOR_PATH_MAX];
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
              getenv(ENV_HOME));
@@ -234,8 +239,6 @@ void editorInitHLDB(void) {
         }
     } while (dirNext(&iter));
     dirClose(&iter);
-
-    editorLoadNinoConfigHLDB();
 }
 
 // Built-in syntax highlighting for nino config
@@ -266,44 +269,20 @@ static void editorLoadNinoConfigHLDB(void) {
     gEditor.HLDB = syntax;
 }
 
-bool editorLoadHLDB(const char* json_file) {
-    FILE* fp;
-    size_t size;
-    char* buffer;
-
-    // Load file
-    fp = openFile(json_file, "rb");
-    if (!fp)
-        return false;
-
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    buffer = calloc_s(1, size + 1);
-
-    if (fread(buffer, size, 1, fp) != 1) {
-        fclose(fp);
-        free(buffer);
-        return false;
-    }
-    fclose(fp);
-
+static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax) {
     // Parse json
-    JsonValue* value = json_parse(buffer, &hldb_arena);
-    free(buffer);
+    JsonValue* value = json_parse(json, &hldb_arena);
     if (value->type != JSON_OBJECT) {
         return false;
     }
 
     // Get data
-#define CHECK(boolean)  \
-    do {                \
-        if (!(boolean)) \
-            goto END;   \
+#define CHECK(boolean)    \
+    do {                  \
+        if (!(boolean))   \
+            return false; \
     } while (0)
 
-    EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
     JsonObject* object = value->object;
 
     JsonValue* name = json_object_find(object, "name");
@@ -359,14 +338,56 @@ bool editorLoadHLDB(const char* json_file) {
     // TODO: Add flags option in json file
     syntax->flags = HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS;
 
-    // Add to HLDB
-    syntax->next = gEditor.HLDB;
-    gEditor.HLDB = syntax;
-
     return true;
-END:
-    free(syntax);
-    return false;
+}
+
+static void editorLoadBundledHLDB(void) {
+    for (size_t i = 0; i < sizeof(bundle) / sizeof(bundle[0]); i++) {
+        EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
+        if (editorLoadJsonHLDB(bundle[i], syntax)) {
+            // Add to HLDB
+            syntax->next = gEditor.HLDB;
+            gEditor.HLDB = syntax;
+        } else {
+            free(syntax);
+        }
+    }
+}
+
+bool editorLoadHLDB(const char* path) {
+    FILE* fp;
+    size_t size;
+    char* buffer;
+
+    // Load file
+    fp = openFile(path, "rb");
+    if (!fp)
+        return false;
+
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    buffer = calloc_s(1, size + 1);
+
+    if (fread(buffer, size, 1, fp) != 1) {
+        fclose(fp);
+        free(buffer);
+        return false;
+    }
+    fclose(fp);
+
+    EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
+    if (editorLoadJsonHLDB(buffer, syntax)) {
+        // Add to HLDB
+        syntax->next = gEditor.HLDB;
+        gEditor.HLDB = syntax;
+    } else {
+        free(syntax);
+    }
+
+    free(buffer);
+    return true;
 }
 
 void editorFreeHLDB(void) {

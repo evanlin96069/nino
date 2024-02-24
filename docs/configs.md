@@ -4,10 +4,8 @@ Configurations are set by running commands. Use `Ctrl+P` to open the command pro
 To run commands on start, create `ninorc` in the configuration directory.
 
 ## Configuration Directory:
-- Linux
-    - `~/.config/nino`
-- Windows
-    - `~/.nino`
+- Linux: `~/.config/nino`
+- Windows: `~/.nino`
 
 ## Execute a Config File
 `exec` command executes a config file.

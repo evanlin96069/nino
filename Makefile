@@ -1,4 +1,4 @@
-.PHONY: all prep release debug clean format install install-data
+.PHONY: all prep release debug clean format install
 
 # Platform detection
 ifeq ($(OS),Windows_NT)
@@ -31,14 +31,19 @@ OBJS = $(patsubst $(SRCDIR)/%.c, %.o, $(SOURCES))
 DEPS = $(patsubst $(SRCDIR)/%.c, %.d, $(SOURCES))
 EXE = nino$(EXE_EXT)
 
+# Resources
+RESOURCE_DIR = resources
+SYNTAX_FILES= $(wildcard $(RESOURCE_DIR)/syntax/*.json)
+BUNDLER_SRC = $(RESOURCE_DIR)/bundler.c
+BUNDLER = $(RESOURCE_DIR)/bundler$(EXE_EXT)
+BUNDLE = $(RESOURCE_DIR)/bundle.h
+
 # Install settings
 prefix ?= /usr/local
 exec_prefix ?= $(prefix)
 bindir ?= $(exec_prefix)/bin
 
-datadir = $(HOME)/.config/nino
 INSTALL = install
-INSTALL_DATA = $(INSTALL) -m 644
 
 # Release build settings
 RELDIR = release
@@ -57,18 +62,24 @@ DBGCFLAGS = -Og -g3 -D_DEBUG
 # Default target
 all: prep release
 
+$(BUNDLER) : $(BUNDLER_SRC)
+	$(CC) -s -o $@ $<
+
+$(BUNDLE) : $(BUNDLER)
+	$(BUNDLER) $(BUNDLE) $(SYNTAX_FILES)
+
 # Release build
 release: $(RELEXE)
 $(RELEXE): $(RELOBJS)
 	$(CC) $(CFLAGS) $(RELCFLAGS) -s -o $(RELEXE) $^
-$(RELDIR)/%.o: $(SRCDIR)/%.c
+$(RELDIR)/%.o: $(SRCDIR)/%.c $(BUNDLE)
 	$(CC) -c -MMD $(CFLAGS) $(RELCFLAGS) -o $@ $<
 
 # Debug build
 debug: $(DBGEXE)
 $(DBGEXE): $(DBGOBJS)
 	$(CC) $(CFLAGS) $(DBGCFLAGS) -o $(DBGEXE) $^
-$(DBGDIR)/%.o: $(SRCDIR)/%.c
+$(DBGDIR)/%.o: $(SRCDIR)/%.c $(BUNDLE)
 	$(CC) -c -MMD $(CFLAGS) $(DBGCFLAGS) -o $@ $<
 
 -include $(RELDEPS) $(DBGDEPS)
@@ -80,7 +91,7 @@ prep:
 
 # Clean target
 clean:
-	$(call rm, $(RELEXE) $(RELDEPS) $(RELOBJS) $(DBGEXE) $(DBGDEPS) $(DBGOBJS))
+	$(call rm, $(RELEXE) $(RELDEPS) $(RELOBJS) $(DBGEXE) $(DBGDEPS) $(DBGOBJS) $(BUNDLER) $(BUNDLE))
 
 # Format all files
 format:
@@ -89,10 +100,3 @@ format:
 # Install target
 install:
 	$(INSTALL) $(RELEXE) $(DESTDIR)$(bindir)/$(EXE)
-
-install-data:
-	$(call mkdir, $(datadir))
-	$(call mkdir, $(datadir)/syntax)
-	$(INSTALL_DATA) syntax/*.json $(DESTDIR)$(datadir)/syntax/
-	$(call mkdir, $(datadir)/themes)
-	$(INSTALL_DATA) themes/*.nino $(DESTDIR)$(datadir)/themes/

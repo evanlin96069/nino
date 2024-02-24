@@ -23,24 +23,12 @@ I'm not used to [Vim](https://www.vim.org/) and I don't like [nano](https://nano
 - Search with smart case sensitivity
 - File explorer
 
-## Installation
-### Linux
-nino requires a sufficiently Unix-like C library and a C11 compiler.
-
-#### Build nino:
+## Build
 ```
 git clone https://github.com/evanlin96069/nino.git
 cd nino
-make && sudo make install
+make
 ```
-
-#### Install Themes and Syntax Highlighting
-```
-make install-data
-```
-
-### Windows
-Use Mingw-w64. Run `make` and get `nino.exe` in the `release` folder
 
 ## Documentation
 - [Configurations](docs/configs.md)

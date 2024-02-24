@@ -2,3 +2,7 @@
 release/
 debug/
 *.txt
+
+resources/bundler
+resources/bundler.exe
+resources/bundle.h
