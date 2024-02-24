@@ -29,6 +29,9 @@ static void editorExplorerNodeClicked(void) {
         editorExplorerRefresh();
     } else if (editorOpen(&file, node->filename)) {
         int index = editorAddFile(&file);
+        if (index == -1) {
+            editorFreeFile(&file);
+        }
         // hack: refresh screen to update gEditor.tab_displayed
         editorRefreshScreen();
         editorChangeToFile(index);

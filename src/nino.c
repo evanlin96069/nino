@@ -5,6 +5,7 @@
 #include "input.h"
 #include "os.h"
 #include "output.h"
+#include "prompt.h"
 #include "row.h"
 
 int main(int argc, char* argv[]) {
@@ -16,8 +17,10 @@ int main(int argc, char* argv[]) {
 
     if (args.count > 1) {
         for (int i = 1; i < args.count; i++) {
-            if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT)
+            if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
+                editorMsg("Already opened too many files!");
                 break;
+            }
             editorInitFile(&file);
             if (editorOpen(&file, args.args[i])) {
                 editorAddFile(&file);

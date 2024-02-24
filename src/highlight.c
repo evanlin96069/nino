@@ -208,14 +208,14 @@ static void editorLoadNinoConfigHLDB(void);
 static void editorLoadBundledHLDB(void);
 
 void editorInitHLDB(void) {
+    json_arena_init(&hldb_arena, ARENA_SIZE);
+
     editorLoadNinoConfigHLDB();
     editorLoadBundledHLDB();
 
     char path[EDITOR_PATH_MAX];
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
              getenv(ENV_HOME));
-
-    json_arena_init(&hldb_arena, ARENA_SIZE);
 
     DirIter iter = dirFindFirst(path);
     if (iter.error)
