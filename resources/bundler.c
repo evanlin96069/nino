@@ -37,8 +37,15 @@ int main(int argc, char* argv[]) {
 
         int index = 0;
 
-        int byte;
-        while ((byte = fgetc(fp)) != EOF) {
+        int should_read = 1;
+        while (should_read) {
+            int byte = fgetc(fp);
+            if (byte == EOF) {
+                // Makes it null-terminated
+                byte = 0;
+                should_read = 0;
+            }
+
             if (index % 10 == 0) {
                 fprintf(out, "\n    ");
             }
