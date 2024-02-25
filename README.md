@@ -18,16 +18,20 @@ I'm not used to [Vim](https://www.vim.org/) and I don't like [nano](https://nano
 - Multiple editor tabs
 - Automatic indentation and bracket completion
 - Mouse support
-- Cut, copy, and paste selected section
+- Cut, copy, and paste the selected section
 - Multiple undo/redo
 - Search with smart case sensitivity
 - File explorer
 
 ## Build
-```
+```bash
 git clone https://github.com/evanlin96069/nino.git
 cd nino
 make
+```
+Then install the example config:
+```bash
+cp docs/example.ninorc ~/.ninorc
 ```
 
 ## Documentation
