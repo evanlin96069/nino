@@ -1,7 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -120,6 +119,7 @@ int getDigit(int n);
 int64_t getLine(char** lineptr, size_t* n, FILE* stream);
 int strCaseCmp(const char* s1, const char* s2);
 char* strCaseStr(const char* str, const char* sub_str);
+int strToInt(const char* str);
 
 // Base64
 static inline int base64EncodeLen(int len) { return ((len + 2) / 3 * 4) + 1; }

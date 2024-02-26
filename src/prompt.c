@@ -226,24 +226,7 @@ static void editorGotoCallback(char* query, int key) {
         return;
     }
 
-    int line = 0;
-
-    int sign = 1;
-    for (int i = 0; query[i]; i++) {
-        if (query[i] >= '0' && query[i] <= '9') {
-            line *= 10;
-            line += query[i] - '0';
-        } else if (i == 0 && (query[i] == '+' || query[i] == '-')) {
-            if (query[i] == '-') {
-                sign = -1;
-            }
-        } else {
-            line = 0;
-            break;
-        }
-    }
-
-    line *= sign;
+    int line = strToInt(query);
 
     if (line < 0) {
         line = gCurFile->num_rows + 1 + line;

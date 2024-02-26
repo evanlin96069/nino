@@ -15,7 +15,10 @@
 
 void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
     row->hl = realloc_s(row->hl, row->size);
-    memset(row->hl, HL_NORMAL, row->size);
+    if (row->hl) {
+        // realloc might returns NULL when row->size == 0
+        memset(row->hl, HL_NORMAL, row->size);
+    }
 
     EditorSyntax* s = file->syntax;
 

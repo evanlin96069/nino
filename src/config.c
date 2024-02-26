@@ -278,13 +278,13 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
 CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
     int crash_type = 0;
     if (args.argc > 1) {
-        crash_type = atoi(args.argv[1]);
+        crash_type = strToInt(args.argv[1]);
     }
 
     switch (crash_type) {
         case 0:
             // SIGSEGV
-            *(char*)0 = 0;
+            *(volatile char*)0 = 0;
             break;
         case 1:
             // SIGABRT
@@ -618,9 +618,9 @@ void editorOpenConfigPrompt(void) {
 }
 
 void editorSetConVar(EditorConVar* thisptr, const char* string_val) {
-    strncpy(thisptr->string_val, string_val, COMMAND_MAX_LENGTH);
+    strncpy(thisptr->string_val, string_val, COMMAND_MAX_LENGTH - 1);
     thisptr->string_val[COMMAND_MAX_LENGTH - 1] = '\0';
-    thisptr->int_val = atoi(string_val);
+    thisptr->int_val = strToInt(string_val);
 
     if (thisptr->callback) {
         thisptr->callback();

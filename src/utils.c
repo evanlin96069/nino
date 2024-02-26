@@ -1,6 +1,7 @@
 #include "utils.h"
 
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,15 +69,15 @@ void abufAppendN(abuf *ab, const char *s, size_t n) {
 
 void abufFree(abuf *ab) { free(ab->buf); }
 
-static bool isValidColor(const char *color) {
+static int isValidColor(const char *color) {
     if (strlen(color) != 6)
-        return false;
+        return 0;
     for (int i = 0; i < 6; i++) {
         if (!(('0' <= color[i]) || (color[i] <= '9') || ('A' <= color[i]) ||
               (color[i] <= 'F') || ('a' <= color[i]) || (color[i] <= 'f')))
-            return false;
+            return 0;
     }
-    return true;
+    return 1;
 }
 
 Color strToColor(const char *color) {
@@ -272,6 +273,46 @@ char *strCaseStr(const char *str, const char *sub_str) {
     }
 
     return NULL;
+}
+
+int strToInt(const char *str) {
+    if (!str) {
+        return 0;
+    }
+
+    // Skip front spaces
+    while (*str == ' ' || *str == '\t') {
+        str++;
+    }
+
+    int sign = 1;
+    if (*str == '+' || *str == '-') {
+        sign = (*str++ == '-') ? -1 : 1;
+    }
+
+    int result = 0;
+    while (*str >= '0' && *str <= '9') {
+        if (result > INT_MAX / 10 ||
+            (result == INT_MAX / 10 && (*str - '0') > INT_MAX % 10)) {
+            // Overflow
+            return (sign == -1) ? INT_MIN : INT_MAX;
+        }
+
+        result = result * 10 + (*str - '0');
+        str++;
+    }
+
+    result = sign * result;
+
+    // Skip trailing spaces
+    while (*str != '\0') {
+        if (*str != ' ' && *str != '\t') {
+            return 0;
+        }
+        str++;
+    }
+
+    return result;
 }
 
 // https://opensource.apple.com/source/QuickTimeStreamingServer/QuickTimeStreamingServer-452/CommonUtilitiesLib/base64.c

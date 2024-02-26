@@ -57,6 +57,7 @@ DBGDIR = debug
 DBGEXE = $(DBGDIR)/$(EXE)
 DBGOBJS = $(addprefix $(DBGDIR)/, $(OBJS))
 DBGDEPS = $(addprefix $(DBGDIR)/, $(DEPS))
+# -fsanitize=address,undefined
 DBGCFLAGS = -Og -g3 -D_DEBUG
 
 # Default target
