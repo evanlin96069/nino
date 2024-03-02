@@ -247,17 +247,16 @@ CON_COMMAND(clear, "Clear all console output.") {
 
 static void showCmdHelp(const EditorConCmd* cmd) {
     if (cmd->has_callback) {
-        editorMsg("\"%s\" - %s", cmd->name, cmd->help_string);
+        editorMsg("\"%s\"", cmd->name);
     } else {
         if (strcmp(cmd->cvar.default_string, cmd->cvar.string_val) == 0) {
-            editorMsg("\"%s\" = \"%s\" - %s", cmd->name, cmd->cvar.string_val,
-                      cmd->help_string);
+            editorMsg("\"%s\" = \"%s\"", cmd->name, cmd->cvar.string_val);
         } else {
-            editorMsg("\"%s\" = \"%s\" (def. \"%s\" ) - %s", cmd->name,
-                      cmd->cvar.string_val, cmd->cvar.default_string,
-                      cmd->help_string);
+            editorMsg("\"%s\" = \"%s\" (def. \"%s\" )", cmd->name,
+                      cmd->cvar.string_val, cmd->cvar.default_string);
         }
     }
+    editorMsg(" - %s", cmd->help_string);
 }
 
 CON_COMMAND(help, "Find help about a convar/concommand.") {
@@ -435,6 +434,43 @@ CON_COMMAND(alias, "Alias a command.") {
     snprintf(a->value, size, "%s", cmd);
 }
 
+CON_COMMAND(unalias, "Remove an alias.") {
+    if (args.argc != 2) {
+        editorMsg("Usage: unalias <name>");
+        return;
+    }
+
+    const char* s = args.argv[1];
+
+    if (!cmd_alias) {
+        editorMsg("%s not found", s);
+        return;
+    }
+
+    if (strCaseCmp(cmd_alias->name, s) == 0) {
+        CmdAlias* temp = cmd_alias;
+        cmd_alias = cmd_alias->next;
+        free(temp->value);
+        free(temp);
+        return;
+    }
+
+    CmdAlias* a = cmd_alias;
+    while (a->next && strCaseCmp(a->next->name, s) != 0) {
+        a = a->next;
+    }
+
+    if (!a->next) {
+        editorMsg("%s not found", s);
+        return;
+    }
+
+    CmdAlias* temp = a->next;
+    a->next = a->next->next;
+    free(temp->value);
+    free(temp);
+}
+
 static void parseLine(const char* cmd, int depth);
 
 static void cvarCmdCallback(EditorConCmd* cmd) {
@@ -576,6 +612,7 @@ void editorInitConfig(void) {
 
     INIT_CONVAR(cmd_expand_depth);
     INIT_CONCOMMAND(alias);
+    INIT_CONCOMMAND(unalias);
     INIT_CONCOMMAND(exec);
     INIT_CONCOMMAND(echo);
     INIT_CONCOMMAND(clear);
@@ -613,6 +650,7 @@ void editorOpenConfigPrompt(void) {
     if (query == NULL)
         return;
 
+    editorMsgClear();
     parseLine(query, 0);
     free(query);
 }

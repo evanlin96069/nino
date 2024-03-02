@@ -34,6 +34,7 @@ The command will first search for the file in the current directory, then the co
 | `hldb_reload_all` | cmd | Reload syntax highlighting database. |
 | `newline` | cmd | Set the EOL sequence (LF/CRLF). |
 | `alias` | cmd | Alias a command. |
+| `unalias` | cmd | Remove an alias. |
 | `cmd_expand_depth` | 1024 | Max depth for alias expansion. |
 | `echo` | cmd | Echo text to console. |
 | `clear` | cmd | Clear all console output. |
