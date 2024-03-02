@@ -39,6 +39,7 @@ The command will first search for the file in the current directory, then the co
 | `echo` | cmd | Echo text to console. |
 | `clear` | cmd | Clear all console output. |
 | `help` | cmd | Find help about a convar/concommand. |
+| `find` | cmd | Find concommands with the specified string in their name/help text. |
 
 ## Color
 `color <element> [color]`

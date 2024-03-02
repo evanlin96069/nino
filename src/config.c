@@ -272,6 +272,25 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
     showCmdHelp(cmd);
 }
 
+CON_COMMAND(
+    find,
+    "Find concommands with the specified string in their name/help text.") {
+    if (args.argc != 2) {
+        editorMsg("Usage: find <string>");
+        return;
+    }
+
+    const char* s = args.argv[1];
+
+    EditorConCmd* curr = gEditor.cvars;
+    while (curr) {
+        if (strCaseStr(curr->name, s) || strCaseStr(curr->help_string, s)) {
+            showCmdHelp(curr);
+        }
+        curr = curr->next;
+    }
+}
+
 #ifdef _DEBUG
 
 CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
@@ -617,6 +636,7 @@ void editorInitConfig(void) {
     INIT_CONCOMMAND(echo);
     INIT_CONCOMMAND(clear);
     INIT_CONCOMMAND(help);
+    INIT_CONCOMMAND(find);
 
 #ifdef _DEBUG
     INIT_CONCOMMAND(crash);
