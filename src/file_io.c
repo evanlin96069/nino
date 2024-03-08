@@ -75,10 +75,26 @@ bool editorOpen(EditorFile* file, const char* path) {
     editorInitFile(file);
 
     FileType type = getFileType(path);
-    if (type != FT_INVALID) {
-        if (type == FT_DIR) {
-            if (gEditor.explorer.node)
+    switch (type) {
+        case FT_REG: {
+            FileInfo file_info = getFileInfo(path);
+            if (file_info.error) {
+                editorMsg("Can't load \"%s\"! Failed to get file info.", path);
+                return false;
+            }
+            file->file_info = file_info;
+            int open_index = isFileOpened(file_info);
+
+            if (open_index != -1) {
+                editorChangeToFile(open_index);
+                return false;
+            }
+        } break;
+
+        case FT_DIR:
+            if (gEditor.explorer.node) {
                 editorExplorerFreeNode(gEditor.explorer.node);
+            }
             changeDir(path);
             gEditor.explorer.node = editorExplorerCreate(".");
             gEditor.explorer.node->is_open = true;
@@ -87,25 +103,13 @@ bool editorOpen(EditorFile* file, const char* path) {
             gEditor.explorer.offset = 0;
             gEditor.explorer.selected_index = 0;
             return false;
-        }
 
-        if (type != FT_REG) {
-            editorMsg("Can't load \"%s\"! Not a regular file.", path);
+        case FT_DEV:
+            editorMsg("Can't load \"%s\"! It's a device file.", path);
             return false;
-        }
 
-        FileInfo file_info = getFileInfo(path);
-        if (file_info.error) {
-            editorMsg("Can't load \"%s\"! Failed to get file info.", path);
-            return false;
-        }
-        file->file_info = file_info;
-        int open_index = isFileOpened(file_info);
-
-        if (open_index != -1) {
-            editorChangeToFile(open_index);
-            return false;
-        }
+        default:
+            break;
     }
 
     FILE* fp = openFile(path, "rb");

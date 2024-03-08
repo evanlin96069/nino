@@ -22,6 +22,8 @@ FileType getFileType(const char* path) {
     struct stat info;
     if (stat(path, &info) == -1)
         return FT_INVALID;
+    if (S_ISCHR(info.st_mode))
+        return FT_DEV;
     if (S_ISDIR(info.st_mode))
         return FT_DIR;
     if (S_ISREG(info.st_mode))
