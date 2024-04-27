@@ -207,13 +207,29 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
         return;
     }
 
+    int nl;
+
     if (strCaseCmp(args.argv[1], "lf") == 0) {
-        gCurFile->newline = NL_UNIX;
+        nl = NL_UNIX;
     } else if (strCaseCmp(args.argv[1], "crlf") == 0) {
-        gCurFile->newline = NL_DOS;
+        nl = NL_DOS;
     } else {
         editorMsg("Usage: newline <LF/CRLF>");
+        return;
     }
+
+    if (gCurFile->newline == nl) {
+        return;
+    }
+
+    EditorAction* action = calloc_s(1, sizeof(EditorAction));
+    action->type = ACTION_ATTRI;
+    action->attri.new_newline = nl;
+    action->attri.old_newline = gCurFile->newline;
+
+    gCurFile->newline = nl;
+
+    editorAppendAction(action);
 }
 
 CON_COMMAND(echo, "Echo text to console.") {

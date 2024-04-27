@@ -9,11 +9,21 @@ bool editorUndo(void) {
     if (gCurFile->action_current == gCurFile->action_head)
         return false;
 
-    editorDeleteText(gCurFile->action_current->action->added_range);
-    editorPasteText(&gCurFile->action_current->action->deleted_text,
-                    gCurFile->action_current->action->deleted_range.start_x,
-                    gCurFile->action_current->action->deleted_range.start_y);
-    gCurFile->cursor = gCurFile->action_current->action->old_cursor;
+    switch (gCurFile->action_current->action->type) {
+        case ACTION_EDIT: {
+            EditAction* edit = &gCurFile->action_current->action->edit;
+            editorDeleteText(edit->added_range);
+            editorPasteText(&edit->deleted_text, edit->deleted_range.start_x,
+                            edit->deleted_range.start_y);
+            gCurFile->cursor = edit->old_cursor;
+        } break;
+
+        case ACTION_ATTRI: {
+            AttributeAction* attri = &gCurFile->action_current->action->attri;
+            gCurFile->newline = attri->old_newline;
+        } break;
+    }
+
     gCurFile->action_current = gCurFile->action_current->prev;
     gCurFile->dirty--;
     return true;
@@ -24,11 +34,22 @@ bool editorRedo(void) {
         return false;
 
     gCurFile->action_current = gCurFile->action_current->next;
-    editorDeleteText(gCurFile->action_current->action->deleted_range);
-    editorPasteText(&gCurFile->action_current->action->added_text,
-                    gCurFile->action_current->action->added_range.start_x,
-                    gCurFile->action_current->action->added_range.start_y);
-    gCurFile->cursor = gCurFile->action_current->action->new_cursor;
+
+    switch (gCurFile->action_current->action->type) {
+        case ACTION_EDIT: {
+            EditAction* edit = &gCurFile->action_current->action->edit;
+            editorDeleteText(edit->deleted_range);
+            editorPasteText(&edit->added_text, edit->added_range.start_x,
+                            edit->added_range.start_y);
+            gCurFile->cursor = edit->new_cursor;
+        } break;
+
+        case ACTION_ATTRI: {
+            AttributeAction* attri = &gCurFile->action_current->action->attri;
+            gCurFile->newline = attri->new_newline;
+        } break;
+    }
+
     gCurFile->dirty++;
     return true;
 }
@@ -60,8 +81,12 @@ void editorAppendAction(EditorAction* action) {
 void editorFreeAction(EditorAction* action) {
     if (!action)
         return;
-    editorFreeClipboardContent(&action->deleted_text);
-    editorFreeClipboardContent(&action->added_text);
+
+    if (action->type == ACTION_EDIT) {
+        editorFreeClipboardContent(&action->edit.deleted_text);
+        editorFreeClipboardContent(&action->edit.added_text);
+    }
+
     free(action);
 }
 

@@ -565,8 +565,12 @@ void editorProcessKeypress(void) {
     bool should_scroll = true;
 
     bool should_record_action = false;
+
     EditorAction* action = calloc_s(1, sizeof(EditorAction));
-    action->old_cursor = gCurFile->cursor;
+    action->type = ACTION_EDIT;
+    EditAction* edit = &action->edit;
+
+    edit->old_cursor = gCurFile->cursor;
 
     int c = input.type;
     int x = input.data.cursor.x;
@@ -576,22 +580,22 @@ void editorProcessKeypress(void) {
         case '\r': {
             should_record_action = true;
 
-            getSelectStartEnd(&action->deleted_range);
+            getSelectStartEnd(&edit->deleted_range);
 
             if (gCurFile->cursor.is_selected) {
-                editorCopyText(&action->deleted_text, action->deleted_range);
-                editorDeleteText(action->deleted_range);
+                editorCopyText(&edit->deleted_text, edit->deleted_range);
+                editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
             }
 
             gCurFile->bracket_autocomplete = 0;
 
-            action->added_range.start_x = gCurFile->cursor.x;
-            action->added_range.start_y = gCurFile->cursor.y;
+            edit->added_range.start_x = gCurFile->cursor.x;
+            edit->added_range.start_y = gCurFile->cursor.y;
             editorInsertNewline();
-            action->added_range.end_x = gCurFile->cursor.x;
-            action->added_range.end_y = gCurFile->cursor.y;
-            editorCopyText(&action->added_text, action->added_range);
+            edit->added_range.end_x = gCurFile->cursor.x;
+            edit->added_range.end_y = gCurFile->cursor.y;
+            editorCopyText(&edit->added_text, edit->added_range);
         } break;
 
         // Quit editor
@@ -756,9 +760,9 @@ void editorProcessKeypress(void) {
             should_record_action = true;
 
             if (gCurFile->cursor.is_selected) {
-                getSelectStartEnd(&action->deleted_range);
-                editorCopyText(&action->deleted_text, action->deleted_range);
-                editorDeleteText(action->deleted_range);
+                getSelectStartEnd(&edit->deleted_range);
+                editorCopyText(&edit->deleted_text, edit->deleted_range);
+                editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
                 break;
             }
@@ -785,8 +789,8 @@ void editorProcessKeypress(void) {
                 editorMoveCursor(ARROW_RIGHT);
             }
 
-            action->deleted_range.end_x = gCurFile->cursor.x;
-            action->deleted_range.end_y = gCurFile->cursor.y;
+            edit->deleted_range.end_x = gCurFile->cursor.x;
+            edit->deleted_range.end_y = gCurFile->cursor.y;
 
             if (should_delete_bracket)
                 editorMoveCursor(ARROW_LEFT);
@@ -812,10 +816,10 @@ void editorProcessKeypress(void) {
                     }
                 }
             }
-            action->deleted_range.start_x = gCurFile->cursor.x;
-            action->deleted_range.start_y = gCurFile->cursor.y;
-            editorCopyText(&action->deleted_text, action->deleted_range);
-            editorDeleteText(action->deleted_range);
+            edit->deleted_range.start_x = gCurFile->cursor.x;
+            edit->deleted_range.start_y = gCurFile->cursor.y;
+            editorCopyText(&edit->deleted_text, edit->deleted_range);
+            editorDeleteText(edit->deleted_range);
         } break;
 
         // Action: Cut
@@ -847,14 +851,14 @@ void editorProcessKeypress(void) {
                     }
                 }
 
-                action->deleted_range = range;
-                editorCopyText(&action->deleted_text, action->deleted_range);
-                editorDeleteText(action->deleted_range);
+                edit->deleted_range = range;
+                editorCopyText(&edit->deleted_text, edit->deleted_range);
+                editorDeleteText(edit->deleted_range);
             } else {
-                getSelectStartEnd(&action->deleted_range);
-                editorCopyText(&action->deleted_text, action->deleted_range);
-                editorCopyText(&gEditor.clipboard, action->deleted_range);
-                editorDeleteText(action->deleted_range);
+                getSelectStartEnd(&edit->deleted_range);
+                editorCopyText(&edit->deleted_text, edit->deleted_range);
+                editorCopyText(&gEditor.clipboard, edit->deleted_range);
+                editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
             }
             editorCopyToSysClipboard(&gEditor.clipboard);
@@ -887,22 +891,22 @@ void editorProcessKeypress(void) {
 
             should_record_action = true;
 
-            getSelectStartEnd(&action->deleted_range);
+            getSelectStartEnd(&edit->deleted_range);
 
             if (gCurFile->cursor.is_selected) {
-                editorCopyText(&action->deleted_text, action->deleted_range);
-                editorDeleteText(action->deleted_range);
+                editorCopyText(&edit->deleted_text, edit->deleted_range);
+                editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
             }
 
-            action->added_range.start_x = gCurFile->cursor.x;
-            action->added_range.start_y = gCurFile->cursor.y;
+            edit->added_range.start_x = gCurFile->cursor.x;
+            edit->added_range.start_y = gCurFile->cursor.y;
             editorPasteText(&gEditor.clipboard, gCurFile->cursor.x,
                             gCurFile->cursor.y);
 
-            action->added_range.end_x = gCurFile->cursor.x;
-            action->added_range.end_y = gCurFile->cursor.y;
-            editorCopyText(&action->added_text, action->added_range);
+            edit->added_range.end_x = gCurFile->cursor.x;
+            edit->added_range.end_y = gCurFile->cursor.y;
+            editorCopyText(&edit->added_text, edit->added_range);
         } break;
 
         // Undo
@@ -1078,18 +1082,17 @@ void editorProcessKeypress(void) {
         case SHIFT_ALT_DOWN:
             should_record_action = true;
             gCurFile->cursor.is_selected = false;
-            action->old_cursor.is_selected = 0;
+            edit->old_cursor.is_selected = 0;
             editorInsertRow(gCurFile, gCurFile->cursor.y,
                             gCurFile->row[gCurFile->cursor.y].data,
                             gCurFile->row[gCurFile->cursor.y].size);
 
-            action->added_range.start_x =
-                gCurFile->row[gCurFile->cursor.y].size;
-            action->added_range.start_y = gCurFile->cursor.y;
-            action->added_range.end_x =
+            edit->added_range.start_x = gCurFile->row[gCurFile->cursor.y].size;
+            edit->added_range.start_y = gCurFile->cursor.y;
+            edit->added_range.end_x =
                 gCurFile->row[gCurFile->cursor.y + 1].size;
-            action->added_range.end_y = gCurFile->cursor.y + 1;
-            editorCopyText(&action->added_text, action->added_range);
+            edit->added_range.end_y = gCurFile->cursor.y + 1;
+            editorCopyText(&edit->added_text, edit->added_range);
 
             if (c == SHIFT_ALT_DOWN)
                 gCurFile->cursor.y++;
@@ -1121,27 +1124,24 @@ void editorProcessKeypress(void) {
             if (c == ALT_UP) {
                 range.start_y--;
                 range.end_x = gCurFile->row[range.end_y].size;
-                editorCopyText(&action->added_text, range);
+                editorCopyText(&edit->added_text, range);
                 //  Move empty string at the start to the end
-                char* temp = action->added_text.data[0];
-                memmove(&action->added_text.data[0],
-                        &action->added_text.data[1],
-                        (action->added_text.size - 1) * sizeof(char*));
-                action->added_text.data[action->added_text.size - 1] = temp;
+                char* temp = edit->added_text.data[0];
+                memmove(&edit->added_text.data[0], &edit->added_text.data[1],
+                        (edit->added_text.size - 1) * sizeof(char*));
+                edit->added_text.data[edit->added_text.size - 1] = temp;
             } else {
                 range.end_x = 0;
                 range.end_y++;
-                editorCopyText(&action->added_text, range);
+                editorCopyText(&edit->added_text, range);
                 // Move empty string at the end to the start
-                char* temp =
-                    action->added_text.data[action->added_text.size - 1];
-                memmove(&action->added_text.data[1],
-                        &action->added_text.data[0],
-                        (action->added_text.size - 1) * sizeof(char*));
-                action->added_text.data[0] = temp;
+                char* temp = edit->added_text.data[edit->added_text.size - 1];
+                memmove(&edit->added_text.data[1], &edit->added_text.data[0],
+                        (edit->added_text.size - 1) * sizeof(char*));
+                edit->added_text.data[0] = temp;
             }
-            action->deleted_range = range;
-            editorCopyText(&action->deleted_text, range);
+            edit->deleted_range = range;
+            editorCopyText(&edit->deleted_text, range);
             editorDeleteText(range);
 
             if (c == ALT_UP) {
@@ -1155,10 +1155,10 @@ void editorProcessKeypress(void) {
 
             range.start_x = paste_x;
             range.start_y = gCurFile->cursor.y;
-            editorPasteText(&action->added_text, paste_x, gCurFile->cursor.y);
+            editorPasteText(&edit->added_text, paste_x, gCurFile->cursor.y);
             range.end_x = gCurFile->cursor.x;
             range.end_y = gCurFile->cursor.y;
-            action->added_range = range;
+            edit->added_range = range;
 
             gCurFile->cursor.x = old_cx;
             gCurFile->cursor.y = old_cy;
@@ -1333,17 +1333,17 @@ void editorProcessKeypress(void) {
             c = input.data.unicode;
             should_record_action = true;
 
-            getSelectStartEnd(&action->deleted_range);
+            getSelectStartEnd(&edit->deleted_range);
 
             if (gCurFile->cursor.is_selected) {
-                editorCopyText(&action->deleted_text, action->deleted_range);
-                editorDeleteText(action->deleted_range);
+                editorCopyText(&edit->deleted_text, edit->deleted_range);
+                editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
             }
 
             int x_offset = 0;
-            action->added_range.start_x = gCurFile->cursor.x;
-            action->added_range.start_y = gCurFile->cursor.y;
+            edit->added_range.start_x = gCurFile->cursor.x;
+            edit->added_range.start_y = gCurFile->cursor.y;
 
             int close_bracket = isOpenBracket(c);
             int open_bracket = isCloseBracket(c);
@@ -1386,9 +1386,9 @@ void editorProcessKeypress(void) {
                 editorInsertUnicode(c);
             }
 
-            action->added_range.end_x = gCurFile->cursor.x + x_offset;
-            action->added_range.end_y = gCurFile->cursor.y;
-            editorCopyText(&action->added_text, action->added_range);
+            edit->added_range.end_x = gCurFile->cursor.x + x_offset;
+            edit->added_range.end_y = gCurFile->cursor.y;
+            editorCopyText(&edit->added_text, edit->added_range);
 
             gCurFile->sx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
                                            gCurFile->cursor.x);
@@ -1418,7 +1418,7 @@ void editorProcessKeypress(void) {
         mouse_click = 0;
 
     if (should_record_action) {
-        action->new_cursor = gCurFile->cursor;
+        edit->new_cursor = gCurFile->cursor;
         editorAppendAction(action);
     } else {
         editorFreeAction(action);

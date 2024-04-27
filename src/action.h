@@ -11,7 +11,7 @@ typedef struct EditorCursor {
     int select_y;
 } EditorCursor;
 
-typedef struct EditorAction {
+typedef struct EditAction {
     EditorSelectRange deleted_range;
     EditorClipboard deleted_text;
 
@@ -20,6 +20,24 @@ typedef struct EditorAction {
 
     EditorCursor old_cursor;
     EditorCursor new_cursor;
+} EditAction;
+
+typedef struct AttributeAction {
+    int old_newline;
+    int new_newline;
+} AttributeAction;
+
+typedef enum EditorActionType {
+    ACTION_EDIT,
+    ACTION_ATTRI,
+} EditorActionType;
+
+typedef struct EditorAction {
+    EditorActionType type;
+    union {
+        EditAction edit;
+        AttributeAction attri;
+    };
 } EditorAction;
 
 typedef struct EditorActionList {
