@@ -1041,10 +1041,11 @@ void editorProcessKeypress(void) {
                 gCurFile->cursor.is_selected = false;
             } else {
                 if (gCurFile->bracket_autocomplete) {
-                    if (ARROW_RIGHT)
+                    if (c == ARROW_RIGHT) {
                         gCurFile->bracket_autocomplete--;
-                    else
+                    } else {
                         gCurFile->bracket_autocomplete = 0;
+                    }
                 }
                 editorMoveCursor(c);
             }

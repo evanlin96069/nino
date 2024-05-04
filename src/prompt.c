@@ -339,8 +339,8 @@ static void editorFindCallback(char* query, int key) {
                 search_func = &strCaseStr;
             } else if (CONVAR_GETINT(ignorecase) == 2) {
                 bool has_upper = false;
-                for (size_t i = 0; i < len; i++) {
-                    if (isupper(query[i])) {
+                for (size_t j = 0; j < len; j++) {
+                    if (isupper(query[j])) {
                         has_upper = true;
                         break;
                     }
@@ -350,8 +350,8 @@ static void editorFindCallback(char* query, int key) {
                 }
             }
 
-            while (
-                (match = (*search_func)(&gCurFile->row[i].data[col], query))) {
+            while ((match = (*search_func)(&gCurFile->row[i].data[col],
+                                           query)) != 0) {
                 col = match - gCurFile->row[i].data;
                 FindList* node = malloc_s(sizeof(FindList));
 

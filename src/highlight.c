@@ -173,11 +173,12 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
         editorUpdateSyntax(file, &file->row[row_index + 1]);
 
 update_trailing:
-    for (int i = row->size - 1; i >= 0; i--) {
-        if (row->data[i] == ' ' || row->data[i] == '\t')
+    for (i = row->size - 1; i >= 0; i--) {
+        if (row->data[i] == ' ' || row->data[i] == '\t') {
             row->hl[i] = HL_BG_TRAILING << HL_FG_BITS;
-        else
+        } else {
             break;
+        }
     }
 }
 
@@ -399,9 +400,10 @@ void editorFreeHLDB(void) {
         EditorSyntax* temp = HLDB;
         HLDB = HLDB->next;
         free(temp->file_exts.data);
-        free(temp->keywords[0].data);
-        free(temp->keywords[1].data);
-        free(temp->keywords[2].data);
+        for (int i = 0; i < sizeof(temp->keywords) / sizeof(temp->keywords[0]);
+             i++) {
+            free(temp->keywords[i].data);
+        }
         free(temp);
     }
     json_arena_deinit(&hldb_arena);

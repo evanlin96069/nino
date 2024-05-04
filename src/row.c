@@ -188,7 +188,7 @@ int editorRowPreviousUTF8(EditorRow* row, int cx) {
         return row->size;
 
     int i = 0;
-    size_t byte_size;
+    size_t byte_size = 0;
     while (i < cx) {
         decodeUTF8(&row->data[i], row->size - i, &byte_size);
         i += byte_size;

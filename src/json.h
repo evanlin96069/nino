@@ -182,6 +182,10 @@ void* json_arena_alloc(JsonArena* arena, size_t size) {
     }
 
     JsonArenaBlock* blk = arena->current_block;
+    if (blk == NULL) {
+        return NULL;
+    }
+
     size_t inc = json__arena_alignment_loss(blk->size, JSON_ARENA_ALIGNMENT);
     void* out = (uint8_t*)blk->data + blk->size + inc;
     blk->size += size + inc;

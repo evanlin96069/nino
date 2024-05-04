@@ -13,22 +13,22 @@ int main(int argc, char* argv[]) {
     EditorFile file;
     editorInitFile(&file);
 
-    Args args = argsGet(argc, argv);
+    Args cmd_args = argsGet(argc, argv);
 
-    if (args.count > 1) {
-        for (int i = 1; i < args.count; i++) {
+    if (cmd_args.count > 1) {
+        for (int i = 1; i < cmd_args.count; i++) {
             if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
                 editorMsg("Already opened too many files!");
                 break;
             }
             editorInitFile(&file);
-            if (editorOpen(&file, args.args[i])) {
+            if (editorOpen(&file, cmd_args.args[i])) {
                 editorAddFile(&file);
             }
         }
     }
 
-    argsFree(args);
+    argsFree(cmd_args);
 
     if (gEditor.file_count == 0) {
         if (gEditor.explorer.node) {
