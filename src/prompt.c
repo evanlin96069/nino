@@ -162,8 +162,8 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                     gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
                     gCurFile->sx = x;
                 }
-                // fall through
             }
+            // fall through
             case CTRL_KEY('q'):
             case ESC:
                 editorSetPrompt("");

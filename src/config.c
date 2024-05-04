@@ -151,17 +151,18 @@ CON_COMMAND(exec, "Execute a config file.") {
         return;
     }
 
-    char filename[EDITOR_PATH_MAX] = "";
+    char filename[EDITOR_PATH_MAX] = {0};
     snprintf(filename, sizeof(filename), "%s", args.argv[1]);
     addDefaultExtension(filename, ".nino", sizeof(filename));
 
     if (!editorLoadConfig(filename)) {
         // Try config directory
         char config_path[EDITOR_PATH_MAX];
-        snprintf(config_path, sizeof(config_path),
-                 PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME), filename);
+        int len = snprintf(config_path, sizeof(config_path),
+                           PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME),
+                           filename);
 
-        if (!editorLoadConfig(config_path)) {
+        if (len < 0 || !editorLoadConfig(config_path)) {
             editorMsg("exec: Failed to exec \"%s\"", args.argv[1]);
             return;
         }
@@ -174,17 +175,18 @@ CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
         return;
     }
 
-    char filename[EDITOR_PATH_MAX] = "";
+    char filename[EDITOR_PATH_MAX] = {0};
     snprintf(filename, sizeof(filename), "%s", args.argv[1]);
     addDefaultExtension(filename, ".json", sizeof(filename));
 
     if (!editorLoadHLDB(filename)) {
         // Try config directory
         char config_path[EDITOR_PATH_MAX];
-        snprintf(config_path, sizeof(config_path),
-                 PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME), filename);
+        int len = snprintf(config_path, sizeof(config_path),
+                           PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME),
+                           filename);
 
-        if (!editorLoadHLDB(config_path)) {
+        if (len < 0 || !editorLoadHLDB(config_path)) {
             editorMsg("hldb_load: Failed to load \"%s\"", args.argv[1]);
             return;
         }

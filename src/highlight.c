@@ -400,8 +400,8 @@ void editorFreeHLDB(void) {
         EditorSyntax* temp = HLDB;
         HLDB = HLDB->next;
         free(temp->file_exts.data);
-        for (int i = 0; i < sizeof(temp->keywords) / sizeof(temp->keywords[0]);
-             i++) {
+        for (size_t i = 0;
+             i < sizeof(temp->keywords) / sizeof(temp->keywords[0]); i++) {
             free(temp->keywords[i].data);
         }
         free(temp);
