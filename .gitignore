@@ -1,4 +1,22 @@
-.vscode/
-build/
-
+# Codegen
 resources/bundle.h
+
+# Common build directories
+/build*/
+
+# MacOS Finder files.
+.DS_Store
+
+# CLion work directory
+/.idea/
+# CLion build directories
+/cmake-build-*/
+
+# Visual Studio Code
+/.vscode/
+/.cache/
+
+# Visual Studio work directory
+/.vs/
+# Visual Studio build directory
+/out/
