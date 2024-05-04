@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22.0)
 
-project(nino VERSION 0.0.1 LANGUAGES C)
+project(nino VERSION 0.0.6 LANGUAGES C)
 
 include(GNUInstallDirs)
 
@@ -64,7 +64,6 @@ set (CORE_SOURCES
     src/unicode.h
     src/utils.c
     src/utils.h
-    src/version.h
 )
 
 if (WIN32)
@@ -80,6 +79,10 @@ else()
 endif()
 
 add_executable(${PROJECT_NAME} ${CORE_SOURCES} ${BUNDLED_FILE})
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    EDITOR_VERSION="${CMAKE_PROJECT_VERSION}"
+)
 
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /wd4244 /wd4267 /wd4996)

@@ -27,7 +27,7 @@ jobs:
       - name: Upload Linux Binary
         uses: actions/upload-artifact@v4
         with:
-          name: linux-binary
+          name: nino-linux
           path: build/nino
 
   build-windows:
@@ -47,5 +47,5 @@ jobs:
       - name: Upload Windows Binary
         uses: actions/upload-artifact@v4
         with:
-          name: windows-binary
+          name: nino-windows
           path: build/nino.exe
