@@ -24,14 +24,45 @@ I'm not used to [Vim](https://www.vim.org/) and I don't like [nano](https://nano
 - File explorer
 
 ## Build
+
+This project uses CMake for building. Follow these steps to build the project:
+
+### Prerequisites
+
+- CMake (minimum required version, e.g., 3.15)
+- A suitable C compiler (GCC, Clang, MSVC, etc.)
+
+### Cloning the Repository
+
 ```bash
 git clone https://github.com/evanlin96069/nino.git
 cd nino
-make
 ```
-Then install the example config:
+
+### Configuring the Build
+
+Create a build directory and run CMake to configure the project:
+
 ```bash
-cp docs/example.ninorc ~/.ninorc
+mkdir build
+cd build
+cmake ..
+```
+
+### Building the Project
+
+To build the project, run:
+
+```bash
+cmake --build .
+```
+
+### Optional: Installing the Project
+
+If installation is necessary, you can install the project using:
+
+```bash
+cmake --install .
 ```
 
 ## Documentation

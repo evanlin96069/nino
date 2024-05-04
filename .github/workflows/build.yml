@@ -5,61 +5,47 @@ on:
     paths-ignore:
         - '.gitignore'
         - 'docs/*'
-        - 'syntax/*'
         - 'themes/*'
         - 'README.md'
         - 'LICENSE'
 
 jobs:
-  build:
-    name: Linux Build
+  build-linux:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Setup build environment
-        run: sudo apt-get update && sudo apt-get install -y build-essential
-
-      - name: Prepare directories
-        run: make prep
-
-      - name: Build release
-        run: make release
-
-      - name: Build debug
-        run: make debug
-
-      - name: Archive release binary
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+      - name: Create Build Directory
+        run: mkdir build && cd build
+      - name: Configure CMake
+        run: cmake ..
+        working-directory: ./build
+      - name: Build
+        run: cmake --build .
+        working-directory: ./build
+      - name: Upload Linux Binary
         uses: actions/upload-artifact@v4
         with:
-          name: nino-linux
-          path: release/nino
+          name: linux-binary
+          path: build/nino
 
   build-windows:
-    name: Windows Build
     runs-on: windows-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Prepare directories
-        run: make prep
-
-      - name: Build release
-        run: make release
-
-      - name: Build debug
-        run: make debug
-
-      - name: Archive release binary
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' && choco install mingw
+      - name: Create Build Directory
+        run: mkdir build && cd build
+      - name: Configure CMake
+        run: cmake -G "MinGW Makefiles" ..
+        working-directory: ./build
+      - name: Build
+        run: cmake --build .
+        working-directory: ./build
+      - name: Upload Windows Binary
         uses: actions/upload-artifact@v4
         with:
-          name: nino-windows
-          path: release/nino.exe
+          name: windows-binary
+          path: build/nino.exe
