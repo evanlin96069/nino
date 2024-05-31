@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22.0)
+cmake_minimum_required(VERSION 3.15)
 
 project(nino VERSION 0.0.6 LANGUAGES C)
 
