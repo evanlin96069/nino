@@ -33,7 +33,8 @@
         "#ifdef",
         "#ifndef",
         "#error",
-        "#pragma"
+        "#pragma",
+        "#embed"
     ],
     "keywords2": [
         "auto",
