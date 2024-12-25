@@ -279,8 +279,8 @@ static void insertExplorerNode(EditorExplorerNode* node,
 
     for (i = 0; i < data->count; i++) {
         if (strcmp(data->nodes[i]->filename, node->filename) > 0) {
-            memcpy(&data->nodes[i + 1], &data->nodes[i],
-                   (data->count - i) * sizeof(EditorExplorerNode*));
+            memmove(&data->nodes[i + 1], &data->nodes[i],
+                    (data->count - i) * sizeof(EditorExplorerNode*));
             break;
         }
     }
