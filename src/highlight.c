@@ -182,6 +182,13 @@ update_trailing:
     }
 }
 
+void editorSetSyntaxHighlight(EditorFile* file, EditorSyntax* syntax) {
+    file->syntax = syntax;
+    for (int i = 0; i < file->num_rows; i++) {
+        editorUpdateSyntax(file, &file->row[i]);
+    }
+}
+
 void editorSelectSyntaxHighlight(EditorFile* file) {
     file->syntax = NULL;
     if (file->filename == NULL)
@@ -192,12 +199,9 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
     for (EditorSyntax* s = gEditor.HLDB; s; s = s->next) {
         for (size_t i = 0; i < s->file_exts.size; i++) {
             int is_ext = (s->file_exts.data[i][0] == '.');
-            if ((is_ext && ext && strcmp(ext, s->file_exts.data[i]) == 0) ||
-                (!is_ext && strstr(file->filename, s->file_exts.data[i]))) {
-                file->syntax = s;
-                for (int file_row = 0; file_row < file->num_rows; file_row++) {
-                    editorUpdateSyntax(file, &file->row[file_row]);
-                }
+            if ((is_ext && ext && strCaseCmp(ext, s->file_exts.data[i]) == 0) ||
+                (!is_ext && strCaseStr(file->filename, s->file_exts.data[i]))) {
+                editorSetSyntaxHighlight(file, s);
                 return;
             }
         }

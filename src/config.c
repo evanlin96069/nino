@@ -169,6 +169,38 @@ CON_COMMAND(exec, "Execute a config file.") {
     }
 }
 
+CON_COMMAND(lang, "Set the syntax highlighting language of the current file.") {
+    if (args.argc != 2) {
+        editorMsg("Usage: lang <name>");
+        return;
+    }
+
+    if (gEditor.file_count == 0) {
+        editorMsg("lang: No file opened");
+        return;
+    }
+
+    const char* name = args.argv[1];
+    for (EditorSyntax* s = gEditor.HLDB; s; s = s->next) {
+        // Match the language name or the externaion
+        if (strCaseCmp(name, s->file_type) == 0) {
+            editorSetSyntaxHighlight(gCurFile, s);
+            return;
+        }
+
+        for (size_t i = 0; i < s->file_exts.size; i++) {
+            int is_ext = (s->file_exts.data[i][0] == '.');
+            if ((is_ext && strCaseCmp(name, &s->file_exts.data[i][1]) == 0) ||
+                (!is_ext && strCaseStr(name, s->file_exts.data[i]))) {
+                editorSetSyntaxHighlight(gCurFile, s);
+                return;
+            }
+        }
+    }
+
+    editorMsg("lang: \"%s\" not found", name);
+}
+
 CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
     if (args.argc != 2) {
         editorMsg("Usage: hldb_load <json file>");
@@ -643,6 +675,7 @@ void editorInitConfig(void) {
     INIT_CONVAR(ex_show_hidden);
 
     INIT_CONCOMMAND(color);
+    INIT_CONCOMMAND(lang);
     INIT_CONCOMMAND(hldb_load);
     INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(newline);

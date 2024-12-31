@@ -30,6 +30,7 @@ The command will first search for the file in the current directory, then the co
 | `osc52_copy` | 1 | Copy to system clipboard using OSC52. |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |
+| `lang` | cmd | Set the syntax highlighting language of the current file. |
 | `hldb_load` | cmd | Load a syntax highlighting JSON file. |
 | `hldb_reload_all` | cmd | Reload syntax highlighting database. |
 | `newline` | cmd | Set the EOL sequence (LF/CRLF). |
