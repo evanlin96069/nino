@@ -46,7 +46,7 @@ void editorFree(void) {
 
 void editorInitFile(EditorFile* file) {
     memset(file, 0, sizeof(EditorFile));
-    file->newline = NL_DEFAULT;
+    file->newline = editorGetDefaultNewline();
 }
 
 void editorFreeFile(EditorFile* file) {

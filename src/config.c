@@ -37,6 +37,8 @@ CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "1024", NULL);
 CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
 CONVAR(ex_show_hidden, "Show hidden files in the file explorer.", "1",
        cvarExplorerCallback);
+CONVAR(newline_default, "Set the default EOL sequence (LF/CRLF). 0 is OS default.", "0",
+       NULL);
 
 static void reloadSyntax(void) {
     for (int i = 0; i < gEditor.file_count; i++) {
@@ -264,6 +266,17 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
     gCurFile->newline = nl;
 
     editorAppendAction(action);
+}
+
+int editorGetDefaultNewline(void) {
+    int nl = NL_DEFAULT;
+    const char* option = CONVAR_GETSTR(newline_default);
+    if (strCaseCmp(option, "lf") == 0) {
+        nl = NL_UNIX;
+    } else if (strCaseCmp(option, "crlf") == 0) {
+        nl = NL_DOS;
+    }
+    return nl;
 }
 
 CON_COMMAND(echo, "Echo text to console.") {
@@ -673,6 +686,7 @@ void editorInitConfig(void) {
     INIT_CONVAR(osc52_copy);
     INIT_CONVAR(ex_default_width);
     INIT_CONVAR(ex_show_hidden);
+    INIT_CONVAR(newline_default);
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(lang);

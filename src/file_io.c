@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "editor.h"
 #include "highlight.h"
 #include "input.h"
@@ -192,7 +193,7 @@ bool editorOpen(EditorFile* file, const char* path) {
     }
 
     if (file->num_rows < 2) {
-        file->newline = NL_DEFAULT;
+        file->newline = editorGetDefaultNewline();
     } else if (has_cr) {
         file->newline = NL_DOS;
     } else if (file->num_rows) {

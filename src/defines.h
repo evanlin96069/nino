@@ -1,7 +1,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define CTRL_KEY(k) ((k)&0x1F)
+#define CTRL_KEY(k) ((k) & 0x1F)
 #define ALT_KEY(k) ((k) | 0x1B00)
 
 #define HL_HIGHLIGHT_NUMBERS (1 << 0)

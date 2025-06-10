@@ -22,6 +22,7 @@ extern EditorConCmd cvar_mouse;
 extern EditorConCmd cvar_osc52_copy;
 extern EditorConCmd cvar_ex_default_width;
 extern EditorConCmd cvar_ex_show_hidden;
+extern EditorConCmd cvar_newline_default;
 
 typedef struct EditorColorScheme EditorColorScheme;
 extern const EditorColorScheme color_default;
@@ -106,5 +107,7 @@ void editorSetConVar(EditorConVar* thisptr, const char* string_val);
 void editorInitConCmd(EditorConCmd* thisptr);
 void editorInitConVar(EditorConCmd* thisptr);
 EditorConCmd* editorFindCmd(const char* name);
+
+int editorGetDefaultNewline(void);
 
 #endif
