@@ -466,6 +466,8 @@ void editorInitTerminal(void) {
 void terminalExit(void) {
     disableMouse();
     disableSwap();
+    // Reset color
+    UNUSED(write(STDOUT_FILENO, "\x1b[m", 3));
     // Show cursor
     UNUSED(write(STDOUT_FILENO, "\x1b[?25h", 6));
     disableRawMode();
