@@ -15,7 +15,8 @@ FileInfo getFileInfo(const char* path) {
 }
 
 bool areFilesEqual(FileInfo f1, FileInfo f2) {
-    return f1.info.st_ino == f2.info.st_ino;
+    return (f1.info.st_ino == f2.info.st_ino &&
+            f1.info.st_dev == f2.info.st_dev);
 }
 
 FileType getFileType(const char* path) {
