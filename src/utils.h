@@ -104,6 +104,7 @@ int isSeparator(int c);
 int isNonSeparator(int c);
 int isNonIdentifierChar(int c);
 int isIdentifierChar(int c);
+int isSpace(int c);
 int isNonSpace(int c);
 
 // File

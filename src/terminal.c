@@ -250,7 +250,7 @@ EditorInput editorReadKey(void) {
                 return result;
             }
             seq[i] = (char)c;
-            if (isupper(seq[i]) || seq[i] == 'm' || seq[i] == '~') {
+            if (isupper((uint8_t)seq[i]) || seq[i] == 'm' || seq[i] == '~') {
                 success = true;
                 break;
             }

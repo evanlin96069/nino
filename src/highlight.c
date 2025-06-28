@@ -91,14 +91,14 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
         }
 
         if (s->flags & HL_HIGHLIGHT_NUMBERS) {
-            if ((isdigit(c) || c == '.') && prev_sep) {
+            if ((isdigit((uint8_t)c) || c == '.') && prev_sep) {
                 int start = i;
                 i++;
                 if (c == '0') {
                     if (row->data[i] == 'x' || row->data[i] == 'X') {
                         // hex
                         i++;
-                        while (isdigit(row->data[i]) ||
+                        while (isdigit((uint8_t)row->data[i]) ||
                                (row->data[i] >= 'a' && row->data[i] <= 'f') ||
                                (row->data[i] >= 'A' && row->data[i] <= 'F')) {
                             i++;
@@ -112,17 +112,17 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                     } else if (row->data[i] == '.') {
                         // float
                         i++;
-                        while (isdigit(row->data[i])) {
+                        while (isdigit((uint8_t)row->data[i])) {
                             i++;
                         }
                     }
                 } else {
-                    while (isdigit(row->data[i])) {
+                    while (isdigit((uint8_t)row->data[i])) {
                         i++;
                     }
                     if (c != '.' && row->data[i] == '.') {
                         i++;
-                        while (isdigit(row->data[i])) {
+                        while (isdigit((uint8_t)row->data[i])) {
                             i++;
                         }
                     }
@@ -132,7 +132,7 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
 
                 if (row->data[i] == 'f' || row->data[i] == 'F')
                     i++;
-                if (isSeparator(row->data[i]) || isspace(row->data[i]))
+                if (isSeparator(row->data[i]) || isSpace(row->data[i]))
                     memset(&row->hl[start], HL_NUMBER, i - start);
                 prev_sep = 0;
                 continue;

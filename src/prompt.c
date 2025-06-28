@@ -340,7 +340,7 @@ static void editorFindCallback(char* query, int key) {
             } else if (CONVAR_GETINT(ignorecase) == 2) {
                 bool has_upper = false;
                 for (size_t j = 0; j < len; j++) {
-                    if (isupper(query[j])) {
+                    if (isupper((uint8_t)query[j])) {
                         has_upper = true;
                         break;
                     }

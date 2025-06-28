@@ -65,7 +65,11 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
         if (!gEditor.explorer.node)
             return true;
 
-        char c = tolower(input.data.unicode);
+        uint32_t unicode = input.data.unicode;
+        if (unicode > 255)
+            return true;
+
+        char c = tolower(unicode);
         size_t index = gEditor.explorer.selected_index + 1;
         for (size_t i = 0; i < gEditor.explorer.flatten.size; i++) {
             index = index % gEditor.explorer.flatten.size;

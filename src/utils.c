@@ -1,6 +1,5 @@
 #include "utils.h"
 
-#include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,13 +122,27 @@ int isSeparator(int c) {
 
 int isNonSeparator(int c) { return !isSeparator(c); }
 
+int isSpace(int c) {
+    switch(c) {
+        case ' ':
+        case '\t':
+        case '\n':
+        case '\r':
+        case '\v':
+        case '\f':
+            return true;
+        default:
+            return false;
+    }
+}
+
+int isNonSpace(int c) { return !isSpace(c); }
+
 int isNonIdentifierChar(int c) {
-    return isspace(c) || c == '\0' || isSeparator(c);
+    return isSpace(c) || c == '\0' || isSeparator(c);
 }
 
 int isIdentifierChar(int c) { return !isNonIdentifierChar(c); }
-
-int isNonSpace(int c) { return !isspace(c); }
 
 int getDigit(int n) {
     if (n < 10)

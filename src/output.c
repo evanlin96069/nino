@@ -308,7 +308,7 @@ static void editorDrawRows(abuf* ab) {
             int j = 0;
             int rx = gCurFile->col_offset;
             while (rx < rlen) {
-                if (iscntrl(c[j]) && c[j] != '\t') {
+                if (iscntrl((uint8_t)c[j]) && c[j] != '\t') {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
                     abufAppend(ab, ANSI_INVERT);
                     abufAppendN(ab, &sym, 1);
