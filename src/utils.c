@@ -1,12 +1,11 @@
 #include "utils.h"
 
+#include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "defines.h"
-#include "editor.h"
 #include "terminal.h"
 
 void panic(const char *file, int line, const char *s) {
@@ -123,16 +122,16 @@ int isSeparator(int c) {
 int isNonSeparator(int c) { return !isSeparator(c); }
 
 int isSpace(int c) {
-    switch(c) {
+    switch (c) {
         case ' ':
         case '\t':
         case '\n':
         case '\r':
         case '\v':
         case '\f':
-            return true;
+            return 1;
         default:
-            return false;
+            return 0;
     }
 }
 
