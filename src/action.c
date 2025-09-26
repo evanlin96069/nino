@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "editor.h"
-#include "terminal.h"
 
 bool editorUndo(void) {
     if (gCurFile->action_current == gCurFile->action_head)

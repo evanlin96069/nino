@@ -3,7 +3,6 @@
 #include "terminal.h"
 
 #include <ctype.h>
-#include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,7 +11,6 @@
 
 #include "defines.h"
 #include "editor.h"
-#include "os.h"
 #include "output.h"
 
 #ifdef _WIN32

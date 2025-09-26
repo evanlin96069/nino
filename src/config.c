@@ -37,8 +37,8 @@ CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "1024", NULL);
 CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
 CONVAR(ex_show_hidden, "Show hidden files in the file explorer.", "1",
        cvarExplorerCallback);
-CONVAR(newline_default, "Set the default EOL sequence (LF/CRLF). 0 is OS default.", "0",
-       NULL);
+CONVAR(newline_default,
+       "Set the default EOL sequence (LF/CRLF). 0 is OS default.", "0", NULL);
 
 static void reloadSyntax(void) {
     for (int i = 0; i < gEditor.file_count; i++) {
@@ -591,7 +591,7 @@ static void executeCommand(int depth) {
     }
 }
 
-static void resetArgs() {
+static void resetArgs(void) {
     for (int i = 0; i < args.argc; i++) {
         free(args.argv[i]);
     }

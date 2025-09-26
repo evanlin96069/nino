@@ -11,7 +11,6 @@
 #include "editor.h"
 #include "highlight.h"
 #include "os.h"
-#include "prompt.h"
 #include "select.h"
 #include "unicode.h"
 
