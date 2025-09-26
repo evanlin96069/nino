@@ -20,3 +20,7 @@ resources/bundle.h
 /.vs/
 # Visual Studio build directory
 /out/
+
+# LSP
+/compile_commands.json
+/compile_flags.txt
