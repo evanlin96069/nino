@@ -45,6 +45,7 @@ static void computeBuildNumber(void) {
 int editorGetBuildNumber(void) {
     if (!computed) {
         computeBuildNumber();
+        computed = true;
     }
     return build_number;
 }
