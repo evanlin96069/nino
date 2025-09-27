@@ -3,11 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "defines.h"
 #include "highlight.h"
-#include "output.h"
 #include "prompt.h"
-#include "terminal.h"
 #include "utils.h"
 
 Editor gEditor;
@@ -21,17 +20,14 @@ void editorInit(void) {
 
     gEditor.con_front = -1;
 
-    editorInitTerminal();
-    editorInitConfig();
+    editorRegisterCommands();
     editorInitHLDB();
 
     gEditor.explorer.prefered_width = gEditor.explorer.width =
         CONVAR_GETINT(ex_default_width);
 
-    // Draw loading
     memset(&gEditor.files[0], 0, sizeof(EditorFile));
     gCurFile = &gEditor.files[0];
-    editorRefreshScreen();
 }
 
 void editorFree(void) {
@@ -41,7 +37,7 @@ void editorFree(void) {
     editorFreeClipboardContent(&gEditor.clipboard);
     editorExplorerFree();
     editorFreeHLDB();
-    editorFreeConfig();
+    editorUnregisterCommands();
 }
 
 void editorInitFile(EditorFile* file) {

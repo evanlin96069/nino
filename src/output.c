@@ -15,7 +15,7 @@
 #include "unicode.h"
 
 static void editorDrawTopStatusBar(abuf* ab) {
-    const char* right_buf = "  nino v" EDITOR_VERSION " ";
+    const char* right_buf = "  " EDITOR_NAME " v" EDITOR_VERSION " ";
     bool has_more_files = false;
     int rlen = strlen(right_buf);
     int len = gEditor.explorer.width;

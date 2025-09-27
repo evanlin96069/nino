@@ -136,30 +136,24 @@ int64_t getTime(void) {
     return sec * 1000000 + usec;
 }
 
-Args argsGet(int num_args, char** args) {
-    UNUSED(num_args);
-    UNUSED(args);
-
-    int argc;
-    LPWSTR* w_argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+void argsInit(int* argc, char*** argv) {
+    LPWSTR* w_argv = CommandLineToArgvW(GetCommandLineW(), argc);
     if (!w_argv)
         PANIC("GetCommandLine");
 
-    char** utf8_argv = malloc_s(argc * sizeof(char*));
-    for (int i = 0; i < argc; i++) {
+    *argv = malloc_s(*argc * sizeof(char*));
+    for (int i = 0; i < *argc; i++) {
         int size =
             WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, NULL, 0, NULL, NULL);
-        utf8_argv[i] = malloc_s(size);
-        WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, utf8_argv[i], size, NULL,
+        (*argv)[i] = malloc_s(size);
+        WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, (*argv)[i], size, NULL,
                             NULL);
     }
-
-    return (Args){.count = argc, .args = utf8_argv};
 }
 
-void argsFree(Args args) {
-    for (int i = 0; i < args.count; i++) {
-        free(args.args[i]);
+void argsFree(int argc, char** argv) {
+    for (int i = 0; i < argc; i++) {
+        free(argv[i]);
     }
-    free(args.args);
+    free(argv);
 }

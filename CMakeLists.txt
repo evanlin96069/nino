@@ -36,6 +36,8 @@ add_custom_command(
 set (CORE_SOURCES
     src/action.c
     src/action.h
+    src/buildnum.c
+    src/buildnum.h
     src/config.c
     src/config.h
     src/defines.h
@@ -49,6 +51,7 @@ set (CORE_SOURCES
     src/input.h
     src/json.h
     src/nino.c
+    src/opt.h
     src/os.h
     src/output.c
     src/output.h
@@ -67,12 +70,12 @@ set (CORE_SOURCES
 )
 
 if (WIN32)
-    list(APPEND CORE_SOURCES
+  list(APPEND CORE_SOURCES
         src/os_win32.c
         src/os_win32.h
     )
 else()
-    list(APPEND CORE_SOURCES
+  list(APPEND CORE_SOURCES
         src/os_unix.c
         src/os_unix.h
     )
@@ -80,14 +83,22 @@ endif()
 
 add_executable(${PROJECT_NAME} ${CORE_SOURCES} ${BUNDLED_FILE})
 
+add_custom_target(file_toucher
+    COMMAND ${CMAKE_COMMAND} -E touch_nocreate
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/buildnum.c
+)
+
+add_dependencies(${PROJECT_NAME} file_toucher)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE
+    EDITOR_NAME="${PROJECT_NAME}"
     EDITOR_VERSION="${CMAKE_PROJECT_VERSION}"
 )
 
 if (MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /wd4244 /wd4267 /wd4996)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4 /wd4244 /wd4267 /wd4996)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 endif()
 
 install(TARGETS ${PROJECT_NAME})

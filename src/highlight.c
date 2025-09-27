@@ -212,13 +212,13 @@ void editorSelectSyntaxHighlight(EditorFile* file) {
 
 static JsonArena hldb_arena;
 
-static void editorLoadNinoConfigHLDB(void);
+static void loadEditorConfigHLDB(void);
 static void editorLoadBundledHLDB(void);
 
 void editorInitHLDB(void) {
     json_arena_init(&hldb_arena, ARENA_SIZE);
 
-    editorLoadNinoConfigHLDB();
+    loadEditorConfigHLDB();
     editorLoadBundledHLDB();
 
     char path[EDITOR_PATH_MAX];
@@ -249,13 +249,13 @@ void editorInitHLDB(void) {
     dirClose(&iter);
 }
 
-// Built-in syntax highlighting for nino config
-static void editorLoadNinoConfigHLDB(void) {
+// Built-in syntax highlighting for config file
+static void loadEditorConfigHLDB(void) {
     EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
 
-    syntax->file_type = "nino";
-    vector_push(syntax->file_exts, "ninorc");
-    vector_push(syntax->file_exts, ".nino");
+    syntax->file_type = EDITOR_NAME;
+    vector_push(syntax->file_exts, EDITOR_RC_FILE);
+    vector_push(syntax->file_exts, EDITOR_CONFIG_EXT);
     syntax->singleline_comment_start = "#";
     syntax->multiline_comment_start = NULL;
     syntax->multiline_comment_end = NULL;

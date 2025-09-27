@@ -6,6 +6,9 @@
 #include "defines.h"
 #include "utils.h"
 
+#define EDITOR_CONFIG_EXT "." EDITOR_NAME
+#define EDITOR_RC_FILE EDITOR_NAME "rc"
+
 typedef struct EditorConCmd EditorConCmd;
 
 extern EditorConCmd cvar_tabsize;
@@ -98,12 +101,15 @@ struct EditorColorScheme {
     Color highlightBg[HL_BG_COUNT];
 };
 
-void editorInitConfig(void);
-void editorFreeConfig(void);
+void editorRegisterCommands(void);
+void editorUnregisterCommands(void);
 bool editorLoadConfig(const char* path);
+void editorLoadInitConfig(void);
+void editorCmd(const char* command);
 void editorOpenConfigPrompt(void);
 
-void editorSetConVar(EditorConVar* thisptr, const char* string_val);
+void editorSetConVar(EditorConVar* thisptr, const char* string_val,
+                     bool trigger_cb);
 void editorInitConCmd(EditorConCmd* thisptr);
 void editorInitConVar(EditorConCmd* thisptr);
 EditorConCmd* editorFindCmd(const char* name);

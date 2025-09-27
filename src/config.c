@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "buildnum.h"
 #include "defines.h"
 #include "editor.h"
 #include "highlight.h"
@@ -155,7 +156,7 @@ CON_COMMAND(exec, "Execute a config file.") {
 
     char filename[EDITOR_PATH_MAX] = {0};
     snprintf(filename, sizeof(filename), "%s", args.argv[1]);
-    addDefaultExtension(filename, ".nino", sizeof(filename));
+    addDefaultExtension(filename, EDITOR_CONFIG_EXT, sizeof(filename));
 
     if (!editorLoadConfig(filename)) {
         // Try config directory
@@ -306,6 +307,14 @@ CON_COMMAND(echo, "Echo text to console.") {
 CON_COMMAND(clear, "Clear all console output.") {
     UNUSED(args.argc);
     editorMsgClear();
+}
+
+CON_COMMAND(version, "Print version info string.") {
+    UNUSED(args.argc);
+
+    editorMsg("Exe version %s (%s)", EDITOR_VERSION, EDITOR_NAME);
+    editorMsg("Exe build: %s %s (%d)", editor_build_time, editor_build_date,
+              editorGetBuildNumber());
 }
 
 static void showCmdHelp(const EditorConCmd* cmd) {
@@ -560,7 +569,7 @@ static void cvarCmdCallback(EditorConCmd* cmd) {
         showCmdHelp(cmd);
         return;
     }
-    editorSetConVar(&cmd->cvar, args.argv[1]);
+    editorSetConVar(&cmd->cvar, args.argv[1], true);
 }
 
 static void executeCommand(int depth) {
@@ -656,21 +665,7 @@ static void parseLine(const char* cmd, int depth) {
     executeCommand(depth);
 }
 
-bool editorLoadConfig(const char* path) {
-    FILE* fp = fopen(path, "r");
-    if (!fp)
-        return false;
-
-    char buf[COMMAND_MAX_LENGTH] = {0};
-    while (fgets(buf, sizeof(buf), fp)) {
-        buf[strcspn(buf, "\r\n")] = '\0';
-        parseLine(buf, 0);
-    }
-    fclose(fp);
-    return true;
-}
-
-void editorInitConfig(void) {
+void editorRegisterCommands(void) {
     // Init commands
     INIT_CONVAR(tabsize);
     INIT_CONVAR(whitespace);
@@ -702,22 +697,14 @@ void editorInitConfig(void) {
     INIT_CONCOMMAND(clear);
     INIT_CONCOMMAND(help);
     INIT_CONCOMMAND(find);
+    INIT_CONCOMMAND(version);
 
 #ifdef _DEBUG
     INIT_CONCOMMAND(crash);
 #endif
-
-    // Load defualt config
-    char path[EDITOR_PATH_MAX] = {0};
-    const char* home_dir = getenv(ENV_HOME);
-    snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "ninorc"), home_dir);
-    if (!editorLoadConfig(path)) {
-        snprintf(path, sizeof(path), PATH_CAT("%s", ".ninorc"), home_dir);
-        editorLoadConfig(path);
-    }
 }
 
-void editorFreeConfig(void) {
+void editorUnregisterCommands(void) {
     CmdAlias* a = cmd_alias;
 
     while (a) {
@@ -730,22 +717,51 @@ void editorFreeConfig(void) {
     resetArgs();
 }
 
+bool editorLoadConfig(const char* path) {
+    FILE* fp = fopen(path, "r");
+    if (!fp)
+        return false;
+
+    char buf[COMMAND_MAX_LENGTH] = {0};
+    while (fgets(buf, sizeof(buf), fp)) {
+        buf[strcspn(buf, "\r\n")] = '\0';
+        editorCmd(buf);
+    }
+    fclose(fp);
+    return true;
+}
+
+void editorLoadInitConfig(void) {
+    char path[EDITOR_PATH_MAX] = {0};
+    const char* home_dir = getenv(ENV_HOME);
+    snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, EDITOR_RC_FILE),
+             home_dir);
+    if (!editorLoadConfig(path)) {
+        snprintf(path, sizeof(path), PATH_CAT("%s", "." EDITOR_RC_FILE),
+                 home_dir);
+        editorLoadConfig(path);
+    }
+}
+
+void editorCmd(const char* command) { parseLine(command, 0); }
+
 void editorOpenConfigPrompt(void) {
     char* query = editorPrompt("Prompt: %s", CONFIG_MODE, NULL);
     if (query == NULL)
         return;
 
     editorMsgClear();
-    parseLine(query, 0);
+    editorCmd(query);
     free(query);
 }
 
-void editorSetConVar(EditorConVar* thisptr, const char* string_val) {
+void editorSetConVar(EditorConVar* thisptr, const char* string_val,
+                     bool trigger_cb) {
     strncpy(thisptr->string_val, string_val, COMMAND_MAX_LENGTH - 1);
     thisptr->string_val[COMMAND_MAX_LENGTH - 1] = '\0';
     thisptr->int_val = strToInt(string_val);
 
-    if (thisptr->callback) {
+    if (trigger_cb && thisptr->callback) {
         thisptr->callback();
     }
 }
@@ -766,7 +782,7 @@ void editorInitConVar(EditorConCmd* thisptr) {
     thisptr->has_callback = false;
     if (!thisptr->cvar.default_string)
         thisptr->cvar.default_string = "";
-    editorSetConVar(&thisptr->cvar, thisptr->cvar.default_string);
+    editorSetConVar(&thisptr->cvar, thisptr->cvar.default_string, false);
     registerConCmd(thisptr);
 }
 

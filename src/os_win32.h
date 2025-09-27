@@ -7,7 +7,7 @@
 #include <windows.h>
 
 #define ENV_HOME "USERPROFILE"
-#define CONF_DIR ".nino"
+#define CONF_DIR "." EDITOR_NAME
 #define DIR_SEP "\\"
 
 #define EDITOR_PATH_MAX MAX_PATH

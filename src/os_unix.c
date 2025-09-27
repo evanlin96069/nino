@@ -100,8 +100,12 @@ int64_t getTime(void) {
     return time_val.tv_sec * 1000000 + time_val.tv_usec;
 }
 
-Args argsGet(int num_args, char** args) {
-    return (Args){.count = num_args, .args = args};
+void argsInit(int* argc, char*** argv) {
+    UNUSED(argc);
+    UNUSED(argv);
 }
 
-void argsFree(Args args) { UNUSED(args.count); }
+void argsFree(int argc, char** argv) {
+    UNUSED(argc);
+    UNUSED(argv);
+}

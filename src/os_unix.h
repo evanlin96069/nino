@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #define ENV_HOME "HOME"
-#define CONF_DIR ".config/nino"
+#define CONF_DIR ".config/" EDITOR_NAME
 #define DIR_SEP "/"
 
 #ifdef __linux__

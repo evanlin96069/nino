@@ -32,13 +32,8 @@ char* getFullPath(const char* path);
 int64_t getTime(void);
 
 // Command line
-typedef struct Args {
-    int count;
-    char** args;
-} Args;
-
-Args argsGet(int num_args, char** args);
-void argsFree(Args args);
+void argsInit(int* argc, char*** argv);
+void argsFree(int argc, char** argv);
 
 // New Line
 #define NL_UNIX 0
