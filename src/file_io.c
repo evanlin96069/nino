@@ -168,24 +168,11 @@ bool editorOpen(EditorFile* file, const char* path) {
             has_end_nl = true;
             len--;
         }
-        // editorInsertRow but faster
-        if (at >= cap) {
-            cap *= 2;
-            file->row = realloc_s(file->row, sizeof(EditorRow) * cap);
-        }
-        file->row[at].size = len;
-        file->row[at].data = line;
 
-        file->row[at].hl = NULL;
-        file->row[at].hl_open_comment = 0;
-        editorUpdateRow(file, &file->row[at]);
-
-        line = NULL;
-        n = 0;
+        editorInsertRow(file, at, line, len);
         at++;
     }
-    file->row = realloc_s(file->row, sizeof(EditorRow) * at);
-    file->num_rows = at;
+
     file->lineno_width = getDigit(file->num_rows) + 2;
 
     if (has_end_nl) {

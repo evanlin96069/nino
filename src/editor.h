@@ -45,6 +45,7 @@ typedef struct EditorFile {
     FileInfo file_info;
 
     // Text buffers
+    size_t row_capacity;
     EditorRow* row;
 
     // Syntax highlight information

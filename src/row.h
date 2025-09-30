@@ -1,7 +1,6 @@
 #ifndef ROW_H
 #define ROW_H
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -12,6 +11,7 @@ typedef struct EditorRow {
     int size;
     int rsize;
     char* data;
+    size_t capacity;
     uint8_t* hl;
     int hl_open_comment;
 } EditorRow;
@@ -24,6 +24,8 @@ void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c);
 void editorRowDelChar(EditorFile* file, EditorRow* row, int at);
 void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
                            size_t len);
+void editorRowInsertString(EditorFile* file, EditorRow* row, int at,
+                           const char* s, size_t len);
 
 // On gCurFile
 void editorInsertChar(int c);

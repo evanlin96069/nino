@@ -14,7 +14,6 @@
 #include "json.h"
 
 void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
-    row->hl = realloc_s(row->hl, row->size);
     if (row->hl) {
         // realloc might returns NULL when row->size == 0
         memset(row->hl, HL_NORMAL, row->size);
@@ -44,7 +43,8 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
         char c = row->data[i];
 
         if (scs_len && !in_string && !in_comment) {
-            if (strncmp(&row->data[i], scs, scs_len) == 0) {
+            if (i + scs_len <= row->size &&
+                strncmp(&row->data[i], scs, scs_len) == 0) {
                 memset(&row->hl[i], HL_COMMENT, row->size - i);
                 break;
             }
@@ -53,7 +53,8 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
         if (mcs_len && mce_len && !in_string) {
             if (in_comment) {
                 row->hl[i] = HL_COMMENT;
-                if (strncmp(&row->data[i], mce, mce_len) == 0) {
+                if (i + mce_len <= row->size &&
+                    strncmp(&row->data[i], mce, mce_len) == 0) {
                     memset(&row->hl[i], HL_COMMENT, mce_len);
                     i += mce_len;
                     in_comment = 0;
@@ -61,7 +62,8 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                 }
                 i++;
                 continue;
-            } else if (strncmp(&row->data[i], mcs, mcs_len) == 0) {
+            } else if (i + mcs_len <= row->size &&
+                       strncmp(&row->data[i], mcs, mcs_len) == 0) {
                 memset(&row->hl[i], HL_COMMENT, mcs_len);
                 i += mcs_len;
                 in_comment = 1;
@@ -95,34 +97,42 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                 int start = i;
                 i++;
                 if (c == '0') {
-                    if (row->data[i] == 'x' || row->data[i] == 'X') {
-                        // hex
-                        i++;
-                        while (isdigit((uint8_t)row->data[i]) ||
-                               (row->data[i] >= 'a' && row->data[i] <= 'f') ||
-                               (row->data[i] >= 'A' && row->data[i] <= 'F')) {
+                    if (i < row->size) {
+                        if (row->data[i] == 'x' || row->data[i] == 'X') {
+                            // hex
                             i++;
-                        }
-                    } else if (row->data[i] >= '0' && row->data[i] <= '7') {
-                        // oct
-                        i++;
-                        while (row->data[i] >= '0' && row->data[i] <= '7') {
+                            while (
+                                i < row->size &&
+                                (isdigit((uint8_t)row->data[i]) ||
+                                 (row->data[i] >= 'a' && row->data[i] <= 'f') ||
+                                 (row->data[i] >= 'A' &&
+                                  row->data[i] <= 'F'))) {
+                                i++;
+                            }
+                        } else if (row->data[i] >= '0' && row->data[i] <= '7') {
+                            // oct
                             i++;
-                        }
-                    } else if (row->data[i] == '.') {
-                        // float
-                        i++;
-                        while (isdigit((uint8_t)row->data[i])) {
+                            while (i < row->size && row->data[i] >= '0' &&
+                                   row->data[i] <= '7') {
+                                i++;
+                            }
+                        } else if (row->data[i] == '.') {
+                            // float
                             i++;
+                            while (i < row->size &&
+                                   isdigit((uint8_t)row->data[i])) {
+                                i++;
+                            }
                         }
                     }
                 } else {
-                    while (isdigit((uint8_t)row->data[i])) {
+                    while (i < row->size && isdigit((uint8_t)row->data[i])) {
                         i++;
                     }
-                    if (c != '.' && row->data[i] == '.') {
+                    if (c != '.' && i < row->size && row->data[i] == '.') {
                         i++;
-                        while (isdigit((uint8_t)row->data[i])) {
+                        while (i < row->size &&
+                               isdigit((uint8_t)row->data[i])) {
                             i++;
                         }
                     }
@@ -130,9 +140,11 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                 if (c == '.' && i - start == 1)
                     continue;
 
-                if (row->data[i] == 'f' || row->data[i] == 'F')
+                if (i < row->size &&
+                    (row->data[i] == 'f' || row->data[i] == 'F'))
                     i++;
-                if (isSeparator(row->data[i]) || isSpace(row->data[i]))
+                if (i == row->size || isSeparator(row->data[i]) ||
+                    isSpace(row->data[i]))
                     memset(&row->hl[start], HL_NUMBER, i - start);
                 prev_sep = 0;
                 continue;
@@ -145,9 +157,11 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                 for (size_t j = 0; j < s->keywords[kw].size; j++) {
                     int klen = strlen(s->keywords[kw].data[j]);
                     int keyword_type = HL_KEYWORD1 + kw;
-                    if (strncmp(&row->data[i], s->keywords[kw].data[j], klen) ==
+                    if (klen <= row->size - i &&
+                        strncmp(&row->data[i], s->keywords[kw].data[j], klen) ==
                             0 &&
-                        isNonIdentifierChar(row->data[i + klen])) {
+                        (i + klen == row->size ||
+                         isNonIdentifierChar(row->data[i + klen]))) {
                         found_keyword = true;
                         memset(&row->hl[i], keyword_type, klen);
                         i += klen;

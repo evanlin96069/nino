@@ -349,8 +349,8 @@ static void editorFindCallback(char* query, int key) {
                     search_func = &strCaseStr;
                 }
             }
-
-            while ((match = (*search_func)(&gCurFile->row[i].data[col],
+            while (col + len < (uint32_t)gCurFile->row[i].size &&
+                   (match = (*search_func)(&gCurFile->row[i].data[col],
                                            query)) != 0) {
                 col = match - gCurFile->row[i].data;
                 FindList* node = malloc_s(sizeof(FindList));

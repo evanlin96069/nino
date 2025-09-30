@@ -1,11 +1,38 @@
 #include "row.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "highlight.h"
 #include "unicode.h"
 #include "utils.h"
+
+static inline bool ensureCapacity(size_t capacity, size_t size,
+                                  size_t* new_capacity) {
+    if (capacity >= size)
+        return false;
+
+    *new_capacity = capacity ? capacity : 8;
+    while (*new_capacity < size) {
+        if (*new_capacity < 1024) {
+            (*new_capacity) *= 2;
+        } else {
+            (*new_capacity) += (*new_capacity) / 2;
+        }
+    }
+    return true;
+}
+
+static void editorRowEnsureCapacity(EditorRow* row, size_t size) {
+    size_t new_capacity;
+    if (!ensureCapacity(row->capacity, size, &new_capacity))
+        return;
+
+    row->data = realloc_s(row->data, new_capacity);
+    row->hl = realloc_s(row->hl, new_capacity);
+    row->capacity = new_capacity;
+}
 
 void editorUpdateRow(EditorFile* file, EditorRow* row) {
     row->rsize = editorRowCxToRx(row, row->size);
@@ -16,18 +43,15 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
     if (at < 0 || at > file->num_rows)
         return;
 
-    file->row = realloc_s(file->row, sizeof(EditorRow) * (file->num_rows + 1));
+    size_t new_capacity;
+    if (ensureCapacity(file->row_capacity, file->num_rows + 1, &new_capacity)) {
+        file->row = realloc_s(file->row, sizeof(EditorRow) * new_capacity);
+    }
+
     memmove(&file->row[at + 1], &file->row[at],
             sizeof(EditorRow) * (file->num_rows - at));
-
-    file->row[at].size = len;
-    file->row[at].data = malloc_s(len + 1);
-    memcpy(file->row[at].data, s, len);
-    file->row[at].data[len] = '\0';
-
-    file->row[at].hl = NULL;
-    file->row[at].hl_open_comment = 0;
-    editorUpdateRow(file, &file->row[at]);
+    memset(&file->row[at], 0, sizeof(EditorRow));
+    editorRowAppendString(file, &file->row[at], s, len);
 
     file->num_rows++;
     file->lineno_width = getDigit(file->num_rows) + 2;
@@ -51,9 +75,9 @@ void editorDelRow(EditorFile* file, int at) {
 
 void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c) {
     if (at < 0 || at > row->size)
-        at = row->size;
-    row->data = realloc_s(row->data, row->size + 2);
-    memmove(&row->data[at + 1], &row->data[at], row->size - at + 1);
+        return;
+    editorRowEnsureCapacity(row, row->size + 1);
+    memmove(&row->data[at + 1], &row->data[at], row->size - at);
     row->size++;
     row->data[at] = c;
     editorUpdateRow(file, row);
@@ -62,17 +86,28 @@ void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c) {
 void editorRowDelChar(EditorFile* file, EditorRow* row, int at) {
     if (at < 0 || at >= row->size)
         return;
-    memmove(&row->data[at], &row->data[at + 1], row->size - at);
+    memmove(&row->data[at], &row->data[at + 1], row->size - at - 1);
     row->size--;
     editorUpdateRow(file, row);
 }
 
 void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
                            size_t len) {
-    row->data = realloc_s(row->data, row->size + len + 1);
+    editorRowEnsureCapacity(row, row->size + len);
     memcpy(&row->data[row->size], s, len);
     row->size += len;
-    row->data[row->size] = '\0';
+    editorUpdateRow(file, row);
+}
+
+void editorRowInsertString(EditorFile* file, EditorRow* row, int at,
+                           const char* s, size_t len) {
+    if (at < 0 || at > row->size)
+        return;
+
+    editorRowEnsureCapacity(row, row->size + len);
+    memmove(&row->data[at + len], &row->data[at], row->size - at);
+    memcpy(&row->data[at], s, len);
+    row->size += len;
     editorUpdateRow(file, row);
 }
 
@@ -138,7 +173,6 @@ void editorInsertNewline(void) {
                               &curr_row->data[gCurFile->cursor.x],
                               curr_row->size - gCurFile->cursor.x);
         curr_row->size = gCurFile->cursor.x;
-        curr_row->data[curr_row->size] = '\0';
         editorUpdateRow(gCurFile, curr_row);
     }
     gCurFile->cursor.y++;
