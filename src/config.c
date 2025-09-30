@@ -134,6 +134,7 @@ CON_COMMAND(color, "Change the color of an element.") {
             break;
         }
     }
+
     if (!target) {
         editorMsg("Unknown element \"%s\".", args.argv[1]);
         return;
@@ -144,7 +145,9 @@ CON_COMMAND(color, "Change the color of an element.") {
         colorToStr(*target, buf);
         editorMsg("%s = %s", args.argv[1], buf);
     } else if (args.argc == 3) {
-        *target = strToColor(args.argv[2]);
+        if (!strToColor(args.argv[2], target)) {
+            editorMsg("Invalid color string \"%s\".", args.argv[2]);
+        }
     }
 }
 

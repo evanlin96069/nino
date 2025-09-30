@@ -67,30 +67,30 @@ void abufAppendN(abuf *ab, const char *s, size_t n) {
 
 void abufFree(abuf *ab) { free(ab->buf); }
 
-static int isValidColor(const char *color) {
+static inline bool isValidColor(const char *color) {
     if (strlen(color) != 6)
-        return 0;
+        return false;
     for (int i = 0; i < 6; i++) {
-        if (!(('0' <= color[i]) || (color[i] <= '9') || ('A' <= color[i]) ||
-              (color[i] <= 'F') || ('a' <= color[i]) || (color[i] <= 'f')))
-            return 0;
+        if (!((color[i] >= '0' && color[i] <= '9') ||
+              (color[i] >= 'A' && color[i] <= 'F') ||
+              (color[i] >= 'a' && color[i] <= 'f')))
+            return false;
     }
-    return 1;
+    return true;
 }
 
-Color strToColor(const char *color) {
-    Color result = {0, 0, 0};
+bool strToColor(const char *color, Color* out) {
     if (!isValidColor(color))
-        return result;
+        return false;
 
     int shift = 16;
     unsigned int hex = strtoul(color, NULL, 16);
-    result.r = (hex >> shift) & 0xFF;
+    out->r = (hex >> shift) & 0xFF;
     shift -= 8;
-    result.g = (hex >> shift) & 0xFF;
+    out->g = (hex >> shift) & 0xFF;
     shift -= 8;
-    result.b = (hex >> shift) & 0xFF;
-    return result;
+    out->b = (hex >> shift) & 0xFF;
+    return true;
 }
 
 void setColor(abuf *ab, Color color, int is_bg) {

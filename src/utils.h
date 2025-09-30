@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -95,7 +96,7 @@ typedef struct Color {
     int r, g, b;
 } Color;
 
-Color strToColor(const char* color);
+bool strToColor(const char *color, Color* out);
 int colorToStr(Color color, char buf[8]);
 void setColor(abuf* ab, Color color, int is_bg);
 
