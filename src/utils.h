@@ -47,10 +47,15 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
             realloc_s((vec).data, sizeof((vec).data[0]) * (vec).size); \
     } while (0)
 
+// Str
+typedef struct Str {
+    char* data;
+    int size;
+} Str;
+
 // Abuf
 #define ABUF_GROWTH_RATE 1.5f
-#define ABUF_INIT \
-    { NULL, 0, 0 }
+#define ABUF_INIT {NULL, 0, 0}
 
 typedef struct {
     char* buf;
@@ -67,7 +72,7 @@ typedef struct Color {
     int r, g, b;
 } Color;
 
-bool strToColor(const char *color, Color* out);
+bool strToColor(const char* color, Color* out);
 int colorToStr(Color color, char buf[8]);
 void setColor(abuf* ab, Color color, int is_bg);
 

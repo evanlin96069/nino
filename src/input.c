@@ -536,6 +536,7 @@ void editorProcessKeypress(void) {
     static int curr_y = 0;
     static bool pressed_explorer = false;
 
+    // Only the paste input need to be free, so we skipped some cases
     EditorInput input = editorReadKey();
 
     // Global keybinds
@@ -555,11 +556,13 @@ void editorProcessKeypress(void) {
 
     if (gEditor.state == EXPLORER_MODE &&
         editorExplorerProcessKeypress(input)) {
+        editorFreeInput(&input);
         return;
     }
 
     if (gEditor.file_count == 0) {
         gEditor.state = EXPLORER_MODE;
+        editorFreeInput(&input);
         return;
     }
 
@@ -886,8 +889,12 @@ void editorProcessKeypress(void) {
         } break;
 
         // Action: Paste
+        case PASTE_INPUT:
         case CTRL_KEY('v'): {
-            if (!gEditor.clipboard.size)
+            EditorClipboard* clipboard =
+                (c == PASTE_INPUT) ? &input.data.paste : &gEditor.clipboard;
+
+            if (!clipboard->size)
                 break;
 
             should_record_action = true;
@@ -902,8 +909,7 @@ void editorProcessKeypress(void) {
 
             edit->added_range.start_x = gCurFile->cursor.x;
             edit->added_range.start_y = gCurFile->cursor.y;
-            editorPasteText(&gEditor.clipboard, gCurFile->cursor.x,
-                            gCurFile->cursor.y);
+            editorPasteText(clipboard, gCurFile->cursor.x, gCurFile->cursor.y);
 
             edit->added_range.end_x = gCurFile->cursor.x;
             edit->added_range.end_y = gCurFile->cursor.y;
@@ -1128,19 +1134,19 @@ void editorProcessKeypress(void) {
                 range.end_x = gCurFile->row[range.end_y].size;
                 editorCopyText(&edit->added_text, range);
                 //  Move empty string at the start to the end
-                char* temp = edit->added_text.data[0];
-                memmove(&edit->added_text.data[0], &edit->added_text.data[1],
-                        (edit->added_text.size - 1) * sizeof(char*));
-                edit->added_text.data[edit->added_text.size - 1] = temp;
+                Str temp = edit->added_text.lines[0];
+                memmove(&edit->added_text.lines[0], &edit->added_text.lines[1],
+                        (edit->added_text.size - 1) * sizeof(Str));
+                edit->added_text.lines[edit->added_text.size - 1] = temp;
             } else {
                 range.end_x = 0;
                 range.end_y++;
                 editorCopyText(&edit->added_text, range);
                 // Move empty string at the end to the start
-                char* temp = edit->added_text.data[edit->added_text.size - 1];
-                memmove(&edit->added_text.data[1], &edit->added_text.data[0],
-                        (edit->added_text.size - 1) * sizeof(char*));
-                edit->added_text.data[0] = temp;
+                Str temp = edit->added_text.lines[edit->added_text.size - 1];
+                memmove(&edit->added_text.lines[1], &edit->added_text.lines[0],
+                        (edit->added_text.size - 1) * sizeof(Str));
+                edit->added_text.lines[0] = temp;
             }
             edit->deleted_range = range;
             editorCopyText(&edit->deleted_text, range);
@@ -1418,6 +1424,8 @@ void editorProcessKeypress(void) {
 
     if (c != MOUSE_PRESSED && c != MOUSE_RELEASED)
         mouse_click = 0;
+
+    editorFreeInput(&input);
 
     if (should_record_action) {
         edit->new_cursor = gCurFile->cursor;

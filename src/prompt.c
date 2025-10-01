@@ -92,12 +92,16 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 }
                 break;
 
+            case PASTE_INPUT:
             case CTRL_KEY('v'): {
-                if (!gEditor.clipboard.size)
+                EditorClipboard* clipboard = (input.type == PASTE_INPUT)
+                                                 ? &input.data.paste
+                                                 : &gEditor.clipboard;
+                if (!clipboard->size)
                     break;
                 // Only paste the first line
-                const char* paste_buf = gEditor.clipboard.data[0];
-                size_t paste_len = strlen(paste_buf);
+                const char* paste_buf = clipboard->lines[0].data;
+                size_t paste_len = clipboard->lines[0].size;
                 if (paste_len == 0)
                     break;
 
@@ -111,8 +115,10 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 buflen += paste_len;
                 idx += paste_len;
 
-                if (callback)
-                    callback(buf, input.type);
+                if (callback) {
+                    // send ctrl-v in case callback didn't handle PASTE_INPUT
+                    callback(buf, CTRL_KEY('v'));
+                }
 
                 break;
             }
@@ -207,6 +213,7 @@ char* editorPrompt(char* prompt, int state, void (*callback)(char*, int)) {
                 if (callback)
                     callback(buf, input.type);
         }
+        editorFreeInput(&input);
         gEditor.px = start + idx;
     }
 }

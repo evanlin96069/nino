@@ -1,12 +1,14 @@
+#include "common.h"
+#include "unicode.h"
+#include "utils.h"
 #define _GNU_SOURCE  // SIGWINCH
-
-#include "terminal.h"
 
 #include <ctype.h>
 #include <signal.h>
 
 #include "editor.h"
 #include "output.h"
+#include "terminal.h"
 
 #ifdef _WIN32
 static HANDLE hStdin = INVALID_HANDLE_VALUE;
@@ -253,6 +255,88 @@ EditorInput editorReadKey(void) {
             return result;
         }
 
+        if (strcmp(seq, "[200~") == 0) {
+            VECTOR(Str) content = {0};
+            abuf line = ABUF_INIT;
+
+            bool last_was_cr = false;
+            while (true) {
+                if (!readConsole(&c)) {
+                    free(content.data);
+                    abufFree(&line);
+                    return result;
+                }
+
+                if (c == ESC) {
+                    uint32_t end_seq[5];
+                    bool is_end = true;
+                    const char expected[5] = {'[', '2', '0', '1', '~'};
+
+                    size_t index;
+                    for (index = 0;
+                         index < sizeof(end_seq) / sizeof(end_seq[0]);
+                         index++) {
+                        if (!readConsole(&end_seq[index])) {
+                            free(content.data);
+                            abufFree(&line);
+                            return result;
+                        }
+
+                        if (end_seq[index] != (uint32_t)expected[index]) {
+                            is_end = false;
+                            break;
+                        }
+                    }
+
+                    if (is_end) {
+                        Str s_line = {
+                            .data = line.buf,
+                            .size = line.len,
+                        };
+                        vector_push(content, s_line);
+                        vector_shrink(content);
+
+                        result.type = PASTE_INPUT;
+                        EditorClipboard clipboard = {
+                            .size = content.size,
+                            .lines = content.data,
+                        };
+                        result.data.paste = clipboard;
+                        return result;
+                    }
+
+                    // paste the escape sequence so far in
+                    abufAppendN(&line, expected, index);
+                    // let the rest of the logic handle the last input
+                    c = end_seq[index];
+                }
+
+                if (c == '\r' || c == '\n') {
+                    if (c == '\n' && last_was_cr) {
+                        last_was_cr = false;
+                        continue;
+                    }
+
+                    last_was_cr = (c == '\r');
+
+                    Str s_line = {
+                        .data = line.buf,
+                        .size = line.len,
+                    };
+                    vector_push(content, s_line);
+                    memset(&line, 0, sizeof(abuf));
+                } else {
+                    last_was_cr = false;
+
+                    char utf8[4];
+                    int bytes = encodeUTF8(c, utf8);
+                    if (bytes == -1)
+                        continue;
+                    abufAppendN(&line, utf8, bytes);
+                }
+            }
+        }
+
         // Mouse input
         if (seq[1] == '<' && gEditor.mouse_mode) {
             int type;
@@ -311,6 +395,14 @@ EditorInput editorReadKey(void) {
     result.data.unicode = c;
 
     return result;
+}
+
+void editorFreeInput(EditorInput* input) {
+    if (!input)
+        return;
+    if (input->type == PASTE_INPUT) {
+        editorFreeClipboardContent(&input->data.paste);
+    }
 }
 
 #ifdef _WIN32
@@ -398,6 +490,14 @@ void disableMouse(void) {
         gEditor.mouse_mode = false;
 }
 
+static void enableBracketedPaste(void) {
+    UNUSED(write(STDOUT_FILENO, "\x1b[?2004h", 8));
+}
+
+static void disableBracketedPaste(void) {
+    UNUSED(write(STDOUT_FILENO, "\x1b[?2004l", 8));
+}
+
 #ifndef _WIN32
 static void SIGWINCH_handler(int sig) {
     if (sig != SIGWINCH)
@@ -436,6 +536,7 @@ void editorInitTerminal(void) {
 
     enableRawMode();
     enableSwap();
+    enableBracketedPaste();
     // Mouse mode default on
     enableMouse();
     atexit(terminalExit);
@@ -458,6 +559,7 @@ void editorInitTerminal(void) {
 
 void terminalExit(void) {
     disableMouse();
+    disableBracketedPaste();
     disableSwap();
     // Reset color
     UNUSED(write(STDOUT_FILENO, "\x1b[m", 3));

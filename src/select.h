@@ -1,9 +1,11 @@
 #ifndef SELECT_H
 #define SELECT_H
 
+#include "utils.h"
+
 typedef struct EditorClipboard {
     size_t size;
-    char** data;
+    Str* lines;
 } EditorClipboard;
 
 typedef struct EditorSelectRange {

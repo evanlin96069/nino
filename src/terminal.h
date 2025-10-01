@@ -1,6 +1,8 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
+#include "select.h"
+
 // ANSI escape sequences
 #define ANSI_CLEAR "\x1b[m"
 #define ANSI_UNDERLINE "\x1b[4m"
@@ -19,6 +21,7 @@ enum EditorKey {
     ESC = 27,
     BACKSPACE = 127,
     CHAR_INPUT = 1000,
+    PASTE_INPUT,
     ARROW_UP,
     ARROW_DOWN,
     ARROW_LEFT,
@@ -71,11 +74,13 @@ typedef struct EditorInput {
             int x;
             int y;
         } cursor;
+        EditorClipboard paste;
     } data;
 } EditorInput;
 
 void editorInitTerminal(void);
 EditorInput editorReadKey(void);
+void editorFreeInput(EditorInput* input);
 
 void enableMouse(void);
 void disableMouse(void);
