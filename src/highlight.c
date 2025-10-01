@@ -1,12 +1,10 @@
 #include "highlight.h"
 
 #include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "../resources/bundle.h"
 #include "config.h"
+#include "editor.h"
 #include "os.h"
 
 #define JSON_IMPLEMENTATION

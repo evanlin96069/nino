@@ -1,10 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <stdbool.h>
-
-#include "defines.h"
-#include "utils.h"
+#include "highlight.h"
 
 #define EDITOR_CONFIG_EXT "." EDITOR_NAME
 #define EDITOR_RC_FILE EDITOR_NAME "rc"

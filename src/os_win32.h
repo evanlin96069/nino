@@ -1,8 +1,6 @@
 #ifndef OS_WIN32_H
 #define OS_WIN32_H
 
-#include <stdbool.h>
-
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 

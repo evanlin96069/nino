@@ -1,9 +1,5 @@
 #include "buildnum.h"
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
 const char* editor_build_date = __DATE__;
 const char* editor_build_time = __TIME__;
 

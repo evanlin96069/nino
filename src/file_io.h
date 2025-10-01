@@ -1,9 +1,6 @@
 #ifndef FILE_IO_H
 #define FILE_IO_H
 
-#include <stdbool.h>
-#include <stdlib.h>
-
 #include "utils.h"
 
 typedef struct EditorExplorerNodeData {

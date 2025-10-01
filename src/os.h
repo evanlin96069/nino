@@ -1,10 +1,6 @@
 #ifndef OS_H
 #define OS_H
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-
 // File
 typedef struct FileInfo FileInfo;
 FileInfo getFileInfo(const char* path);

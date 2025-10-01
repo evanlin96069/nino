@@ -1,9 +1,6 @@
 #ifndef ROW_H
 #define ROW_H
 
-#include <stddef.h>
-#include <stdint.h>
-
 struct EditorFile;
 typedef struct EditorFile EditorFile;
 

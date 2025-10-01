@@ -1,8 +1,5 @@
 #include "unicode.h"
 
-#include <stdbool.h>
-#include <string.h>
-
 struct interval {
     uint32_t start, end;
 };

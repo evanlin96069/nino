@@ -1,9 +1,5 @@
 #include "select.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "config.h"
 #include "editor.h"
 #include "row.h"

@@ -2,7 +2,6 @@
 #define OS_UNIX_H
 
 #include <dirent.h>
-#include <stdbool.h>
 #include <sys/stat.h>
 #include <unistd.h>
 

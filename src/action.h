@@ -1,6 +1,5 @@
 #ifndef ACTION_H
 #define ACTION_H
-#include <stdbool.h>
 
 #include "select.h"
 

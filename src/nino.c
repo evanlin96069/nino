@@ -1,6 +1,3 @@
-#include <stdbool.h>
-#include <stdio.h>
-
 #include "buildnum.h"
 #include "config.h"
 #include "editor.h"

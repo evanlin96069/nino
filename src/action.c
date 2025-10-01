@@ -1,7 +1,5 @@
 #include "action.h"
 
-#include <stdlib.h>
-
 #include "editor.h"
 
 bool editorUndo(void) {

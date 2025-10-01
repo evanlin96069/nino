@@ -1,9 +1,6 @@
 #ifndef SELECT_H
 #define SELECT_H
 
-#include <stdbool.h>
-#include <stddef.h>
-
 typedef struct EditorClipboard {
     size_t size;
     char** data;

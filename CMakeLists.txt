@@ -40,7 +40,7 @@ set (CORE_SOURCES
     src/buildnum.h
     src/config.c
     src/config.h
-    src/defines.h
+    src/common.h
     src/editor.c
     src/editor.h
     src/file_io.c
@@ -95,10 +95,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     EDITOR_VERSION="${CMAKE_PROJECT_VERSION}"
 )
 
+set(COMMON_HEADER "${CMAKE_SOURCE_DIR}/src/common.h")
+
 if (MSVC)
-  target_compile_options(${PROJECT_NAME} PRIVATE /W4 /wd4244 /wd4267 /wd4996)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4 /wd4244 /wd4267 /wd4996 /FI "${COMMON_HEADER}")
 else()
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -include "${COMMON_HEADER}")
 endif()
 
 install(TARGETS ${PROJECT_NAME})

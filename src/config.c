@@ -1,17 +1,10 @@
 #include "config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "buildnum.h"
-#include "defines.h"
 #include "editor.h"
-#include "highlight.h"
 #include "input.h"
 #include "prompt.h"
 #include "terminal.h"
-#include "utils.h"
 
 EditorConCmdArgs args;
 

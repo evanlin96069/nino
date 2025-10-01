@@ -1,11 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <stddef.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-
 // Macros
 #define _DO02(m, sep, x, y) m(x) sep m(y)
 #define _DO03(m, sep, x, y, z) \
@@ -18,30 +13,6 @@
 #define _NOP(s) s
 
 #define PATH_CAT(...) _MAP(_NOP, DIR_SEP, __VA_ARGS__)
-
-#define UNUSED(x) (void)!(x)
-
-// Panic
-#define PANIC(s) panic(__FILE__, __LINE__, s)
-void panic(const char* file, int line, const char* s);
-
-// ANSI escape sequences
-#define ANSI_CLEAR "\x1b[m"
-#define ANSI_UNDERLINE "\x1b[4m"
-#define ANSI_NOT_UNDERLINE "\x1b[24m"
-#define ANSI_INVERT "\x1b[7m"
-#define ANSI_NOT_INVERT "\x1b[27m"
-#define ANSI_DEFAULT_FG "\x1b[39m"
-#define ANSI_DEFAULT_BG "\x1b[49m"
-
-// Allocate
-#define malloc_s(size) _malloc_s(__FILE__, __LINE__, size)
-#define calloc_s(n, size) _calloc_s(__FILE__, __LINE__, n, size)
-#define realloc_s(ptr, size) _realloc_s(__FILE__, __LINE__, ptr, size)
-
-void* _malloc_s(const char* file, int line, size_t size);
-void* _calloc_s(const char* file, int line, size_t n, size_t size);
-void* _realloc_s(const char* file, int line, void* ptr, size_t size);
 
 // Vector
 #define VECTOR_MIN_CAPACITY 16

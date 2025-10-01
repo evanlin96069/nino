@@ -1,10 +1,8 @@
 #include "os_win32.h"
 
 #include <shellapi.h>
-#include <stdlib.h>
 
 #include "os.h"
-#include "utils.h"
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;

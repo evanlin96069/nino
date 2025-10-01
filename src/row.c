@@ -1,9 +1,6 @@
 #include "row.h"
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "editor.h"
 #include "highlight.h"
 #include "unicode.h"
 #include "utils.h"

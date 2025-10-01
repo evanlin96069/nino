@@ -1,17 +1,13 @@
 #include "output.h"
 
 #include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "config.h"
-#include "defines.h"
 #include "editor.h"
 #include "highlight.h"
 #include "os.h"
 #include "select.h"
+#include "terminal.h"
 #include "unicode.h"
 
 static void editorDrawTopStatusBar(abuf* ab) {

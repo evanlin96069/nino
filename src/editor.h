@@ -1,8 +1,6 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
-#include <stdint.h>
-
 #include "action.h"
 #include "config.h"
 #include "file_io.h"
@@ -17,6 +15,27 @@
 
 #define EDITOR_PROMPT_LENGTH 255
 #define EDITOR_RIGHT_PROMPT_LENGTH 32
+
+enum EditorState {
+    EDIT_MODE = 0,
+    EXPLORER_MODE,
+    FIND_MODE,
+    GOTO_LINE_MODE,
+    OPEN_FILE_MODE,
+    CONFIG_MODE,
+    SAVE_AS_MODE,
+};
+
+enum EditorField {
+    FIELD_EMPTY,
+    FIELD_TOP_STATUS,
+    FIELD_TEXT,
+    FIELD_LINENO,
+    FIELD_PROMPT,
+    FIELD_STATUS,
+    FIELD_EXPLORER,
+    FIELD_ERROR,
+};
 
 typedef struct EditorSyntax EditorSyntax;
 

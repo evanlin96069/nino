@@ -4,10 +4,8 @@
 #include <string.h>
 
 #include "config.h"
-#include "defines.h"
 #include "highlight.h"
 #include "prompt.h"
-#include "utils.h"
 
 Editor gEditor;
 EditorFile* gCurFile;
