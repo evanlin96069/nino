@@ -162,18 +162,20 @@ EditorInput editorReadKey(void) {
                     }
 
                     if (is_end) {
-                        Str s_line = {
-                            .data = line.buf,
-                            .size = line.len,
-                        };
-                        vector_push(content, s_line);
-                        vector_shrink(content);
+                        EditorClipboard clipboard = {0};
+                        if (content.size || line.len) {
+                            Str s_line = {
+                                .data = line.buf,
+                                .size = line.len,
+                            };
+                            vector_push(content, s_line);
+                            vector_shrink(content);
+
+                            clipboard.size = content.size;
+                            clipboard.lines = content.data;
+                        }
 
                         result.type = PASTE_INPUT;
-                        EditorClipboard clipboard = {
-                            .size = content.size,
-                            .lines = content.data,
-                        };
                         result.data.paste = clipboard;
                         return result;
                     }
