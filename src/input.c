@@ -933,7 +933,8 @@ void editorProcessKeypress(void) {
         // Select word
         case CTRL_KEY('d'): {
             const EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
-            if (!isIdentifierChar(row->data[gCurFile->cursor.x])) {
+            if (gCurFile->cursor.x < row->size &&
+                !isIdentifierChar(row->data[gCurFile->cursor.x])) {
                 should_scroll = false;
                 break;
             }
