@@ -807,7 +807,7 @@ void editorProcessKeypress(void) {
             if (CONVAR_GETINT(backspace) && deleted_char == ' ') {
                 bool should_delete_tab = true;
                 for (int i = 0; i < gCurFile->cursor.x; i++) {
-                    if (!isspace(gCurFile->row[gCurFile->cursor.y].data[i])) {
+                    if (!isSpace(gCurFile->row[gCurFile->cursor.y].data[i])) {
                         should_delete_tab = false;
                     }
                 }
@@ -1229,7 +1229,7 @@ void editorProcessKeypress(void) {
                         cx--;
 
                     IsCharFunc is_char;
-                    if (isspace(row->data[cx])) {
+                    if (isSpace(row->data[cx])) {
                         is_char = isNonSpace;
                     } else if (isIdentifierChar(row->data[cx])) {
                         is_char = isNonIdentifierChar;
