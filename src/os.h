@@ -1,6 +1,14 @@
 #ifndef OS_H
 #define OS_H
 
+void osInit(void);
+
+// Terminal
+void enableRawMode(void);
+void disableRawMode(void);
+bool readConsole(uint32_t* unicode);
+int getWindowSize(int* rows, int* cols);
+
 // File
 typedef struct FileInfo FileInfo;
 FileInfo getFileInfo(const char* path);

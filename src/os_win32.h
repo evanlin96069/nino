@@ -2,7 +2,8 @@
 #define OS_WIN32_H
 
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#define NOMINMAX
+#include <Windows.h>
 
 #define ENV_HOME "USERPROFILE"
 #define CONF_DIR "." EDITOR_NAME

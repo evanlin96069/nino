@@ -11,6 +11,7 @@
 #include "terminal.h"
 
 int main(int argc, char* argv[]) {
+    osInit();
     editorInit();
 
     int argc_utf8 = argc;

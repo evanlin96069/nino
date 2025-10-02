@@ -3,6 +3,74 @@
 #include <shellapi.h>
 
 #include "os.h"
+#include "terminal.h"
+
+static HANDLE hStdin = INVALID_HANDLE_VALUE;
+static HANDLE hStdout = INVALID_HANDLE_VALUE;
+
+static DWORD orig_in_mode;
+static DWORD orig_out_mode;
+
+void osInit(void) {
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    if (hStdin == INVALID_HANDLE_VALUE)
+        PANIC("GetStdHandle(STD_INPUT_HANDLE)");
+    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hStdout == INVALID_HANDLE_VALUE)
+        PANIC("GetStdHandle(STD_OUTPUT_HANDLE)");
+}
+
+void enableRawMode(void) {
+    if (!SetConsoleCP(CP_UTF8))
+        PANIC("SetConsoleCP");
+
+    if (!SetConsoleOutputCP(CP_UTF8))
+        PANIC("SetConsoleOutputCP");
+
+    DWORD mode = 0;
+
+    if (!GetConsoleMode(hStdin, &mode))
+        PANIC("GetConsoleMode(hStdin)");
+    orig_in_mode = mode;
+    mode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
+    mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+    if (!SetConsoleMode(hStdin, mode))
+        PANIC("SetConsoleMode(hStdin)");
+
+    if (!GetConsoleMode(hStdout, &mode))
+        PANIC("GetConsoleMode(hStdout)");
+    orig_out_mode = mode;
+    mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
+    if (!SetConsoleMode(hStdout, mode))
+        PANIC("SetConsoleMode(hStdout)");
+}
+
+void disableRawMode(void) {
+    SetConsoleMode(hStdin, orig_in_mode);
+    SetConsoleMode(hStdout, orig_out_mode);
+}
+
+bool readConsole(uint32_t* unicode) {
+    WCHAR wbuf[1];
+    DWORD n = 0;
+    if (!ReadConsoleW(hStdin, wbuf, 1, &n, NULL) || !n) {
+        return false;
+    }
+    *unicode = (uint32_t)wbuf[0];
+    return true;
+}
+
+int getWindowSize(int* rows, int* cols) {
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+    if (GetConsoleScreenBufferInfo(hStdout, &csbi)) {
+        *cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        *rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+        return 0;
+    }
+    return getWindowSizeFallback(rows, cols);
+}
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;

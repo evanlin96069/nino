@@ -1,136 +1,14 @@
-#include "common.h"
-#include "unicode.h"
-#include "utils.h"
 #define _GNU_SOURCE  // SIGWINCH
 
 #include <ctype.h>
 #include <signal.h>
 
 #include "editor.h"
+#include "os.h"
 #include "output.h"
 #include "terminal.h"
-
-#ifdef _WIN32
-static HANDLE hStdin = INVALID_HANDLE_VALUE;
-static HANDLE hStdout = INVALID_HANDLE_VALUE;
-
-static DWORD orig_in_mode;
-static DWORD orig_out_mode;
-#else
-#include <sys/ioctl.h>
-#include <termios.h>
-
-static struct termios orig_termios;
-#endif
-
-static void disableRawMode(void) {
-#ifdef _WIN32
-    SetConsoleMode(hStdin, orig_in_mode);
-    SetConsoleMode(hStdout, orig_out_mode);
-#else
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
-        PANIC("tcsetattr");
-#endif
-}
-
-static void enableRawMode(void) {
-#ifdef _WIN32
-    if (!SetConsoleCP(CP_UTF8))
-        PANIC("SetConsoleCP");
-
-    if (!SetConsoleOutputCP(CP_UTF8))
-        PANIC("SetConsoleOutputCP");
-
-    DWORD mode = 0;
-
-    if (!GetConsoleMode(hStdin, &mode))
-        PANIC("GetConsoleMode(hStdin)");
-    orig_in_mode = mode;
-    mode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
-    mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
-    if (!SetConsoleMode(hStdin, mode))
-        PANIC("SetConsoleMode(hStdin)");
-
-    if (!GetConsoleMode(hStdout, &mode))
-        PANIC("GetConsoleMode(hStdout)");
-    orig_out_mode = mode;
-    mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
-    if (!SetConsoleMode(hStdout, mode))
-        PANIC("SetConsoleMode(hStdout)");
-#else
-    if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
-        PANIC("tcgetattr");
-
-    struct termios raw = orig_termios;
-
-    raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-    raw.c_oflag &= ~(OPOST);
-    raw.c_cflag |= (CS8);
-    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 1;
-
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
-        PANIC("tcsetattr");
-#endif
-}
-
-// Reads a character from the console.
-static bool readConsole(uint32_t* unicode) {
-#ifdef _WIN32
-    WCHAR wbuf[1];
-    DWORD n = 0;
-    if (!ReadConsoleW(hStdin, wbuf, 1, &n, NULL) || !n) {
-        return false;
-    }
-    *unicode = (uint32_t)wbuf[0];
-    return true;
-#else
-    // Decode UTF-8
-
-    int bytes;
-    uint8_t first_byte;
-
-    if (read(STDIN_FILENO, &first_byte, 1) != 1) {
-        return false;
-    }
-
-    if ((first_byte & 0x80) == 0x00) {
-        *unicode = (uint32_t)first_byte;
-        return true;
-    }
-
-    if ((first_byte & 0xE0) == 0xC0) {
-        *unicode = (first_byte & 0x1F) << 6;
-        bytes = 1;
-    } else if ((first_byte & 0xF0) == 0xE0) {
-        *unicode = (first_byte & 0x0F) << 12;
-        bytes = 2;
-    } else if ((first_byte & 0xF8) == 0xF0) {
-        *unicode = (first_byte & 0x07) << 18;
-        bytes = 3;
-    } else {
-        return false;
-    }
-
-    uint8_t buf[3];
-    if (read(STDIN_FILENO, buf, bytes) != bytes) {
-        return false;
-    }
-
-    int shift = (bytes - 1) * 6;
-    for (int i = 0; i < bytes; i++) {
-        if ((buf[i] & 0xC0) != 0x80) {
-            return false;
-        }
-        *unicode |= (buf[i] & 0x3F) << shift;
-        shift -= 6;
-    }
-
-    return true;
-#endif
-}
+#include "unicode.h"
+#include "utils.h"
 
 typedef struct {
     const char* str;
@@ -405,19 +283,7 @@ void editorFreeInput(EditorInput* input) {
     }
 }
 
-#ifdef _WIN32
-static int getWindowSize(int* rows, int* cols) {
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-    if (GetConsoleScreenBufferInfo(hStdout, &csbi)) {
-        *cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-        *rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-        return 0;
-    }
-    return -1;
-}
-#else
-static int getCursorPos(int* rows, int* cols) {
+int getCursorPos(int* rows, int* cols) {
     char buf[32];
     size_t i = 0;
 
@@ -440,19 +306,19 @@ static int getCursorPos(int* rows, int* cols) {
     return 0;
 }
 
-static int getWindowSize(int* rows, int* cols) {
-    struct winsize ws;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-        if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
-            return -1;
-        return getCursorPos(rows, cols);
-    } else {
-        *cols = ws.ws_col;
-        *rows = ws.ws_row;
-        return 0;
+int getWindowSizeFallback(int* rows, int* cols) {
+    int ret = -1;
+
+    if (write(STDOUT_FILENO, "\x1b[s", 3) != 3)
+        return ret;
+
+    if (write(STDOUT_FILENO, "\x1b[9999C\x1b[9999B", 14) != 14) {
+        ret = getCursorPos(rows, cols);
     }
+
+    UNUSED(write(STDOUT_FILENO, "\x1b[u", 3));
+    return ret;
 }
-#endif
 
 static void SIGSEGV_handler(int sig) {
     if (sig != SIGSEGV)
@@ -525,15 +391,6 @@ void resizeWindow(void) {
 }
 
 void editorInitTerminal(void) {
-#ifdef _WIN32
-    hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    if (hStdin == INVALID_HANDLE_VALUE)
-        PANIC("GetStdHandle(STD_INPUT_HANDLE)");
-    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hStdout == INVALID_HANDLE_VALUE)
-        PANIC("GetStdHandle(STD_OUTPUT_HANDLE)");
-#endif
-
     enableRawMode();
     enableSwap();
     enableBracketedPaste();

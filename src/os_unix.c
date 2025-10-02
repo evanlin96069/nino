@@ -2,10 +2,94 @@
 
 #include "os_unix.h"
 
+#include <sys/ioctl.h>
 #include <sys/time.h>
+#include <termios.h>
 
 #include "os.h"
+#include "terminal.h"
 #include "utils.h"
+
+static struct termios orig_termios;
+
+void osInit(void) {}
+
+void enableRawMode(void) {
+    if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+        PANIC("tcgetattr");
+
+    struct termios raw = orig_termios;
+
+    raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+    raw.c_oflag &= ~(OPOST);
+    raw.c_cflag |= (CS8);
+    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1;
+
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+        PANIC("tcsetattr");
+}
+
+void disableRawMode(void) {
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+        PANIC("tcsetattr");
+}
+
+bool readConsole(uint32_t* unicode) {
+    // Decode UTF-8
+
+    int bytes;
+    uint8_t first_byte;
+
+    if (read(STDIN_FILENO, &first_byte, 1) != 1) {
+        return false;
+    }
+
+    if ((first_byte & 0x80) == 0x00) {
+        *unicode = (uint32_t)first_byte;
+        return true;
+    }
+
+    if ((first_byte & 0xE0) == 0xC0) {
+        *unicode = (first_byte & 0x1F) << 6;
+        bytes = 1;
+    } else if ((first_byte & 0xF0) == 0xE0) {
+        *unicode = (first_byte & 0x0F) << 12;
+        bytes = 2;
+    } else if ((first_byte & 0xF8) == 0xF0) {
+        *unicode = (first_byte & 0x07) << 18;
+        bytes = 3;
+    } else {
+        return false;
+    }
+
+    uint8_t buf[3];
+    if (read(STDIN_FILENO, buf, bytes) != bytes) {
+        return false;
+    }
+
+    int shift = (bytes - 1) * 6;
+    for (int i = 0; i < bytes; i++) {
+        if ((buf[i] & 0xC0) != 0x80) {
+            return false;
+        }
+        *unicode |= (buf[i] & 0x3F) << shift;
+        shift -= 6;
+    }
+
+    return true;
+}
+
+int getWindowSize(int* rows, int* cols) {
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1 || ws.ws_col != 0) {
+        *cols = ws.ws_col;
+        *rows = ws.ws_row;
+        return 0;
+    }
+    return getWindowSizeFallback(rows, cols);
+}
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;

@@ -85,6 +85,8 @@ void editorFreeInput(EditorInput* input);
 void enableMouse(void);
 void disableMouse(void);
 
+int getCursorPos(int* rows, int* cols);
+int getWindowSizeFallback(int* rows, int* cols);
 void resizeWindow(void);
 void terminalExit(void);
 
