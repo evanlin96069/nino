@@ -96,11 +96,6 @@ EditorInput editorReadKey(void) {
     uint32_t c;
     EditorInput result = {.type = UNKNOWN};
 
-#ifdef _WIN32
-    // TODO: Detect window resize event
-    resizeWindow();
-#endif
-
     while (!readConsole(&c)) {
     }
 
@@ -378,12 +373,18 @@ void resizeWindow(void) {
 
     if (getWindowSize(&rows, &cols) == -1)
         PANIC("getWindowSize");
+    setWindowSize(rows, cols);
+}
+
+void setWindowSize(int rows, int cols) {
+    rows = rows < 1 ? 1 : rows;
+    cols = cols < 1 ? 1 : cols;
 
     if (gEditor.screen_rows != rows || gEditor.screen_cols != cols) {
         gEditor.screen_rows = rows;
         gEditor.screen_cols = cols;
         // TODO: Don't hard coding rows
-        gEditor.display_rows = rows - 2;
+        gEditor.display_rows = (rows < 2) ? 0 : rows - 2;
 
         if (!gEditor.loading)
             editorRefreshScreen();

@@ -11,7 +11,18 @@ static HANDLE hStdout = INVALID_HANDLE_VALUE;
 static DWORD orig_in_mode;
 static DWORD orig_out_mode;
 
+#define CONSOLE_READ_NOWAIT 0x0002
+typedef BOOL(WINAPI* ReadConsoleInputExW_Fn)(HANDLE hConsoleInput,
+                                             PINPUT_RECORD lpBuffer,
+                                             DWORD nLength,
+                                             LPDWORD lpNumberOfEventsRead,
+                                             USHORT wFlags);
+static ReadConsoleInputExW_Fn ReadConsoleInputExW;
+
 void osInit(void) {
+    ReadConsoleInputExW = (ReadConsoleInputExW_Fn)GetProcAddress(
+        GetModuleHandleW(L"kernel32.dll"), "ReadConsoleInputExW");
+
     hStdin = GetStdHandle(STD_INPUT_HANDLE);
     if (hStdin == INVALID_HANDLE_VALUE)
         PANIC("GetStdHandle(STD_INPUT_HANDLE)");
@@ -52,13 +63,32 @@ void disableRawMode(void) {
 }
 
 bool readConsole(uint32_t* unicode) {
-    WCHAR wbuf[1];
-    DWORD n = 0;
-    if (!ReadConsoleW(hStdin, wbuf, 1, &n, NULL) || !n) {
+    INPUT_RECORD input;
+    DWORD read = 0;
+    if (!ReadConsoleInputExW(hStdin, &input, 1, &read, CONSOLE_READ_NOWAIT))
         return false;
+    if (!read)
+        return false;
+
+    switch (input.EventType) {
+        case KEY_EVENT: {
+            const KEY_EVENT_RECORD* event = &input.Event.KeyEvent;
+            if (event->bKeyDown && event->uChar.UnicodeChar) {
+                *unicode = event->uChar.UnicodeChar;
+                return true;
+            }
+        } break;
+
+        case WINDOW_BUFFER_SIZE_EVENT: {
+            const WINDOW_BUFFER_SIZE_RECORD* event =
+                &input.Event.WindowBufferSizeEvent;
+            setWindowSize(event->dwSize.Y, event->dwSize.X);
+        } break;
+
+        default:
+            break;
     }
-    *unicode = (uint32_t)wbuf[0];
-    return true;
+    return false;
 }
 
 int getWindowSize(int* rows, int* cols) {
