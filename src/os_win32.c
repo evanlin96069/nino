@@ -8,21 +8,12 @@
 static HANDLE hStdin = INVALID_HANDLE_VALUE;
 static HANDLE hStdout = INVALID_HANDLE_VALUE;
 
+static UINT orig_cp_in;
+static UINT orig_cp_out;
 static DWORD orig_in_mode;
 static DWORD orig_out_mode;
 
-#define CONSOLE_READ_NOWAIT 0x0002
-typedef BOOL(WINAPI* ReadConsoleInputExW_Fn)(HANDLE hConsoleInput,
-                                             PINPUT_RECORD lpBuffer,
-                                             DWORD nLength,
-                                             LPDWORD lpNumberOfEventsRead,
-                                             USHORT wFlags);
-static ReadConsoleInputExW_Fn ReadConsoleInputExW;
-
 void osInit(void) {
-    ReadConsoleInputExW = (ReadConsoleInputExW_Fn)GetProcAddress(
-        GetModuleHandleW(L"kernel32.dll"), "ReadConsoleInputExW");
-
     hStdin = GetStdHandle(STD_INPUT_HANDLE);
     if (hStdin == INVALID_HANDLE_VALUE)
         PANIC("GetStdHandle(STD_INPUT_HANDLE)");
@@ -32,6 +23,9 @@ void osInit(void) {
 }
 
 void enableRawMode(void) {
+    orig_cp_in = GetConsoleCP();
+    orig_cp_out = GetConsoleOutputCP();
+
     if (!SetConsoleCP(CP_UTF8))
         PANIC("SetConsoleCP");
 
@@ -43,15 +37,18 @@ void enableRawMode(void) {
     if (!GetConsoleMode(hStdin, &mode))
         PANIC("GetConsoleMode(hStdin)");
     orig_in_mode = mode;
-    mode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
-    mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+    mode |= ENABLE_WINDOW_INPUT | ENABLE_EXTENDED_FLAGS |
+            ENABLE_VIRTUAL_TERMINAL_INPUT;
+    mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT |
+              ENABLE_QUICK_EDIT_MODE);
     if (!SetConsoleMode(hStdin, mode))
         PANIC("SetConsoleMode(hStdin)");
 
     if (!GetConsoleMode(hStdout, &mode))
         PANIC("GetConsoleMode(hStdout)");
     orig_out_mode = mode;
-    mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING |
+            DISABLE_NEWLINE_AUTO_RETURN;
     mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
     if (!SetConsoleMode(hStdout, mode))
         PANIC("SetConsoleMode(hStdout)");
@@ -60,34 +57,62 @@ void enableRawMode(void) {
 void disableRawMode(void) {
     SetConsoleMode(hStdin, orig_in_mode);
     SetConsoleMode(hStdout, orig_out_mode);
+    SetConsoleCP(orig_cp_in);
+    SetConsoleOutputCP(orig_cp_out);
 }
 
-bool readConsole(uint32_t* unicode) {
-    INPUT_RECORD input;
-    DWORD read = 0;
-    if (!ReadConsoleInputExW(hStdin, &input, 1, &read, CONSOLE_READ_NOWAIT))
-        return false;
-    if (!read)
-        return false;
+bool readConsole(uint32_t* unicode_out) {
+    static DWORD repeat_left = 0;
+    static WCHAR repeat_char = 0;
 
-    switch (input.EventType) {
-        case KEY_EVENT: {
-            const KEY_EVENT_RECORD* event = &input.Event.KeyEvent;
-            if (event->bKeyDown && event->uChar.UnicodeChar) {
-                *unicode = event->uChar.UnicodeChar;
-                return true;
-            }
-        } break;
-
-        case WINDOW_BUFFER_SIZE_EVENT: {
-            const WINDOW_BUFFER_SIZE_RECORD* event =
-                &input.Event.WindowBufferSizeEvent;
-            setWindowSize(event->dwSize.Y, event->dwSize.X);
-        } break;
-
-        default:
-            break;
+    if (repeat_left) {
+        *unicode_out = (uint32_t)repeat_char;
+        repeat_left--;
+        return true;
     }
+
+    DWORD avail = 0;
+    if (!GetNumberOfConsoleInputEvents(hStdin, &avail) || avail == 0)
+        return false;
+
+    COORD last_size = (COORD){0, 0};
+    bool saw_resize = false;
+
+    INPUT_RECORD rec;
+    DWORD read = 0;
+
+    while (avail--) {
+        if (!ReadConsoleInputW(hStdin, &rec, 1, &read) || read == 0)
+            break;
+
+        switch (rec.EventType) {
+            case WINDOW_BUFFER_SIZE_EVENT: {
+                last_size = rec.Event.WindowBufferSizeEvent.dwSize;
+                saw_resize = true;
+            } break;
+
+            case KEY_EVENT: {
+                const KEY_EVENT_RECORD* ev = &rec.Event.KeyEvent;
+                if (ev->bKeyDown && ev->uChar.UnicodeChar) {
+                    const WCHAR ch = ev->uChar.UnicodeChar;
+                    if (ev->wRepeatCount > 1) {
+                        repeat_left = ev->wRepeatCount - 1;
+                        repeat_char = ch;
+                    }
+                    *unicode_out = (uint32_t)ch;
+                    if (saw_resize)
+                        setWindowSize(last_size.Y, last_size.X);
+                    return true;
+                }
+            } break;
+
+            default:
+                break;
+        }
+    }
+
+    if (saw_resize)
+        setWindowSize(last_size.Y, last_size.X);
     return false;
 }
 

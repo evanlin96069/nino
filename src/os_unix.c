@@ -36,7 +36,7 @@ void disableRawMode(void) {
         PANIC("tcsetattr");
 }
 
-bool readConsole(uint32_t* unicode) {
+bool readConsole(uint32_t* unicode_out) {
     // Decode UTF-8
 
     int bytes;
@@ -47,18 +47,18 @@ bool readConsole(uint32_t* unicode) {
     }
 
     if ((first_byte & 0x80) == 0x00) {
-        *unicode = (uint32_t)first_byte;
+        *unicode_out = (uint32_t)first_byte;
         return true;
     }
 
     if ((first_byte & 0xE0) == 0xC0) {
-        *unicode = (first_byte & 0x1F) << 6;
+        *unicode_out = (first_byte & 0x1F) << 6;
         bytes = 1;
     } else if ((first_byte & 0xF0) == 0xE0) {
-        *unicode = (first_byte & 0x0F) << 12;
+        *unicode_out = (first_byte & 0x0F) << 12;
         bytes = 2;
     } else if ((first_byte & 0xF8) == 0xF0) {
-        *unicode = (first_byte & 0x07) << 18;
+        *unicode_out = (first_byte & 0x07) << 18;
         bytes = 3;
     } else {
         return false;
@@ -74,7 +74,7 @@ bool readConsole(uint32_t* unicode) {
         if ((buf[i] & 0xC0) != 0x80) {
             return false;
         }
-        *unicode |= (buf[i] & 0x3F) << shift;
+        *unicode_out |= (buf[i] & 0x3F) << shift;
         shift -= 6;
     }
 

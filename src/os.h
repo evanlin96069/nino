@@ -6,7 +6,7 @@ void osInit(void);
 // Terminal
 void enableRawMode(void);
 void disableRawMode(void);
-bool readConsole(uint32_t* unicode);
+bool readConsole(uint32_t* unicode_out);
 int getWindowSize(int* rows, int* cols);
 
 // File
