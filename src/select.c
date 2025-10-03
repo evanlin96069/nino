@@ -2,8 +2,10 @@
 
 #include "config.h"
 #include "editor.h"
+#include "os.h"
 #include "row.h"
 #include "utils.h"
+
 
 void getSelectStartEnd(EditorSelectRange* range) {
     if (gCurFile->cursor.select_y > gCurFile->cursor.y) {
@@ -167,7 +169,7 @@ void editorFreeClipboardContent(EditorClipboard* clipboard) {
     free(clipboard->lines);
 }
 
-void editorCopyToSysClipboard(EditorClipboard* clipboard) {
+void editorCopyToSysClipboard(EditorClipboard* clipboard, uint8_t newline) {
     if (!CONVAR_GETINT(osc52_copy))
         return;
 
@@ -176,8 +178,11 @@ void editorCopyToSysClipboard(EditorClipboard* clipboard) {
 
     abuf ab = ABUF_INIT;
     for (size_t i = 0; i < clipboard->size; i++) {
-        if (i != 0)
+        if (i != 0) {
+            if (newline == NL_DOS)
+                abufAppendN(&ab, "\r", 1);
             abufAppendN(&ab, "\n", 1);
+        }
         abufAppendN(&ab, clipboard->lines[i].data, clipboard->lines[i].size);
     }
 
@@ -186,16 +191,26 @@ void editorCopyToSysClipboard(EditorClipboard* clipboard) {
 
     b64_len = base64Encode(ab.buf, ab.len, b64_buf);
 
-    bool tmux = (getenv("TMUX") != NULL);
-    if (tmux) {
+#ifndef _WIN32
+    static bool tmux_check = false;
+    static bool in_tmux;
+    if (!tmux_check) {
+        in_tmux = (getenv("TMUX") != NULL);
+        tmux_check = true;
+    }
+
+    if (in_tmux) {
         fprintf(stdout, "\x1bPtmux;\x1b");
     }
+#endif
 
     fprintf(stdout, "\x1b]52;c;%.*s\x07", b64_len, b64_buf);
 
-    if (tmux) {
+#ifndef _WIN32
+    if (in_tmux) {
         fprintf(stdout, "\x1b\\");
     }
+#endif
 
     fflush(stdout);
 

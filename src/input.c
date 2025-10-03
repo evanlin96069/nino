@@ -865,7 +865,7 @@ void editorProcessKeypress(void) {
                 editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
             }
-            editorCopyToSysClipboard(&gEditor.clipboard);
+            editorCopyToSysClipboard(&gEditor.clipboard, gCurFile->newline);
         } break;
 
         // Copy
@@ -885,7 +885,7 @@ void editorProcessKeypress(void) {
                     gCurFile->cursor.y};
                 editorCopyText(&gEditor.clipboard, range);
             }
-            editorCopyToSysClipboard(&gEditor.clipboard);
+            editorCopyToSysClipboard(&gEditor.clipboard, gCurFile->newline);
         } break;
 
         // Action: Paste
