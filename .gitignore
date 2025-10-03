@@ -7,19 +7,18 @@ resources/bundle.h
 # MacOS Finder files.
 .DS_Store
 
-# CLion work directory
+# CLion
 /.idea/
-# CLion build directories
 /cmake-build-*/
 
 # Visual Studio Code
 /.vscode/
 /.cache/
 
-# Visual Studio work directory
+# Visual Studio
 /.vs/
-# Visual Studio build directory
 /out/
+CMakeSettings.json
 
 # LSP
 /compile_commands.json
