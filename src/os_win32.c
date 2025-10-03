@@ -61,7 +61,7 @@ void disableRawMode(void) {
     SetConsoleOutputCP(orig_cp_out);
 }
 
-bool readConsole(uint32_t* unicode_out) {
+bool readConsole(uint32_t* unicode_out, int timeout_ms) {
     static DWORD repeat_left = 0;
     static WCHAR repeat_char = 0;
 
@@ -69,6 +69,16 @@ bool readConsole(uint32_t* unicode_out) {
         *unicode_out = (uint32_t)repeat_char;
         repeat_left--;
         return true;
+    }
+
+    DWORD wait = (timeout_ms < 0) ? INFINITE : (DWORD)timeout_ms;
+
+    if (wait != 0) {
+        DWORD wr = WaitForSingleObject(hStdin, wait);
+        if (wr == WAIT_TIMEOUT)
+            return false;
+        if (wr != WAIT_OBJECT_0)
+            return false;
     }
 
     DWORD avail = 0;

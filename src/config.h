@@ -96,6 +96,7 @@ EXTERN_CONVAR(osc52_copy);
 EXTERN_CONVAR(ex_default_width);
 EXTERN_CONVAR(ex_show_hidden);
 EXTERN_CONVAR(newline_default);
+EXTERN_CONVAR(ttimeoutlen);
 
 void editorRegisterCommands(void);
 void editorUnregisterCommands(void);

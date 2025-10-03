@@ -33,6 +33,9 @@ CONVAR(ex_show_hidden, "Show hidden files in the file explorer.", "1",
        cvarExplorerCallback);
 CONVAR(newline_default,
        "Set the default EOL sequence (LF/CRLF). 0 is OS default.", "0", NULL);
+CONVAR(ttimeoutlen,
+       "Time in milliseconds to wait for a key code sequence to complete.",
+       "50", NULL);
 
 static void reloadSyntax(void) {
     for (int i = 0; i < gEditor.file_count; i++) {
@@ -678,6 +681,7 @@ void editorRegisterCommands(void) {
     INIT_CONVAR(ex_default_width);
     INIT_CONVAR(ex_show_hidden);
     INIT_CONVAR(newline_default);
+    INIT_CONVAR(ttimeoutlen);
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(lang);

@@ -6,7 +6,7 @@ void osInit(void);
 // Terminal
 void enableRawMode(void);
 void disableRawMode(void);
-bool readConsole(uint32_t* unicode_out);
+bool readConsole(uint32_t* unicode_out, int timeout_ms);
 int getWindowSize(int* rows, int* cols);
 
 // File
@@ -38,6 +38,8 @@ int64_t getTime(void);
 // Command line
 void argsInit(int* argc, char*** argv);
 void argsFree(int argc, char** argv);
+
+#define READ_WAIT_INFINITE (-1)
 
 // New Line
 #define NL_UNIX 0

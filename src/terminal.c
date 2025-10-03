@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <signal.h>
 
+#include "config.h"
 #include "editor.h"
 #include "os.h"
 #include "output.h"
@@ -96,13 +97,15 @@ EditorInput editorReadKey(void) {
     uint32_t c;
     EditorInput result = {.type = UNKNOWN};
 
-    while (!readConsole(&c)) {
+    while (!readConsole(&c, READ_WAIT_INFINITE)) {
     }
+
+    int timeout = CONVAR_GETINT(ttimeoutlen);
 
     if (c == ESC) {
         char seq[16] = {0};
         bool success = false;
-        if (!readConsole(&c)) {
+        if (!readConsole(&c, timeout)) {
             result.type = ESC;
             return result;
         }
@@ -114,7 +117,7 @@ EditorInput editorReadKey(void) {
         }
 
         for (size_t i = 1; i < sizeof(seq) - 1; i++) {
-            if (!readConsole(&c)) {
+            if (!readConsole(&c, timeout)) {
                 return result;
             }
             seq[i] = (char)c;
@@ -134,7 +137,7 @@ EditorInput editorReadKey(void) {
 
             bool last_was_cr = false;
             while (true) {
-                if (!readConsole(&c)) {
+                if (!readConsole(&c, timeout)) {
                     free(content.data);
                     abufFree(&line);
                     return result;
@@ -149,7 +152,7 @@ EditorInput editorReadKey(void) {
                     for (index = 0;
                          index < sizeof(end_seq) / sizeof(end_seq[0]);
                          index++) {
-                        if (!readConsole(&end_seq[index])) {
+                        if (!readConsole(&end_seq[index], timeout)) {
                             free(content.data);
                             abufFree(&line);
                             return result;

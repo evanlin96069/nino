@@ -2,6 +2,7 @@
 
 #include "os_unix.h"
 
+#include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <termios.h>
@@ -9,6 +10,8 @@
 #include "os.h"
 #include "terminal.h"
 #include "utils.h"
+
+#define UTF8_TIMEOUT_MS 10
 
 static struct termios orig_termios;
 
@@ -36,21 +39,29 @@ void disableRawMode(void) {
         PANIC("tcsetattr");
 }
 
-bool readConsole(uint32_t* unicode_out) {
-    // Decode UTF-8
+static bool readConsoleByte(uint8_t* out, int timeout_ms) {
+    struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
+    int ret = poll(&p, 1, timeout_ms);
+    if (ret > 0 && p.revents & POLLIN) {
+        return read(STDIN_FILENO, out, 1) == 1;
+    }
+    return false;
+}
 
-    int bytes;
+bool readConsole(uint32_t* unicode_out, int timeout_ms) {
     uint8_t first_byte;
-
-    if (read(STDIN_FILENO, &first_byte, 1) != 1) {
+    if (!readConsoleByte(&first_byte, timeout_ms)) {
         return false;
     }
 
+    // ASCII fast-path
     if ((first_byte & 0x80) == 0x00) {
         *unicode_out = (uint32_t)first_byte;
         return true;
     }
 
+    // Decode UTF-8
+    int bytes;
     if ((first_byte & 0xE0) == 0xC0) {
         *unicode_out = (first_byte & 0x1F) << 6;
         bytes = 1;
@@ -64,17 +75,15 @@ bool readConsole(uint32_t* unicode_out) {
         return false;
     }
 
-    uint8_t buf[3];
-    if (read(STDIN_FILENO, buf, bytes) != bytes) {
-        return false;
-    }
-
     int shift = (bytes - 1) * 6;
     for (int i = 0; i < bytes; i++) {
-        if ((buf[i] & 0xC0) != 0x80) {
+        uint8_t byte;
+        if (!readConsoleByte(&byte, UTF8_TIMEOUT_MS))
             return false;
-        }
-        *unicode_out |= (buf[i] & 0x3F) << shift;
+        if ((byte & 0xC0) != 0x80)
+            return false;
+
+        *unicode_out |= (byte & 0x3F) << shift;
         shift -= 6;
     }
 
