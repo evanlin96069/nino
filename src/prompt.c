@@ -334,36 +334,39 @@ static void editorFindCallback(char* query, int key) {
         memcpy(prev_query, query, len + 1);
         prev_query[len] = '\0';
 
-        FindList* cur = &head;
-        for (int i = 0; i < gCurFile->num_rows; i++) {
-            char* match = NULL;
-            int col = 0;
-            char* (*search_func)(const char*, const char*) = &strstr;
-
-            if (CONVAR_GETINT(ignorecase) == 1) {
-                search_func = &strCaseStr;
-            } else if (CONVAR_GETINT(ignorecase) == 2) {
-                bool has_upper = false;
-                for (size_t j = 0; j < len; j++) {
-                    if (isupper((uint8_t)query[j])) {
-                        has_upper = true;
-                        break;
-                    }
-                }
-                if (!has_upper) {
-                    search_func = &strCaseStr;
+        int ignorecase_mode = CONVAR_GETINT(ignorecase);
+        bool ignore_case = false;
+        if (ignorecase_mode == 1) {
+            ignore_case = true;
+        } else if (ignorecase_mode == 2) {
+            bool has_upper = false;
+            for (size_t j = 0; j < len; j++) {
+                if (isupper((unsigned char)query[j])) {
+                    has_upper = true;
+                    break;
                 }
             }
-            while (col + len < (uint32_t)gCurFile->row[i].size &&
-                   (match = (*search_func)(&gCurFile->row[i].data[col],
-                                           query)) != 0) {
-                col = match - gCurFile->row[i].data;
-                FindList* node = malloc_s(sizeof(FindList));
+            ignore_case = !has_upper;
+        }
 
+        FindList* cur = &head;
+        for (int i = 0; i < gCurFile->num_rows; i++) {
+            size_t col = 0;
+            size_t row_len = (size_t)gCurFile->row[i].size;
+
+            while (col < row_len) {
+                int match_idx = findSubstring(gCurFile->row[i].data, row_len,
+                                              query, len, col, ignore_case);
+                if (match_idx < 0)
+                    break;
+
+                col = (size_t)match_idx;
+
+                FindList* node = malloc_s(sizeof(FindList));
                 node->prev = cur;
                 node->next = NULL;
                 node->row = i;
-                node->col = col;
+                node->col = (int)col;
                 cur->next = node;
                 cur = cur->next;
                 tail_node = cur;
@@ -372,7 +375,7 @@ static void editorFindCallback(char* query, int key) {
                 if (!match_node) {
                     current++;
                     if (((i == gCurFile->cursor.y &&
-                          col >= gCurFile->cursor.x) ||
+                          col >= (size_t)gCurFile->cursor.x) ||
                          i > gCurFile->cursor.y)) {
                         match_node = cur;
                     }

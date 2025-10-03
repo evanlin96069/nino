@@ -98,6 +98,8 @@ int getDigit(int n);
 int64_t getLine(char** lineptr, size_t* n, FILE* stream);
 int strCaseCmp(const char* s1, const char* s2);
 char* strCaseStr(const char* str, const char* sub_str);
+int findSubstring(const char* haystack, size_t haystack_len, const char* needle,
+                  size_t needle_len, size_t start, bool ignore_case);
 int strToInt(const char* str);
 
 // Base64

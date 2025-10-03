@@ -76,7 +76,7 @@ static inline bool isValidColor(const char *color) {
     return true;
 }
 
-bool strToColor(const char *color, Color* out) {
+bool strToColor(const char *color, Color *out) {
     if (!isValidColor(color))
         return false;
 
@@ -282,6 +282,38 @@ char *strCaseStr(const char *str, const char *sub_str) {
     }
 
     return NULL;
+}
+
+int findSubstring(const char *haystack, size_t haystack_len, const char *needle,
+                  size_t needle_len, size_t start, bool ignore_case) {
+    if (needle_len == 0) {
+        return (start <= haystack_len) ? (int)start : -1;
+    }
+
+    if (haystack_len < needle_len)
+        return -1;
+
+    size_t limit = haystack_len - needle_len;
+    if (start > limit)
+        return -1;
+
+    for (size_t i = start; i <= limit; ++i) {
+        size_t j = 0;
+        for (; j < needle_len; ++j) {
+            uint8_t hay = (uint8_t)haystack[i + j];
+            uint8_t nee = (uint8_t)needle[j];
+            if (ignore_case) {
+                if (tolower(hay) != tolower(nee))
+                    break;
+            } else if (hay != nee) {
+                break;
+            }
+        }
+        if (j == needle_len)
+            return (int)i;
+    }
+
+    return -1;
 }
 
 int strToInt(const char *str) {
