@@ -1,6 +1,22 @@
 #ifndef OS_H
 #define OS_H
 
+// Terminal
+#define READ_WAIT_INFINITE (-1)
+#define READ_GRACE_MS 10
+
+// New Line
+#define NL_UNIX 0
+#define NL_DOS 1
+
+#ifdef _WIN32
+#define NL_DEFAULT NL_DOS
+#include "os_win32.h"
+#else
+#define NL_DEFAULT NL_UNIX
+#include "os_unix.h"
+#endif
+
 void osInit(void);
 
 // Terminal
@@ -38,19 +54,5 @@ int64_t getTime(void);
 // Command line
 void argsInit(int* argc, char*** argv);
 void argsFree(int argc, char** argv);
-
-#define READ_WAIT_INFINITE (-1)
-
-// New Line
-#define NL_UNIX 0
-#define NL_DOS 1
-
-#ifdef _WIN32
-#define NL_DEFAULT NL_DOS
-#include "os_win32.h"
-#else
-#define NL_DEFAULT NL_UNIX
-#include "os_unix.h"
-#endif
 
 #endif

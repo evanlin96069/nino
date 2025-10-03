@@ -61,12 +61,12 @@ void disableRawMode(void) {
     SetConsoleOutputCP(orig_cp_out);
 }
 
-bool readConsole(uint32_t* unicode_out, int timeout_ms) {
+static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     static DWORD repeat_left = 0;
     static WCHAR repeat_char = 0;
 
     if (repeat_left) {
-        *unicode_out = (uint32_t)repeat_char;
+        *out = repeat_char;
         repeat_left--;
         return true;
     }
@@ -109,7 +109,7 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
                         repeat_left = ev->wRepeatCount - 1;
                         repeat_char = ch;
                     }
-                    *unicode_out = (uint32_t)ch;
+                    *out = ch;
                     if (saw_resize)
                         setWindowSize(last_size.Y, last_size.X);
                     return true;
@@ -124,6 +124,39 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
     if (saw_resize)
         setWindowSize(last_size.Y, last_size.X);
     return false;
+}
+
+static inline bool isHighSurrogate(WCHAR u) {
+    return u >= 0xD800 && u <= 0xDBFF;
+}
+
+static inline bool isLowSurrogate(WCHAR u) {
+    return u >= 0xDC00 && u <= 0xDFFF;
+}
+
+bool readConsole(uint32_t* unicode_out, int timeout_ms) {
+    WCHAR b0;
+    if (!readConsoleWChar(&b0, timeout_ms))
+        return false;
+
+    if (b0 < 0xD800 || b0 > 0xDFFF) {
+        *unicode_out = b0;
+        return true;
+    }
+
+    if (isHighSurrogate(b0)) {
+        WCHAR b1;
+        if (readConsoleWChar(&b1, READ_GRACE_MS) && isLowSurrogate(b1)) {
+            uint32_t hs = (uint32_t)b0 - 0xD800;
+            uint32_t ls = (uint32_t)b1 - 0xDC00;
+            *unicode_out = 0x10000 + ((hs << 10) | ls);
+            return true;
+        }
+    }
+
+    // Invaild
+    *unicode_out = 0xFFFD;
+    return true;
 }
 
 int getWindowSize(int* rows, int* cols) {

@@ -11,8 +11,6 @@
 #include "terminal.h"
 #include "utils.h"
 
-#define UTF8_TIMEOUT_MS 10
-
 static struct termios orig_termios;
 
 void osInit(void) {}
@@ -78,7 +76,7 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
     int shift = (bytes - 1) * 6;
     for (int i = 0; i < bytes; i++) {
         uint8_t byte;
-        if (!readConsoleByte(&byte, UTF8_TIMEOUT_MS))
+        if (!readConsoleByte(&byte, READ_GRACE_MS))
             return false;
         if ((byte & 0xC0) != 0x80)
             return false;
