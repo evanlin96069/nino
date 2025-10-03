@@ -6,27 +6,6 @@
 #define EDITOR_CONFIG_EXT "." EDITOR_NAME
 #define EDITOR_RC_FILE EDITOR_NAME "rc"
 
-typedef struct EditorConCmd EditorConCmd;
-
-extern EditorConCmd cvar_tabsize;
-extern EditorConCmd cvar_whitespace;
-extern EditorConCmd cvar_autoindent;
-extern EditorConCmd cvar_backspace;
-extern EditorConCmd cvar_bracket;
-extern EditorConCmd cvar_trailing;
-extern EditorConCmd cvar_drawspace;
-extern EditorConCmd cvar_syntax;
-extern EditorConCmd cvar_helpinfo;
-extern EditorConCmd cvar_ignorecase;
-extern EditorConCmd cvar_mouse;
-extern EditorConCmd cvar_osc52_copy;
-extern EditorConCmd cvar_ex_default_width;
-extern EditorConCmd cvar_ex_show_hidden;
-extern EditorConCmd cvar_newline_default;
-
-typedef struct EditorColorScheme EditorColorScheme;
-extern const EditorColorScheme color_default;
-
 #define EDITOR_COLOR_COUNT 34
 
 typedef struct {
@@ -52,6 +31,8 @@ extern const ColorElement color_element_map[EDITOR_COLOR_COUNT];
 #define INIT_CONVAR(name) editorInitConVar(&cvar_##name)
 #define INIT_CONCOMMAND(name) editorInitConCmd(&ccmd_##name)
 
+#define EXTERN_CONVAR(name) extern EditorConCmd cvar_##name
+
 #define CONVAR_GETINT(name) cvar_##name.cvar.int_val
 #define CONVAR_GETSTR(name) cvar_##name.cvar.string_val
 
@@ -75,7 +56,7 @@ typedef struct EditorConVar {
     ConVarCallback callback;
 } EditorConVar;
 
-struct EditorConCmd {
+typedef struct EditorConCmd {
     struct EditorConCmd* next;
     const char* name;
     const char* help_string;
@@ -84,9 +65,9 @@ struct EditorConCmd {
         CommandCallback callback;
         EditorConVar cvar;
     };
-};
+} EditorConCmd;
 
-struct EditorColorScheme {
+typedef struct EditorColorScheme {
     Color bg;
     Color top_status[6];
     Color explorer[5];
@@ -96,7 +77,25 @@ struct EditorColorScheme {
     Color cursor_line;
     Color highlightFg[HL_FG_COUNT];
     Color highlightBg[HL_BG_COUNT];
-};
+} EditorColorScheme;
+
+extern const EditorColorScheme color_default;
+
+EXTERN_CONVAR(tabsize);
+EXTERN_CONVAR(whitespace);
+EXTERN_CONVAR(autoindent);
+EXTERN_CONVAR(backspace);
+EXTERN_CONVAR(bracket);
+EXTERN_CONVAR(trailing);
+EXTERN_CONVAR(drawspace);
+EXTERN_CONVAR(syntax);
+EXTERN_CONVAR(helpinfo);
+EXTERN_CONVAR(ignorecase);
+EXTERN_CONVAR(mouse);
+EXTERN_CONVAR(osc52_copy);
+EXTERN_CONVAR(ex_default_width);
+EXTERN_CONVAR(ex_show_hidden);
+EXTERN_CONVAR(newline_default);
 
 void editorRegisterCommands(void);
 void editorUnregisterCommands(void);
