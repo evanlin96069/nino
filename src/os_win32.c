@@ -167,7 +167,7 @@ int getWindowSize(int* rows, int* cols) {
         *rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
         return 0;
     }
-    return getWindowSizeFallback(rows, cols);
+    return -1;
 }
 
 FileInfo getFileInfo(const char* path) {

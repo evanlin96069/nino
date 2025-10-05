@@ -90,12 +90,12 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
 
 int getWindowSize(int* rows, int* cols) {
     struct winsize ws;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1 || ws.ws_col != 0) {
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1 && ws.ws_col != 0) {
         *cols = ws.ws_col;
         *rows = ws.ws_row;
         return 0;
     }
-    return getWindowSizeFallback(rows, cols);
+    return -1;
 }
 
 FileInfo getFileInfo(const char* path) {

@@ -283,43 +283,6 @@ void editorFreeInput(EditorInput* input) {
     }
 }
 
-int getCursorPos(int* rows, int* cols) {
-    char buf[32];
-    size_t i = 0;
-
-    if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
-        return -1;
-
-    while (i < sizeof(buf) - 1) {
-        if (read(STDIN_FILENO, &buf[i], 1) != 1)
-            break;
-        if (buf[i] == 'R')
-            break;
-        i++;
-    }
-    buf[i] = '\0';
-
-    if (buf[0] != '\x1b' || buf[1] != '[')
-        return -1;
-    if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
-        return -1;
-    return 0;
-}
-
-int getWindowSizeFallback(int* rows, int* cols) {
-    int ret = -1;
-
-    if (write(STDOUT_FILENO, "\x1b[s", 3) != 3)
-        return ret;
-
-    if (write(STDOUT_FILENO, "\x1b[9999C\x1b[9999B", 14) != 14) {
-        ret = getCursorPos(rows, cols);
-    }
-
-    UNUSED(write(STDOUT_FILENO, "\x1b[u", 3));
-    return ret;
-}
-
 static void SIGSEGV_handler(int sig) {
     if (sig != SIGSEGV)
         return;
