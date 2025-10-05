@@ -6,7 +6,6 @@
 #include "row.h"
 #include "utils.h"
 
-
 void getSelectStartEnd(EditorSelectRange* range) {
     if (gCurFile->cursor.select_y > gCurFile->cursor.y) {
         range->start_x = gCurFile->cursor.x;
@@ -188,8 +187,9 @@ void editorCopyToSysClipboard(EditorClipboard* clipboard, uint8_t newline) {
 
     int b64_len = base64EncodeLen(ab.len);
     char* b64_buf = malloc_s(b64_len * sizeof(char));
-
     b64_len = base64Encode(ab.buf, ab.len, b64_buf);
+
+    abufReset(&ab);
 
 #ifndef _WIN32
     static bool tmux_check = false;
@@ -200,19 +200,20 @@ void editorCopyToSysClipboard(EditorClipboard* clipboard, uint8_t newline) {
     }
 
     if (in_tmux) {
-        fprintf(stdout, "\x1bPtmux;\x1b");
+        abufAppendStr(&ab, "\x1bPtmux;\x1b");
     }
 #endif
-
-    fprintf(stdout, "\x1b]52;c;%.*s\x07", b64_len, b64_buf);
+    abufAppendStr(&ab, "\x1b]52;c;");
+    abufAppendN(&ab, b64_buf, b64_len);
+    abufAppendStr(&ab, "\x07");
 
 #ifndef _WIN32
     if (in_tmux) {
-        fprintf(stdout, "\x1b\\");
+        abufAppendStr(&ab, "\x1b\\");
     }
 #endif
 
-    fflush(stdout);
+    writeConsoleAll(ab.buf, ab.len);
 
     free(b64_buf);
     abufFree(&ab);

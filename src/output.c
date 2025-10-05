@@ -92,7 +92,7 @@ static void editorDrawTopStatusBar(abuf* ab) {
             abufAppendN(ab, right_buf, rlen);
             break;
         } else {
-            abufAppend(ab, " ");
+            abufAppendN(ab, " ", 1);
             len++;
         }
     }
@@ -129,7 +129,7 @@ static void editorDrawConMsg(abuf* ab) {
         abufAppendN(ab, buf, len);
 
         while (len < gEditor.screen_cols) {
-            abufAppend(ab, " ");
+            abufAppendN(ab, " ", 1);
             len++;
         }
     }
@@ -168,7 +168,7 @@ static void editorDrawPrompt(abuf* ab) {
             abufAppendN(ab, right, rlen);
             break;
         } else {
-            abufAppend(ab, " ");
+            abufAppendN(ab, " ", 1);
             len++;
         }
     }
@@ -239,7 +239,7 @@ static void editorDrawStatusBar(abuf* ab) {
             abufAppendN(ab, pos, pos_len);
             break;
         } else {
-            abufAppend(ab, " ");
+            abufAppendN(ab, " ", 1);
             len++;
         }
     }
@@ -254,6 +254,7 @@ static void editorDrawRows(abuf* ab) {
 
     for (int i = gCurFile->row_offset, s_row = 2;
          i < gCurFile->row_offset + gEditor.display_rows; i++, s_row++) {
+        int len;
         bool is_row_full = false;
         // Move cursor to the beginning of a row
         gotoXY(ab, s_row, 1 + gEditor.explorer.width);
@@ -273,18 +274,18 @@ static void editorDrawRows(abuf* ab) {
                 setColor(ab, gEditor.color_cfg.line_number[1], 1);
             }
 
-            snprintf(line_number, sizeof(line_number), " %*d ",
+            len = snprintf(line_number, sizeof(line_number), " %*d ",
                      gCurFile->lineno_width - 2, i + 1);
-            abufAppend(ab, line_number);
+            abufAppendN(ab, line_number, len);
 
-            abufAppend(ab, ANSI_CLEAR);
+            abufAppendStr(ab, ANSI_CLEAR);
             setColor(ab, gEditor.color_cfg.bg, 1);
 
             int cols = gEditor.screen_cols - gEditor.explorer.width -
                        gCurFile->lineno_width;
             int col_offset =
                 editorRowRxToCx(&gCurFile->row[i], gCurFile->col_offset);
-            int len = gCurFile->row[i].size - col_offset;
+            len = gCurFile->row[i].size - col_offset;
             len = (len < 0) ? 0 : len;
 
             int rlen = gCurFile->row[i].rsize - gCurFile->col_offset;
@@ -305,9 +306,9 @@ static void editorDrawRows(abuf* ab) {
             while (rx < rlen) {
                 if (iscntrl((uint8_t)c[j]) && c[j] != '\t') {
                     char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-                    abufAppend(ab, ANSI_INVERT);
+                    abufAppendStr(ab, ANSI_INVERT);
                     abufAppendN(ab, &sym, 1);
-                    abufAppend(ab, ANSI_CLEAR);
+                    abufAppendStr(ab, ANSI_CLEAR);
                     setColor(ab, gEditor.color_cfg.highlightFg[curr_fg], 0);
                     setColor(ab, gEditor.color_cfg.highlightBg[curr_bg], 1);
 
@@ -341,22 +342,22 @@ static void editorDrawRows(abuf* ab) {
 
                     if (c[j] == '\t') {
                         if (CONVAR_GETINT(drawspace)) {
-                            abufAppend(ab, "|");
+                            abufAppendN(ab, "|", 1);
                         } else {
-                            abufAppend(ab, " ");
+                            abufAppendN(ab, " ", 1);
                         }
 
                         rx++;
                         while (rx % CONVAR_GETINT(tabsize) != 0 && rx < rlen) {
-                            abufAppend(ab, " ");
+                            abufAppendN(ab, " ", 1);
                             rx++;
                         }
                         j++;
                     } else if (c[j] == ' ') {
                         if (CONVAR_GETINT(drawspace)) {
-                            abufAppend(ab, ".");
+                            abufAppendN(ab, ".", 1);
                         } else {
-                            abufAppend(ab, " ");
+                            abufAppendN(ab, " ", 1);
                         }
                         rx++;
                         j++;
@@ -381,12 +382,12 @@ static void editorDrawRows(abuf* ab) {
                 i >= range.start_y &&
                 gCurFile->row[i].rsize - gCurFile->col_offset < cols) {
                 setColor(ab, gEditor.color_cfg.highlightBg[HL_BG_SELECT], 1);
-                abufAppend(ab, " ");
+                abufAppendN(ab, " ", 1);
             }
             setColor(ab, gEditor.color_cfg.highlightBg[HL_BG_NORMAL], 1);
         }
         if (!is_row_full)
-            abufAppend(ab, "\x1b[K");
+            abufAppendStr(ab, ANSI_ERASE_LINE);
         setColor(ab, gEditor.color_cfg.bg, 1);
     }
 }
@@ -454,8 +455,7 @@ static void editorDrawFileExplorer(abuf* ab) {
 void editorRefreshScreen(void) {
     abuf ab = ABUF_INIT;
 
-    abufAppend(&ab, "\x1b[?25l");
-    abufAppend(&ab, "\x1b[H");
+    abufAppendStr(&ab, ANSI_CURSOR_HIDE ANSI_CURSOR_RESET_POS);
 
     editorDrawTopStatusBar(&ab);
     editorDrawRows(&ab);
@@ -490,11 +490,11 @@ void editorRefreshScreen(void) {
     }
 
     if (should_show_cursor) {
-        abufAppend(&ab, "\x1b[?25h");
+        abufAppendStr(&ab, ANSI_CURSOR_SHOW);
     } else {
-        abufAppend(&ab, "\x1b[?25l");
+        abufAppendStr(&ab, ANSI_CURSOR_HIDE);
     }
 
-    UNUSED(write(STDOUT_FILENO, ab.buf, ab.len));
+    writeConsoleAll(ab.buf, ab.len);
     abufFree(&ab);
 }

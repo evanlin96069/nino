@@ -1,5 +1,7 @@
 #define _GNU_SOURCE  // SIGWINCH
 
+#include "terminal.h"
+
 #include <ctype.h>
 #include <signal.h>
 
@@ -7,7 +9,6 @@
 #include "editor.h"
 #include "os.h"
 #include "output.h"
-#include "terminal.h"
 #include "unicode.h"
 #include "utils.h"
 
@@ -287,7 +288,7 @@ static void SIGSEGV_handler(int sig) {
     if (sig != SIGSEGV)
         return;
     terminalExit();
-    UNUSED(write(STDOUT_FILENO, "Exit from SIGSEGV_handler\r\n", 27));
+    writeConsoleStr("Segmentation fault\r\n");
     _exit(EXIT_FAILURE);
 }
 
@@ -295,36 +296,29 @@ static void SIGABRT_handler(int sig) {
     if (sig != SIGABRT)
         return;
     terminalExit();
-    UNUSED(write(STDOUT_FILENO, "Exit from SIGABRT_handler\r\n", 27));
+    writeConsoleStr("Aborted\r\n");
     _exit(EXIT_FAILURE);
 }
 
-static void enableSwap(void) {
-    UNUSED(write(STDOUT_FILENO, "\x1b[?1049h\x1b[H", 11));
-}
-
-static void disableSwap(void) {
-    UNUSED(write(STDOUT_FILENO, "\x1b[?1049l", 8));
-}
+#define SWAP_ENABLE "\x1b[?1049h"
+#define SWAP_DISABLE "\x1b[?1049l"
+#define MOUSE_ENABLE "\x1b[?1002h\x1b[?1015h\x1b[?1006h"
+#define MOUSE_DISABLE "\x1b[?1002l\x1b[?1015l\x1b[?1006l"
+#define BRACKETED_PASTE_ENABLE "\x1b[?2004h"
+#define BRACKETED_PASTE_DISABLE "\x1b[?2004l"
 
 void enableMouse(void) {
-    if (!gEditor.mouse_mode &&
-        write(STDOUT_FILENO, "\x1b[?1002h\x1b[?1015h\x1b[?1006h", 24) == 24)
+    if (!gEditor.mouse_mode) {
+        writeConsoleStr(MOUSE_ENABLE);
         gEditor.mouse_mode = true;
+    }
 }
 
 void disableMouse(void) {
-    if (gEditor.mouse_mode &&
-        write(STDOUT_FILENO, "\x1b[?1002l\x1b[?1015l\x1b[?1006l", 24) == 24)
+    if (gEditor.mouse_mode) {
+        writeConsoleStr(MOUSE_DISABLE);
         gEditor.mouse_mode = false;
-}
-
-static void enableBracketedPaste(void) {
-    UNUSED(write(STDOUT_FILENO, "\x1b[?2004h", 8));
-}
-
-static void disableBracketedPaste(void) {
-    UNUSED(write(STDOUT_FILENO, "\x1b[?2004l", 8));
+    }
 }
 
 #ifndef _WIN32
@@ -361,10 +355,7 @@ void setWindowSize(int rows, int cols) {
 
 void editorInitTerminal(void) {
     enableRawMode();
-    enableSwap();
-    enableBracketedPaste();
-    // Mouse mode default on
-    enableMouse();
+    writeConsoleStr(SWAP_ENABLE BRACKETED_PASTE_ENABLE MOUSE_ENABLE);
     atexit(terminalExit);
     resizeWindow();
 
@@ -384,12 +375,7 @@ void editorInitTerminal(void) {
 }
 
 void terminalExit(void) {
-    disableMouse();
-    disableBracketedPaste();
-    disableSwap();
-    // Reset color
-    UNUSED(write(STDOUT_FILENO, "\x1b[m", 3));
-    // Show cursor
-    UNUSED(write(STDOUT_FILENO, "\x1b[?25h", 6));
+    writeConsoleStr(MOUSE_DISABLE BRACKETED_PASTE_DISABLE SWAP_DISABLE
+                        ANSI_CLEAR ANSI_CURSOR_SHOW);
     disableRawMode();
 }

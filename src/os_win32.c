@@ -126,6 +126,14 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     return false;
 }
 
+int writeConsole(const void* buf, size_t count) {
+    DWORD bytes_written;
+    if (WriteFile(hStdout, buf, count, &bytes_written, NULL)) {
+        return (int)bytes_written;
+    }
+    return -1;
+}
+
 static inline bool isHighSurrogate(WCHAR u) {
     return u >= 0xD800 && u <= 0xDBFF;
 }

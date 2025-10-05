@@ -12,13 +12,6 @@
 #define EDITOR_PATH_MAX MAX_PATH
 
 #include <io.h>
-#ifndef STDIN_FILENO
-#define STDIN_FILENO _fileno(stdin)
-#endif
-
-#ifndef STDOUT_FILENO
-#define STDOUT_FILENO _fileno(stdout)
-#endif
 
 struct FileInfo {
     BY_HANDLE_FILE_INFORMATION info;

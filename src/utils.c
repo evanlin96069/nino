@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <limits.h>
 
+#include "os.h"
 #include "terminal.h"
 
 void panic(const char *file, int line, const char *s) {
@@ -45,8 +46,6 @@ void _vector_make_room(_Vector *_vec, size_t item_size) {
     }
 }
 
-void abufAppend(abuf *ab, const char *s) { abufAppendN(ab, s, strlen(s)); }
-
 void abufAppendN(abuf *ab, const char *s, size_t n) {
     if (n == 0)
         return;
@@ -62,7 +61,12 @@ void abufAppendN(abuf *ab, const char *s, size_t n) {
     ab->len += n;
 }
 
-void abufFree(abuf *ab) { free(ab->buf); }
+void abufFree(abuf *ab) {
+    free(ab->buf);
+    ab->buf = NULL;
+    ab->len = 0;
+    ab->capacity = 0;
+}
 
 static inline bool isValidColor(const char *color) {
     if (strlen(color) != 6)
@@ -389,4 +393,16 @@ int base64Encode(const char *string, int len, char *output) {
 
     *p++ = '\0';
     return p - output;
+}
+
+bool writeConsoleAll(const void *buf, size_t len) {
+    const uint8_t *p = (const uint8_t *)buf;
+    while (len) {
+        int n = writeConsole(p, len);
+        if (n <= 0)
+            return false;
+        p += (size_t)n;
+        len -= (size_t)n;
+    }
+    return true;
 }

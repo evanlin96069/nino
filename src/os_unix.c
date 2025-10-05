@@ -88,6 +88,10 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
     return true;
 }
 
+int writeConsole(const void* buf, size_t count) {
+    return write(STDOUT_FILENO, buf, count);
+}
+
 int getWindowSize(int* rows, int* cols) {
     struct winsize ws;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1 && ws.ws_col != 0) {

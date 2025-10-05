@@ -63,9 +63,10 @@ typedef struct {
     size_t capacity;
 } abuf;
 
-void abufAppend(abuf* ab, const char* s);
 void abufAppendN(abuf* ab, const char* s, size_t n);
+#define abufAppendStr(ab, s) abufAppendN((ab), (s), sizeof(s) - 1)
 void abufFree(abuf* ab);
+#define abufReset abufFree
 
 // Color
 typedef struct Color {
@@ -106,5 +107,9 @@ int strToInt(const char* str);
 static inline int base64EncodeLen(int len) { return ((len + 2) / 3 * 4) + 1; }
 
 int base64Encode(const char* string, int len, char* output);
+
+// Write console
+#define writeConsoleStr(s) writeConsole((s), sizeof(s) - 1)
+bool writeConsoleAll(const void* buf, size_t len);
 
 #endif
