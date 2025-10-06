@@ -57,10 +57,12 @@ typedef struct EditorFile {
     int num_rows;
     int lineno_width;
 
-    // File info
-    int dirty;
+    // Encoding
     uint8_t newline;
-    char* filename;
+
+    // File info
+    char* filename;  // NULL if untitled
+    int new_id;
     FileInfo file_info;
 
     // Text buffers
@@ -71,6 +73,7 @@ typedef struct EditorFile {
     EditorSyntax* syntax;
 
     // Undo redo
+    int dirty;
     EditorActionList* action_head;
     EditorActionList* action_current;
 } EditorFile;
@@ -106,6 +109,7 @@ typedef struct Editor {
     int file_index;
     int tab_offset;
     int tab_displayed;
+    int new_file_count;
 
     // Syntax highlight
     EditorSyntax* HLDB;
@@ -136,8 +140,9 @@ void editorInitFile(EditorFile* file);
 void editorFreeFile(EditorFile* file);
 
 // Multiple files control
-int editorAddFile(EditorFile* file);
+int editorAddFile(const EditorFile* file);
 void editorRemoveFile(int index);
 void editorChangeToFile(int index);
+void editorNewUntitledFile(EditorFile* file);
 
 #endif

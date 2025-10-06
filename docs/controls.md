@@ -8,8 +8,9 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Close Tab | `Ctrl+W` |
 | Open File | `Ctrl+O` |
 | Save | `Ctrl+S` |
-| Save All | `Alt+Ctrl+S` |
-| Save As | `Ctrl+N` |
+| Save All | `Alt+S` |
+| Save As | `Alt+Ctrl+S` |
+| New Tab | `Ctrl+N` |
 | Previous Tab | `Ctrl+[` |
 | Next Tab | `Ctrl+]` |
 | Focus Explorer | `Ctrl+e` |

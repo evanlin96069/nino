@@ -54,7 +54,7 @@ void editorFreeFile(EditorFile* file) {
     free(file->filename);
 }
 
-int editorAddFile(EditorFile* file) {
+int editorAddFile(const EditorFile* file) {
     if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
         editorMsg("Already opened too many files!");
         return -1;
@@ -96,4 +96,11 @@ void editorChangeToFile(int index) {
         gEditor.tab_offset + gEditor.tab_displayed <= index) {
         gEditor.tab_offset = index;
     }
+}
+
+void editorNewUntitledFile(EditorFile* file) {
+    editorInitFile(file);
+    editorInsertRow(file, 0, "", 0);
+    file->new_id = gEditor.new_file_count;
+    gEditor.new_file_count++;
 }

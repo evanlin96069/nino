@@ -51,9 +51,8 @@ int main(int argc, char* argv[]) {
         if (gEditor.explorer.node) {
             gEditor.state = EXPLORER_MODE;
         } else {
-            editorInitFile(&file);
+            editorNewUntitledFile(&file);
             editorAddFile(&file);
-            editorInsertRow(gCurFile, 0, "", 0);
         }
     }
 

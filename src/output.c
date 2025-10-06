@@ -48,11 +48,17 @@ static void editorDrawTopStatusBar(abuf* ab) {
                 setColor(ab, gEditor.color_cfg.top_status[3], 1);
             }
 
+            int buf_len;
             char buf[EDITOR_PATH_MAX] = {0};
-            const char* filename =
-                file->filename ? getBaseName(file->filename) : "Untitled";
-            int buf_len = snprintf(buf, sizeof(buf), " %s%s ",
-                                   file->dirty ? "*" : "", filename);
+            if (file->filename) {
+                buf_len =
+                    snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
+                             getBaseName(file->filename));
+            } else {
+                buf_len = snprintf(buf, sizeof(buf), " Untitled-%d%s ",
+                                   file->new_id + 1, file->dirty ? "*" : "");
+            }
+
             int tab_width = strUTF8Width(buf);
 
             if (gEditor.screen_cols - len < tab_width ||
@@ -275,7 +281,7 @@ static void editorDrawRows(abuf* ab) {
             }
 
             len = snprintf(line_number, sizeof(line_number), " %*d ",
-                     gCurFile->lineno_width - 2, i + 1);
+                           gCurFile->lineno_width - 2, i + 1);
             abufAppendN(ab, line_number, len);
 
             abufAppendStr(ab, ANSI_CLEAR);

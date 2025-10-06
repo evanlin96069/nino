@@ -13,7 +13,8 @@
 
 static int isFileOpened(FileInfo info) {
     for (int i = 0; i < gEditor.file_count; i++) {
-        if (areFilesEqual(gEditor.files[i].file_info, info)) {
+        if (gEditor.files[i].filename &&
+            areFilesEqual(gEditor.files[i].file_info, info)) {
             return i;
         }
     }
@@ -246,11 +247,15 @@ void editorOpenFilePrompt(void) {
 
     EditorFile file;
     if (editorOpen(&file, path)) {
-        int index = editorAddFile(&file);
         gEditor.state = EDIT_MODE;
-        // hack: refresh screen to update gEditor.tab_displayed
-        editorRefreshScreen();
-        editorChangeToFile(index);
+        int index = editorAddFile(&file);
+        if (index == -1) {
+            editorFreeFile(&file);
+        } else {
+            // hack: refresh screen to update gEditor.tab_displayed
+            editorRefreshScreen();
+            editorChangeToFile(index);
+        }
     }
 
     free(path);

@@ -28,10 +28,11 @@ static void editorExplorerNodeClicked(void) {
         int index = editorAddFile(&file);
         if (index == -1) {
             editorFreeFile(&file);
+        } else {
+            // hack: refresh screen to update gEditor.tab_displayed
+            editorRefreshScreen();
+            editorChangeToFile(index);
         }
-        // hack: refresh screen to update gEditor.tab_displayed
-        editorRefreshScreen();
-        editorChangeToFile(index);
     }
 }
 
@@ -636,26 +637,44 @@ void editorProcessKeypress(void) {
         // Save
         case CTRL_KEY('s'):
             should_scroll = false;
-            if (gCurFile->dirty)
+            if (gCurFile->dirty || !gCurFile->filename)
                 editorSave(gCurFile, 0);
             break;
 
         // Save all
-        case ALT_KEY(CTRL_KEY('s')):
-            // Alt+Ctrl+S
+        case ALT_KEY('s'):
             should_scroll = false;
             for (int i = 0; i < gEditor.file_count; i++) {
-                if (gEditor.files[i].dirty) {
+                if (gEditor.files[i].dirty || !gEditor.files[i].filename) {
                     editorSave(&gEditor.files[i], 0);
                 }
             }
             break;
 
         // Save as
-        case CTRL_KEY('n'):
+        case ALT_KEY(CTRL_KEY('s')):
+            // Alt+Ctrl+S
             should_scroll = false;
             editorSave(gCurFile, 1);
             break;
+
+        // New tab
+        case CTRL_KEY('n'): {
+            should_scroll = false;
+
+            EditorFile file;
+            editorNewUntitledFile(&file);
+
+            int index = editorAddFile(&file);
+            if (index == -1) {
+                editorFreeFile(&file);
+                gEditor.new_file_count--;
+            } else {
+                // hack: refresh screen to update gEditor.tab_displayed
+                editorRefreshScreen();
+                editorChangeToFile(index);
+            }
+        } break;
 
         // Toggle explorer
         case CTRL_KEY('b'):
