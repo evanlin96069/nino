@@ -98,9 +98,24 @@ void editorChangeToFile(int index) {
     }
 }
 
+static int findAvailableUntitledId(void) {
+    for (int id = 0;; id++) {
+        int used = 0;
+        for (int i = 0; i < gEditor.file_count; i++) {
+            const EditorFile* open_file = &gEditor.files[i];
+            if (!open_file->filename && open_file->new_id == id) {
+                used = 1;
+                break;
+            }
+        }
+        if (!used) {
+            return id;
+        }
+    }
+}
+
 void editorNewUntitledFile(EditorFile* file) {
     editorInitFile(file);
     editorInsertRow(file, 0, "", 0);
-    file->new_id = gEditor.new_file_count;
-    gEditor.new_file_count++;
+    file->new_id = findAvailableUntitledId();
 }

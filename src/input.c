@@ -668,7 +668,6 @@ void editorProcessKeypress(void) {
             int index = editorAddFile(&file);
             if (index == -1) {
                 editorFreeFile(&file);
-                gEditor.new_file_count--;
             } else {
                 // hack: refresh screen to update gEditor.tab_displayed
                 editorRefreshScreen();

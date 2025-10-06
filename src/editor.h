@@ -109,7 +109,6 @@ typedef struct Editor {
     int file_index;
     int tab_offset;
     int tab_displayed;
-    int new_file_count;
 
     // Syntax highlight
     EditorSyntax* HLDB;
