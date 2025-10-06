@@ -6,7 +6,6 @@
 #include "config.h"
 #include "editor.h"
 #include "highlight.h"
-#include "input.h"
 #include "output.h"
 #include "prompt.h"
 #include "row.h"
@@ -191,19 +190,29 @@ bool editorOpen(EditorFile* file, const char* path) {
     return true;
 }
 
-void editorSave(EditorFile* file, int save_as) {
+bool editorSave(EditorFile* file, int save_as) {
     if (!file->filename || save_as) {
-        char* path = editorPrompt("Save as: %s", SAVE_AS_MODE, NULL);
+        char prompt_buf[64];
+        const char* prompt;
+        if (file->filename) {
+            prompt = "Save as: %s";
+        } else {
+            snprintf(prompt_buf, sizeof(prompt_buf), "Save Untitled-%d as: %%s",
+                     file->new_id + 1);
+            prompt = prompt_buf;
+        }
+
+        char* path = editorPrompt(prompt, SAVE_AS_MODE, NULL);
         if (!path) {
-            editorMsg("Save aborted.");
-            return;
+            editorMsg("Save canceled.");
+            return false;
         }
 
         // Check path is valid
         FILE* fp = openFile(path, "wb");
         if (!fp) {
             editorMsg("Can't save \"%s\"! %s", path, strerror(errno));
-            return;
+            return false;
         }
         fclose(fp);
 
@@ -226,12 +235,13 @@ void editorSave(EditorFile* file, int save_as) {
             free(buf);
             file->dirty = 0;
             editorMsg("%d bytes written to disk.", len);
-            return;
+            return true;
         }
         fclose(fp);
     }
     free(buf);
     editorMsg("Can't save \"%s\"! %s", file->filename, strerror(errno));
+    return false;
 }
 
 void editorOpenFilePrompt(void) {

@@ -31,7 +31,7 @@ typedef struct EditorExplorer {
 typedef struct EditorFile EditorFile;
 
 bool editorOpen(EditorFile* file, const char* filename);
-void editorSave(EditorFile* file, int save_as);
+bool editorSave(EditorFile* file, int save_as);
 void editorOpenFilePrompt(void);
 
 EditorExplorerNode* editorExplorerCreate(const char* path);
