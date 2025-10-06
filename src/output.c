@@ -495,6 +495,8 @@ void editorRefreshScreen(void) {
         abufAppendStr(&ab, ANSI_CURSOR_HIDE);
     }
 
+    abufAppendStr(&ab, ANSI_CLEAR);
+
     writeConsoleAll(ab.buf, ab.len);
     abufFree(&ab);
 }
