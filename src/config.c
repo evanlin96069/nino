@@ -36,6 +36,7 @@ CONVAR(newline_default,
 CONVAR(ttimeoutlen,
        "Time in milliseconds to wait for a key code sequence to complete.",
        "50", NULL);
+CONVAR(lineno, "Show line numbers.", "1", NULL);
 
 static void reloadSyntax(void) {
     for (int i = 0; i < gEditor.file_count; i++) {
@@ -682,6 +683,7 @@ void editorRegisterCommands(void) {
     INIT_CONVAR(ex_show_hidden);
     INIT_CONVAR(newline_default);
     INIT_CONVAR(ttimeoutlen);
+    INIT_CONVAR(lineno);
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(lang);

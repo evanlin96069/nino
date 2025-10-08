@@ -262,33 +262,35 @@ static void editorDrawRows(abuf* ab) {
          i < gCurFile->row_offset + gEditor.display_rows; i++, s_row++) {
         int len;
         bool is_row_full = false;
+
         // Move cursor to the beginning of a row
         gotoXY(ab, s_row, 1 + gEditor.explorer.width);
 
         gEditor.color_cfg.highlightBg[HL_BG_NORMAL] = gEditor.color_cfg.bg;
         if (i < gCurFile->num_rows) {
-            char line_number[16];
-            if (i == gCurFile->cursor.y) {
-                if (!gCurFile->cursor.is_selected) {
-                    gEditor.color_cfg.highlightBg[HL_BG_NORMAL] =
-                        gEditor.color_cfg.cursor_line;
+            if (CONVAR_GETINT(lineno)) {
+                char line_number[16];
+                if (i == gCurFile->cursor.y) {
+                    if (!gCurFile->cursor.is_selected) {
+                        gEditor.color_cfg.highlightBg[HL_BG_NORMAL] =
+                            gEditor.color_cfg.cursor_line;
+                    }
+                    setColor(ab, gEditor.color_cfg.line_number[1], 0);
+                    setColor(ab, gEditor.color_cfg.line_number[0], 1);
+                } else {
+                    setColor(ab, gEditor.color_cfg.line_number[0], 0);
+                    setColor(ab, gEditor.color_cfg.line_number[1], 1);
                 }
-                setColor(ab, gEditor.color_cfg.line_number[1], 0);
-                setColor(ab, gEditor.color_cfg.line_number[0], 1);
-            } else {
-                setColor(ab, gEditor.color_cfg.line_number[0], 0);
-                setColor(ab, gEditor.color_cfg.line_number[1], 1);
-            }
 
-            len = snprintf(line_number, sizeof(line_number), " %*d ",
-                           gCurFile->lineno_width - 2, i + 1);
-            abufAppendN(ab, line_number, len);
+                len = snprintf(line_number, sizeof(line_number), " %*d ",
+                               gCurFile->lineno_width - 2, i + 1);
+                abufAppendN(ab, line_number, len);
+            }
 
             abufAppendStr(ab, ANSI_CLEAR);
             setColor(ab, gEditor.color_cfg.bg, 1);
 
-            int cols = gEditor.screen_cols - gEditor.explorer.width -
-                       gCurFile->lineno_width;
+            int cols = gEditor.screen_cols - gEditor.explorer.width - LINENO_WIDTH();
             int col_offset =
                 editorRowRxToCx(&gCurFile->row[i], gCurFile->col_offset);
             len = gCurFile->row[i].size - col_offset;
@@ -478,8 +480,8 @@ void editorRefreshScreen(void) {
         int col = (editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
                                    gCurFile->cursor.x) -
                    gCurFile->col_offset) +
-                  1 + gCurFile->lineno_width;
-        if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 1 ||
+                  1 + LINENO_WIDTH();
+        if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 0 ||
             col > gEditor.screen_cols - gEditor.explorer.width ||
             row >= gEditor.screen_rows - gEditor.con_size) {
             should_show_cursor = false;

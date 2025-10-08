@@ -30,6 +30,7 @@ The command will first search for the file in the current directory, then the co
 | `osc52_copy` | 1 | Copy to system clipboard using OSC52. |
 | `newline_default` | 0 | Set the default EOL sequence (LF/CRLF). 0 is OS default. |
 | `ttimeoutlen` | 50 | Time in milliseconds to wait for a key code sequence to complete. |
+| `lineno` | 1 | Show line numbers. |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |
 | `lang` | cmd | Set the syntax highlighting language of the current file. |

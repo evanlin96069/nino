@@ -97,6 +97,7 @@ EXTERN_CONVAR(ex_default_width);
 EXTERN_CONVAR(ex_show_hidden);
 EXTERN_CONVAR(newline_default);
 EXTERN_CONVAR(ttimeoutlen);
+EXTERN_CONVAR(lineno);
 
 void editorRegisterCommands(void);
 void editorUnregisterCommands(void);
