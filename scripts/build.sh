@@ -1,35 +1,54 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/sh
+set -eu
 
-EDITOR_NAME="nino"
-EDITOR_VERSION="0.0.6"
+: "${EDITOR_NAME:=nino}"
+: "${EDITOR_VERSION:=0.0.6}"
+: "${CC:=cc}"
+: "${CFLAGS:=-std=c11 -Wall -Wextra -pedantic}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
+SCRIPT_DIR=$(
+    cd "$(dirname "$0")" || exit 1
+    pwd -P
+)
+PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
 RESOURCE_DIR="$PROJECT_ROOT/resources"
 SRC_DIR="$PROJECT_ROOT/src"
-
 BUILD_DIR="$PROJECT_ROOT/build"
+
 mkdir -p "$BUILD_DIR"
 
-CORE_SOURCES=$(find "$SRC_DIR" -type f \( -name "*.c" ! -name "os_win32.c" \))
+printf '%s\n' "[1/3] Building bundler..."
+"$CC" $CFLAGS "$RESOURCE_DIR/bundler.c" -o "$BUILD_DIR/bundler"
 
-echo "[1/3] Building bundler..."
-gcc -std=c11 -Wall -Wextra -pedantic \
-    "$RESOURCE_DIR/bundler.c" \
-    -o "$BUILD_DIR/bundler"
+printf '%s\n' "[2/3] Generating bundle.h..."
+SYNTAX_FILES=""
+for f in "$RESOURCE_DIR"/syntax/*.json; do
+    [ -f "$f" ] && SYNTAX_FILES="$SYNTAX_FILES $f"
+done
 
-echo "[2/3] Generating bundle.h..."
-"$BUILD_DIR/bundler" "$RESOURCE_DIR/bundle.h" "$RESOURCE_DIR"/syntax/*.json
+if [ -z "$SYNTAX_FILES" ]; then
+    printf '%s\n' "Error: no syntax JSON files found in $RESOURCE_DIR/syntax" >&2
+    exit 1
+fi
 
-echo "[3/3] Building $EDITOR_NAME..."
-gcc -std=c11 -Wall -Wextra -pedantic \
+"$BUILD_DIR/bundler" "$RESOURCE_DIR/bundle.h" $SYNTAX_FILES
+
+SOURCES=""
+for f in "$SRC_DIR"/*.c; do
+    [ -f "$f" ] || continue
+    case "$(basename "$f")" in
+    os_win32.c) continue ;;
+    esac
+    SOURCES="$SOURCES $f"
+
+done
+
+printf '%s\n' "[3/3] Building $EDITOR_NAME..."
+$CC $CFLAGS \
     -include "$SRC_DIR/common.h" \
     -DEDITOR_NAME="\"$EDITOR_NAME\"" \
     -DEDITOR_VERSION="\"$EDITOR_VERSION\"" \
-    $CORE_SOURCES \
+    $SOURCES \
     -o "$BUILD_DIR/$EDITOR_NAME"
 
-echo "Build complete: $BUILD_DIR/$EDITOR_NAME"
+printf '%s\n' "Done: $BUILD_DIR/$EDITOR_NAME"

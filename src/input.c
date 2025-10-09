@@ -274,8 +274,7 @@ void mousePosToEditorPos(int* x, int* y) {
     }
 
     int col =
-        *x - gEditor.explorer.width - LINENO_WIDTH() +
-              gCurFile->col_offset;
+        *x - gEditor.explorer.width - LINENO_WIDTH() + gCurFile->col_offset;
     if (col < 0) {
         col = 0;
     } else if (col > gCurFile->row[row].rsize) {

@@ -290,7 +290,8 @@ static void editorDrawRows(abuf* ab) {
             abufAppendStr(ab, ANSI_CLEAR);
             setColor(ab, gEditor.color_cfg.bg, 1);
 
-            int cols = gEditor.screen_cols - gEditor.explorer.width - LINENO_WIDTH();
+            int cols =
+                gEditor.screen_cols - gEditor.explorer.width - LINENO_WIDTH();
             int col_offset =
                 editorRowRxToCx(&gCurFile->row[i], gCurFile->col_offset);
             len = gCurFile->row[i].size - col_offset;

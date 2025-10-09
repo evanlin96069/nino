@@ -18,7 +18,7 @@
 #define ANSI_CURSOR_HIDE "\x1b[?25l"
 
 // Keys
-#define CTRL_KEY(k) ((k) & 0x1F)
+#define CTRL_KEY(k) ((k)&0x1F)
 #define ALT_KEY(k) ((k) | 0x1B00)
 
 enum EditorKey {

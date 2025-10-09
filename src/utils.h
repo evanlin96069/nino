@@ -55,7 +55,8 @@ typedef struct Str {
 
 // Abuf
 #define ABUF_GROWTH_RATE 1.5f
-#define ABUF_INIT {NULL, 0, 0}
+#define ABUF_INIT \
+    { NULL, 0, 0 }
 
 typedef struct {
     char* buf;
