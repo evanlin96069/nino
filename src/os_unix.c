@@ -1,5 +1,3 @@
-#define _GNU_SOURCE  // realpath
-
 #include "os_unix.h"
 
 #include <poll.h>
