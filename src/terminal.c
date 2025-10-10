@@ -13,7 +13,7 @@
 #include "utils.h"
 
 typedef struct {
-    const char* str;
+    const char *str;
     int value;
 } StrIntPair;
 
@@ -94,7 +94,41 @@ static const StrIntPair sequence_lookup[] = {
     {"[6;6~", SHIFT_CTRL_PAGE_DOWN},
 };
 
+static bool parseMouseSGR(const char *seq, int *Cb, int *Cx, int *Cy,
+                          char *fin) {
+    if (*seq != '<')
+        return false;
+    seq++;
+
+    // Cb
+    *Cb = atoi(seq);
+    while (*seq && *seq != ';')
+        seq++;
+    if (*seq++ != ';')
+        return false;
+
+    // Cx
+    *Cx = atoi(seq);
+    while (*seq && *seq != ';')
+        seq++;
+    if (*seq++ != ';')
+        return false;
+
+    // Cy
+    *Cy = atoi(seq);
+    while (*seq && isdigit((unsigned char)*seq))
+        seq++;
+
+    if (*seq != 'M' && *seq != 'm')
+        return false;
+    *fin = *seq;
+
+    return true;
+}
+
 EditorInput editorReadKey(void) {
+    static bool scroll_pressed = false;
+
     uint32_t c;
     EditorInput result = {.type = UNKNOWN};
 
@@ -132,6 +166,7 @@ EditorInput editorReadKey(void) {
             return result;
         }
 
+        // Bracketed paste
         if (strcmp(seq, "[200~") == 0) {
             VECTOR(Str) content = {0};
             abuf line = ABUF_INIT;
@@ -217,42 +252,70 @@ EditorInput editorReadKey(void) {
         }
 
         // Mouse input
-        if (seq[1] == '<' && gEditor.mouse_mode) {
-            int type;
-            char m;
-            sscanf(&seq[2], "%d;%d;%d%c", &type, &result.data.cursor.x,
-                   &result.data.cursor.y, &m);
-            (*&result.data.cursor.x)--;
-            (*&result.data.cursor.y)--;
-
-            switch (type) {
-                case 0:
-                    if (m == 'M') {
-                        result.type = MOUSE_PRESSED;
-                    } else if (m == 'm') {
-                        result.type = MOUSE_RELEASED;
-                    }
-                    break;
-                case 1:
-                    if (m == 'M') {
-                        result.type = SCROLL_PRESSED;
-                    } else if (m == 'm') {
-                        result.type = SCROLL_RELEASED;
-                    }
-                    break;
-                case 32:
-                    result.type = MOUSE_MOVE;
-                    break;
-                case 64:
-                    result.type = WHEEL_UP;
-                    break;
-                case 65:
-                    result.type = WHEEL_DOWN;
-                    break;
-                default:
-                    break;
+        if (seq[1] == '<') {
+            // SGR: ESC [ < Cb ; Cx ; Cy (M|m)
+            int Cb, Cx, Cy;
+            char fin;
+            if (!parseMouseSGR(&seq[1], &Cb, &Cx, &Cy, &fin)) {
+                return result;
             }
-            return result;
+
+            result.data.cursor.x = Cx - 1;
+            result.data.cursor.y = Cy - 1;
+
+            int btn = Cb & 0x03;  // 0=L, 1=M, 2=R
+            bool motion = (Cb & 0x20) != 0;
+            bool wheel = (Cb & 0x40) != 0;
+            bool press = (fin == 'M');
+            bool rel = (fin == 'm');
+
+            if (wheel) {
+                if ((Cb & 0x41) == 0x40)
+                    result.type = WHEEL_UP;
+                else if ((Cb & 0x41) == 0x41)
+                    result.type = WHEEL_DOWN;
+                return result;
+            }
+
+            if (motion && btn == 0) {
+                result.type = MOUSE_MOVE;
+                return result;
+            }
+
+            if (press) {
+                switch (btn) {
+                    case 0:
+                        result.type = MOUSE_PRESSED;
+                        break;
+                    case 1:
+                        result.type = SCROLL_PRESSED;
+                        scroll_pressed = true;
+                        break;
+                    default:
+                        return result;
+                }
+                return result;
+            } else if (rel) {
+                switch (btn) {
+                    case 0:
+                        // Hack: Some terminal emulators always return
+                        // [<0;Cx;Cym on any types of release
+                        if (scroll_pressed) {
+                            result.type = SCROLL_RELEASED;
+                            scroll_pressed = false;
+                        } else {
+                            result.type = MOUSE_RELEASED;
+                        }
+                        break;
+                    case 1:
+                        result.type = SCROLL_RELEASED;
+                        scroll_pressed = false;
+                        break;
+                    default:
+                        break;
+                }
+                return result;
+            }
         }
 
         for (size_t i = 0;
@@ -276,7 +339,7 @@ EditorInput editorReadKey(void) {
     return result;
 }
 
-void editorFreeInput(EditorInput* input) {
+void editorFreeInput(EditorInput *input) {
     if (!input)
         return;
     if (input->type == PASTE_INPUT) {
@@ -302,8 +365,8 @@ static void SIGABRT_handler(int sig) {
 
 #define SWAP_ENABLE "\x1b[?1049h"
 #define SWAP_DISABLE "\x1b[?1049l"
-#define MOUSE_ENABLE "\x1b[?1002h\x1b[?1015h\x1b[?1006h"
-#define MOUSE_DISABLE "\x1b[?1002l\x1b[?1015l\x1b[?1006l"
+#define MOUSE_ENABLE "\x1b[?1000h\x1b[?1002h\x1b[?1006h"
+#define MOUSE_DISABLE "\x1b[?1006l\x1b[?1002l\x1b[?1000l"
 #define BRACKETED_PASTE_ENABLE "\x1b[?2004h"
 #define BRACKETED_PASTE_DISABLE "\x1b[?2004l"
 

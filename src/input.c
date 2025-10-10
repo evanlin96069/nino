@@ -196,6 +196,8 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
             return false;
 
         case MOUSE_MOVE:
+        case MOUSE_RELEASED:
+        case SCROLL_PRESSED:
         case SCROLL_RELEASED:
         case CTRL_KEY('w'):
         case CTRL_KEY('b'):
@@ -536,6 +538,8 @@ void editorProcessKeypress(void) {
     static int curr_y = 0;
     static bool pressed_explorer = false;
 
+    editorMsgClear();
+
     // Only the paste input need to be free, so we skipped some cases
     EditorInput input = editorReadKey();
 
@@ -551,8 +555,6 @@ void editorProcessKeypress(void) {
             editorOpenFilePrompt();
             return;
     }
-
-    editorMsgClear();
 
     if (gEditor.state == EXPLORER_MODE &&
         editorExplorerProcessKeypress(input)) {
@@ -579,6 +581,7 @@ void editorProcessKeypress(void) {
     int c = input.type;
     int x = input.data.cursor.x;
     int y = input.data.cursor.y;
+
     switch (c) {
         // Action: Newline
         case '\r': {
