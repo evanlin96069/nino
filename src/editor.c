@@ -23,6 +23,8 @@ void editorInit(void) {
     editorRegisterCommands();
     editorInitHLDB();
 
+    editorLoadInitConfig();
+
     gEditor.explorer.prefered_width = gEditor.explorer.width =
         CONVAR_GETINT(ex_default_width);
 

@@ -31,7 +31,6 @@ int main(int argc, char* argv[]) {
     }
 
     editorInitTerminal();
-    editorLoadInitConfig();
     editorRefreshScreen();  // Draw loading
 
     EditorFile file;
