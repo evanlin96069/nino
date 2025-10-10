@@ -1,6 +1,8 @@
 #include "os_unix.h"
 
+#include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <termios.h>
@@ -9,9 +11,33 @@
 #include "terminal.h"
 #include "utils.h"
 
-static struct termios orig_termios;
+static int sig_rd = -1, sig_wr = -1;
+static volatile sig_atomic_t winch_queued = 0;
 
-void osInit(void) {}
+static void SIGWINCH_handler(int sig) {
+    if (sig != SIGWINCH)
+        return;
+    if (!winch_queued) {
+        winch_queued = 1;
+        const uint8_t b = 0x01;
+        UNUSED(write(sig_wr, &b, 1));
+    }
+}
+
+void osInit(void) {
+    int p[2];
+    if (pipe(p) == -1) {
+        PANIC("pipe");
+    }
+    sig_rd = p[0];
+    sig_wr = p[1];
+
+    if (signal(SIGWINCH, SIGWINCH_handler) == SIG_ERR) {
+        PANIC("SIGWINCH_handler");
+    }
+}
+
+static struct termios orig_termios;
 
 void enableRawMode(void) {
     if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
@@ -36,12 +62,26 @@ void disableRawMode(void) {
 }
 
 static bool readConsoleByte(uint8_t* out, int timeout_ms) {
-    struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
-    int ret = poll(&p, 1, timeout_ms);
-    if (ret > 0 && p.revents & POLLIN) {
-        return read(STDIN_FILENO, out, 1) == 1;
+    struct pollfd fds[2] = {
+        {.fd = STDIN_FILENO, .events = POLLIN},
+        {.fd = sig_rd, .events = POLLIN},
+    };
+
+    while (true) {
+        int ret = poll(fds, 2, timeout_ms);
+        if (ret < 0)
+            return false;
+
+        if (fds[0].revents & POLLIN)
+            return read(STDIN_FILENO, out, 1) == 1;
+
+        if (fds[1].revents & POLLIN) {
+            uint8_t buf[64];
+            UNUSED(read(sig_rd, buf, sizeof(buf)));
+            resizeWindow();
+            winch_queued = 0;
+        }
     }
-    return false;
 }
 
 bool readConsole(uint32_t* unicode_out, int timeout_ms) {

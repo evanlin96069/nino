@@ -1,7 +1,9 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define _GNU_SOURCE  // realpath
+#ifndef _WIN32
+#define _GNU_SOURCE  // realpath, SIGWINCH
+#endif
 
 #include <stdbool.h>
 #include <stddef.h>

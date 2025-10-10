@@ -1,5 +1,3 @@
-#define _GNU_SOURCE  // SIGWINCH
-
 #include "terminal.h"
 
 #include <ctype.h>
@@ -384,14 +382,6 @@ void disableMouse(void) {
     }
 }
 
-#ifndef _WIN32
-static void SIGWINCH_handler(int sig) {
-    if (sig != SIGWINCH)
-        return;
-    resizeWindow();
-}
-#endif
-
 void resizeWindow(void) {
     int rows = 0;
     int cols = 0;
@@ -429,12 +419,6 @@ void editorInitTerminal(void) {
     if (signal(SIGABRT, SIGABRT_handler) == SIG_ERR) {
         PANIC("SIGABRT_handler");
     }
-
-#ifndef _WIN32
-    if (signal(SIGWINCH, SIGWINCH_handler) == SIG_ERR) {
-        PANIC("SIGWINCH_handler");
-    }
-#endif
 }
 
 void terminalExit(void) {
