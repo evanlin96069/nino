@@ -436,7 +436,7 @@ static char isCloseBracket(int key) {
 }
 
 static int handleTabClick(int x) {
-    if (gEditor.loading)
+    if (gEditor.state == LOADING_MODE)
         return -1;
 
     if (x < gEditor.explorer.width)

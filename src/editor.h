@@ -17,7 +17,8 @@
 #define EDITOR_RIGHT_PROMPT_LENGTH 32
 
 enum EditorState {
-    EDIT_MODE = 0,
+    LOADING_MODE,
+    EDIT_MODE,
     EXPLORER_MODE,
     FIND_MODE,
     GOTO_LINE_MODE,
@@ -87,7 +88,6 @@ typedef struct Editor {
     int display_rows;
 
     // Editor mode
-    bool loading;
     int state;
     bool mouse_mode;
 

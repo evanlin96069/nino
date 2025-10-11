@@ -4,14 +4,12 @@
 #include "file_io.h"
 #include "input.h"
 #include "opt.h"
-#include "os.h"
 #include "output.h"
 #include "prompt.h"
 #include "row.h"
 #include "terminal.h"
 
 int main(int argc, char* argv[]) {
-    osInit();
     editorInit();
 
     int argc_utf8 = argc;
@@ -50,6 +48,7 @@ int main(int argc, char* argv[]) {
         if (gEditor.explorer.node) {
             gEditor.state = EXPLORER_MODE;
         } else {
+            gEditor.state = EDIT_MODE;
             editorNewUntitledFile(&file);
             editorAddFile(&file);
         }
@@ -58,8 +57,6 @@ int main(int argc, char* argv[]) {
     if (gEditor.explorer.node == NULL) {
         gEditor.explorer.width = 0;
     }
-
-    gEditor.loading = false;
 
     while (gEditor.file_count || gEditor.explorer.node) {
         editorRefreshScreen();

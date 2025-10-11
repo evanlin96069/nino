@@ -400,9 +400,7 @@ void setWindowSize(int rows, int cols) {
         gEditor.screen_cols = cols;
         // TODO: Don't hard coding rows
         gEditor.display_rows = (rows < 2) ? 0 : rows - 2;
-
-        if (!gEditor.loading)
-            editorRefreshScreen();
+        editorRefreshScreen();
     }
 }
 
