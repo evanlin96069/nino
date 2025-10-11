@@ -54,8 +54,11 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    gEditor.explorer.prefered_width = CONVAR_GETINT(ex_default_width);
     if (gEditor.explorer.node == NULL) {
         gEditor.explorer.width = 0;
+    } else {
+        gEditor.explorer.width = gEditor.explorer.prefered_width;
     }
 
     while (gEditor.file_count || gEditor.explorer.node) {

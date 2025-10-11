@@ -27,9 +27,6 @@ void editorInit(void) {
 
     editorLoadInitConfig();
 
-    gEditor.explorer.prefered_width = gEditor.explorer.width =
-        CONVAR_GETINT(ex_default_width);
-
     memset(&gEditor.files[0], 0, sizeof(EditorFile));
     gCurFile = &gEditor.files[0];
 }
