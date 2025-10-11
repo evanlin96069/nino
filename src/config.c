@@ -64,10 +64,13 @@ static void cvarExplorerCallback(void) { reloadExplorer(); }
 static void cvarMouseCallback(void) {
     bool mode = CONVAR_GETINT(mouse);
     if (gEditor.mouse_mode != mode) {
-        if (mode) {
-            enableMouse();
-        } else {
-            disableMouse();
+        gEditor.mouse_mode = mode;
+        if (gEditor.state != LOADING_MODE) {
+            if (mode) {
+                enableMouse();
+            } else {
+                disableMouse();
+            }
         }
     }
 }

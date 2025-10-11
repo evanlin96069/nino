@@ -364,23 +364,13 @@ static void SIGABRT_handler(int sig) {
 #define SWAP_ENABLE "\x1b[?1049h"
 #define SWAP_DISABLE "\x1b[?1049l"
 #define MOUSE_ENABLE "\x1b[?1000h\x1b[?1002h\x1b[?1006h"
-#define MOUSE_DISABLE "\x1b[?1006l\x1b[?1002l\x1b[?1000l"
+#define MOUSE_DISABLE "\x1b[?1007l\x1b[?1006l\x1b[?1002l\x1b[?1000l"
 #define BRACKETED_PASTE_ENABLE "\x1b[?2004h"
 #define BRACKETED_PASTE_DISABLE "\x1b[?2004l"
 
-void enableMouse(void) {
-    if (!gEditor.mouse_mode) {
-        writeConsoleStr(MOUSE_ENABLE);
-        gEditor.mouse_mode = true;
-    }
-}
+void enableMouse(void) { writeConsoleStr(MOUSE_ENABLE); }
 
-void disableMouse(void) {
-    if (gEditor.mouse_mode) {
-        writeConsoleStr(MOUSE_DISABLE);
-        gEditor.mouse_mode = false;
-    }
-}
+void disableMouse(void) { writeConsoleStr(MOUSE_DISABLE); }
 
 void resizeWindow(void) {
     int rows = 0;
@@ -406,8 +396,14 @@ void setWindowSize(int rows, int cols) {
 
 void editorInitTerminal(void) {
     enableRawMode();
-    writeConsoleStr(SWAP_ENABLE BRACKETED_PASTE_ENABLE MOUSE_ENABLE);
+    writeConsoleStr(SWAP_ENABLE BRACKETED_PASTE_ENABLE);
+    if (gEditor.mouse_mode) {
+        enableMouse();
+    } else {
+        disableMouse();
+    }
     atexit(terminalExit);
+
     resizeWindow();
 
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
