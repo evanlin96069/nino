@@ -440,8 +440,8 @@ static void editorSelectAll(void) {
     gCurFile->bracket_autocomplete = 0;
     gCurFile->cursor.y = gCurFile->num_rows - 1;
     gCurFile->cursor.x = gCurFile->row[gCurFile->num_rows - 1].size;
-    gCurFile->sx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                   gCurFile->cursor.x);
+    gCurFile->sx =
+        editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
     gCurFile->cursor.select_y = 0;
     gCurFile->cursor.select_x = 0;
 }
@@ -888,15 +888,13 @@ void editorProcessKeypress(void) {
 
             if (!gCurFile->cursor.is_selected) {
                 // Copy line
-                EditorSelectRange range = {
-                    findNextCharIndex(&gCurFile->row[gCurFile->cursor.y], 0,
-                                      isNonSpace),
-                    gCurFile->cursor.y, gCurFile->row[gCurFile->cursor.y].size,
-                    gCurFile->cursor.y};
-                editorCopyText(&gEditor.clipboard, range);
+                editorCopyLine(&gEditor.clipboard, gCurFile->cursor.y);
+                gEditor.copy_line = true;
 
                 // Delete line
-                range.start_x = 0;
+                EditorSelectRange range = {
+                    0, gCurFile->cursor.y,
+                    gCurFile->row[gCurFile->cursor.y].size, gCurFile->cursor.y};
                 if (gCurFile->num_rows != 1) {
                     if (gCurFile->cursor.y == gCurFile->num_rows - 1) {
                         range.start_y--;
@@ -914,6 +912,7 @@ void editorProcessKeypress(void) {
                 getSelectStartEnd(&edit->deleted_range);
                 editorCopyText(&edit->deleted_text, edit->deleted_range);
                 editorCopyText(&gEditor.clipboard, edit->deleted_range);
+                gEditor.copy_line = false;
                 editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
             }
@@ -925,18 +924,15 @@ void editorProcessKeypress(void) {
             editorFreeClipboardContent(&gEditor.clipboard);
             should_scroll = false;
 
-            EditorSelectRange range;
             if (gCurFile->cursor.is_selected) {
+                EditorSelectRange range;
                 getSelectStartEnd(&range);
+                gEditor.copy_line = false;
+                editorCopyText(&gEditor.clipboard, range);
             } else {
-                // Copy line
-                EditorSelectRange range = {
-                    findNextCharIndex(&gCurFile->row[gCurFile->cursor.y], 0,
-                                      isNonSpace),
-                    gCurFile->cursor.y, gCurFile->row[gCurFile->cursor.y].size,
-                    gCurFile->cursor.y};
+                editorCopyLine(&gEditor.clipboard, gCurFile->cursor.y);
+                gEditor.copy_line = true;
             }
-            editorCopyText(&gEditor.clipboard, range);
             editorCopyToSysClipboard(&gEditor.clipboard, gCurFile->newline);
         } break;
 
@@ -951,12 +947,14 @@ void editorProcessKeypress(void) {
 
             should_record_action = true;
 
-            getSelectStartEnd(&edit->deleted_range);
-
+            bool copy_line = (c == PASTE_INPUT) ? false : gEditor.copy_line;
             if (gCurFile->cursor.is_selected) {
+                getSelectStartEnd(&edit->deleted_range);
                 editorCopyText(&edit->deleted_text, edit->deleted_range);
                 editorDeleteText(edit->deleted_range);
                 gCurFile->cursor.is_selected = false;
+            } else if (copy_line) {
+                gCurFile->cursor.x = 0;
             }
 
             edit->added_range.start_x = gCurFile->cursor.x;

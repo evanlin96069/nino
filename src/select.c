@@ -117,6 +117,27 @@ void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range) {
            gCurFile->row[range.end_y].data, size);
 }
 
+void editorCopyLine(EditorClipboard* clipboard, int row) {
+    if (row < 0 || row >= gCurFile->num_rows) {
+        clipboard->size = 0;
+        clipboard->lines = NULL;
+        return;
+    }
+
+    clipboard->size = 2;
+    clipboard->lines = malloc_s(sizeof(Str) * clipboard->size);
+
+    // First line
+    size_t size = gCurFile->row[row].size;
+    clipboard->lines[0].size = size;
+    clipboard->lines[0].data = malloc_s(size);
+    memcpy(clipboard->lines[0].data, &gCurFile->row[row].data[0], size);
+    // Empty line
+    clipboard->lines[1].size = 0;
+    clipboard->lines[1].data = NULL;
+    ;
+}
+
 void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
     if (!clipboard->size)
         return;

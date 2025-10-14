@@ -85,6 +85,7 @@ typedef struct Editor {
 
     // Copy paste
     EditorClipboard clipboard;
+    bool copy_line;
 
     // Color settings
     EditorColorScheme color_cfg;

@@ -20,6 +20,7 @@ bool isPosSelected(int row, int col, EditorSelectRange range);
 
 void editorDeleteText(EditorSelectRange range);
 void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range);
+void editorCopyLine(EditorClipboard* clipboard, int row);
 void editorPasteText(const EditorClipboard* clipboard, int x, int y);
 
 void editorFreeClipboardContent(EditorClipboard* clipboard);
