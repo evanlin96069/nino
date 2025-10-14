@@ -409,6 +409,43 @@ static void editorSelectWord(const EditorRow* row, int cx, IsCharFunc is_char) {
     gCurFile->cursor.is_selected = true;
 }
 
+static void editorSelectLine(int row) {
+    if (row < 0 || row >= gCurFile->num_rows)
+        return;
+
+    gCurFile->cursor.is_selected = true;
+    gCurFile->cursor.select_x = 0;
+    gCurFile->cursor.select_y = row;
+    gCurFile->bracket_autocomplete = 0;
+
+    if (row < gCurFile->num_rows - 1) {
+        gCurFile->cursor.y = row + 1;
+        gCurFile->cursor.x = 0;
+    } else {
+        gCurFile->cursor.y = row;
+        gCurFile->cursor.x = gCurFile->row[row].size;
+        if (gCurFile->cursor.x == 0) {
+            gCurFile->cursor.is_selected = false;
+        }
+    }
+
+    gCurFile->sx =
+        editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
+}
+
+static void editorSelectAll(void) {
+    if (gCurFile->num_rows == 1 && gCurFile->row[0].size == 0)
+        return;
+    gCurFile->cursor.is_selected = true;
+    gCurFile->bracket_autocomplete = 0;
+    gCurFile->cursor.y = gCurFile->num_rows - 1;
+    gCurFile->cursor.x = gCurFile->row[gCurFile->num_rows - 1].size;
+    gCurFile->sx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                                   gCurFile->cursor.x);
+    gCurFile->cursor.select_y = 0;
+    gCurFile->cursor.select_x = 0;
+}
+
 static char isOpenBracket(int key) {
     switch (key) {
         case '(':
@@ -750,20 +787,15 @@ void editorProcessKeypress(void) {
             editorGotoLine();
             break;
 
-        case CTRL_KEY('a'):
-        SELECT_ALL:
-            if (gCurFile->num_rows == 1 && gCurFile->row[0].size == 0)
-                break;
-            gCurFile->cursor.is_selected = true;
-            gCurFile->bracket_autocomplete = 0;
-            gCurFile->cursor.y = gCurFile->num_rows - 1;
-            gCurFile->cursor.x = gCurFile->row[gCurFile->num_rows - 1].size;
-            gCurFile->sx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                           gCurFile->cursor.x);
-            gCurFile->cursor.select_y = 0;
-            gCurFile->cursor.select_x = 0;
+        // Select line
+        case CTRL_KEY('l'):
+            editorSelectLine(gCurFile->cursor.y);
+            break;
 
+        // Select all
+        case CTRL_KEY('a'):
             should_scroll = false;
+            editorSelectAll();
             break;
 
         // Action: Delete
@@ -892,10 +924,10 @@ void editorProcessKeypress(void) {
         case CTRL_KEY('c'): {
             editorFreeClipboardContent(&gEditor.clipboard);
             should_scroll = false;
+
+            EditorSelectRange range;
             if (gCurFile->cursor.is_selected) {
-                EditorSelectRange range;
                 getSelectStartEnd(&range);
-                editorCopyText(&gEditor.clipboard, range);
             } else {
                 // Copy line
                 EditorSelectRange range = {
@@ -903,8 +935,8 @@ void editorProcessKeypress(void) {
                                       isNonSpace),
                     gCurFile->cursor.y, gCurFile->row[gCurFile->cursor.y].size,
                     gCurFile->cursor.y};
-                editorCopyText(&gEditor.clipboard, range);
             }
+            editorCopyText(&gEditor.clipboard, range);
             editorCopyToSysClipboard(&gEditor.clipboard, gCurFile->newline);
         } break;
 
@@ -988,39 +1020,39 @@ void editorProcessKeypress(void) {
         case SHIFT_PAGE_UP:
         case SHIFT_PAGE_DOWN:
         case PAGE_UP:
-        case PAGE_DOWN:
+        case PAGE_DOWN: {
             gCurFile->cursor.is_selected =
                 (c == SHIFT_PAGE_UP || c == SHIFT_PAGE_DOWN);
             gCurFile->bracket_autocomplete = 0;
-            {
+
+            if (c == PAGE_UP || c == SHIFT_PAGE_UP) {
+                gCurFile->cursor.y = gCurFile->row_offset;
+            } else if (c == PAGE_DOWN || c == SHIFT_PAGE_DOWN) {
+                gCurFile->cursor.y =
+                    gCurFile->row_offset + gEditor.display_rows - 1;
+                if (gCurFile->cursor.y >= gCurFile->num_rows)
+                    gCurFile->cursor.y = gCurFile->num_rows - 1;
+            }
+
+            int times = gEditor.display_rows;
+            while (times--) {
                 if (c == PAGE_UP || c == SHIFT_PAGE_UP) {
-                    gCurFile->cursor.y = gCurFile->row_offset;
-                } else if (c == PAGE_DOWN || c == SHIFT_PAGE_DOWN) {
-                    gCurFile->cursor.y =
-                        gCurFile->row_offset + gEditor.display_rows - 1;
-                    if (gCurFile->cursor.y >= gCurFile->num_rows)
-                        gCurFile->cursor.y = gCurFile->num_rows - 1;
-                }
-                int times = gEditor.display_rows;
-                while (times--) {
-                    if (c == PAGE_UP || c == SHIFT_PAGE_UP) {
-                        if (gCurFile->cursor.y == 0) {
-                            gCurFile->cursor.x = 0;
-                            gCurFile->sx = 0;
-                            break;
-                        }
-                        editorMoveCursor(ARROW_UP);
-                    } else {
-                        if (gCurFile->cursor.y == gCurFile->num_rows - 1) {
-                            gCurFile->cursor.x =
-                                gCurFile->row[gCurFile->cursor.y].size;
-                            break;
-                        }
-                        editorMoveCursor(ARROW_DOWN);
+                    if (gCurFile->cursor.y == 0) {
+                        gCurFile->cursor.x = 0;
+                        gCurFile->sx = 0;
+                        break;
                     }
+                    editorMoveCursor(ARROW_UP);
+                } else {
+                    if (gCurFile->cursor.y == gCurFile->num_rows - 1) {
+                        gCurFile->cursor.x =
+                            gCurFile->row[gCurFile->cursor.y].size;
+                        break;
+                    }
+                    editorMoveCursor(ARROW_DOWN);
                 }
             }
-            break;
+        } break;
 
         case SHIFT_CTRL_PAGE_UP:
         case CTRL_PAGE_UP:
@@ -1198,85 +1230,95 @@ void editorProcessKeypress(void) {
         // Mouse input
         case MOUSE_PRESSED: {
             int field = getMousePosField(x, y);
-            if (field != FIELD_TEXT) {
-                should_scroll = false;
-                mouse_click = 0;
-                if (field == FIELD_TOP_STATUS) {
+            switch (field) {
+                case FIELD_TEXT: {
+                    int64_t click_time = getTime();
+                    int64_t time_diff = click_time - prev_click_time;
+
+                    if (x == curr_x && y == curr_y && time_diff / 1000 < 500) {
+                        mouse_click++;
+                    } else {
+                        mouse_click = 1;
+                    }
+                    prev_click_time = click_time;
+
+                    pressed = true;
+                    curr_x = x;
+                    curr_y = y;
+
+                    gCurFile->bracket_autocomplete = 0;
+
+                    mousePosToEditorPos(&x, &y);
+                    int cx = editorRowRxToCx(&gCurFile->row[y], x);
+
+                    switch (mouse_click % 4) {
+                        case 1:
+                            // Mouse to pos
+                            gCurFile->cursor.is_selected = false;
+                            gCurFile->cursor.y = y;
+                            gCurFile->cursor.x = cx;
+                            gCurFile->sx = x;
+                            break;
+                        case 2: {
+                            // Select word
+                            const EditorRow* row = &gCurFile->row[y];
+                            if (row->size == 0)
+                                break;
+                            if (cx == row->size)
+                                cx--;
+
+                            IsCharFunc is_char;
+                            if (isSpace(row->data[cx])) {
+                                is_char = isNonSpace;
+                            } else if (isIdentifierChar(row->data[cx])) {
+                                is_char = isNonIdentifierChar;
+                            } else {
+                                is_char = isNonSeparator;
+                            }
+                            editorSelectWord(row, cx, is_char);
+                        } break;
+                        case 3:
+                            // Select line
+                            editorSelectLine(gCurFile->cursor.y);
+                            break;
+                        case 0:
+                            // Select all
+                            should_scroll = false;
+                            editorSelectAll();
+                            break;
+                    }
+                } break;
+
+                case FIELD_TOP_STATUS:
+                    should_scroll = false;
+                    mouse_click = 0;
                     editorChangeToFile(handleTabClick(x));
-                } else if (field == FIELD_EXPLORER) {
+                    break;
+
+                case FIELD_EXPLORER:
+                    should_scroll = false;
+                    mouse_click = 0;
                     if (x == gEditor.explorer.width - 1) {
                         pressed_explorer = true;
                         break;
                     }
                     gEditor.state = EXPLORER_MODE;
                     editorExplorerProcessKeypress(input);
-                }
-                break;
-            }
-
-            int64_t click_time = getTime();
-            int64_t time_diff = click_time - prev_click_time;
-
-            if (x == curr_x && y == curr_y && time_diff / 1000 < 500) {
-                mouse_click++;
-            } else {
-                mouse_click = 1;
-            }
-            prev_click_time = click_time;
-
-            pressed = true;
-            curr_x = x;
-            curr_y = y;
-
-            gCurFile->bracket_autocomplete = 0;
-
-            mousePosToEditorPos(&x, &y);
-            int cx = editorRowRxToCx(&gCurFile->row[y], x);
-
-            switch (mouse_click % 4) {
-                case 1:
-                    // Mouse to pos
-                    gCurFile->cursor.is_selected = false;
-                    gCurFile->cursor.y = y;
-                    gCurFile->cursor.x = cx;
-                    gCurFile->sx = x;
                     break;
-                case 2: {
-                    // Select word
-                    const EditorRow* row = &gCurFile->row[y];
-                    if (row->size == 0)
-                        break;
-                    if (cx == row->size)
-                        cx--;
 
-                    IsCharFunc is_char;
-                    if (isSpace(row->data[cx])) {
-                        is_char = isNonSpace;
-                    } else if (isIdentifierChar(row->data[cx])) {
-                        is_char = isNonIdentifierChar;
-                    } else {
-                        is_char = isNonSeparator;
+                case FIELD_LINENO: {
+                    should_scroll = false;
+                    mouse_click = 0;
+                    int row = gCurFile->row_offset + y - 1;
+                    if (row >= 0 && row < gCurFile->num_rows) {
+                        editorSelectLine(row);
                     }
-                    editorSelectWord(row, cx, is_char);
                 } break;
-                case 3:
-                    // Select line
-                    if (gCurFile->cursor.y == gCurFile->num_rows - 1) {
-                        gCurFile->cursor.x =
-                            gCurFile->row[gCurFile->cursor.y].size;
-                        gCurFile->cursor.select_x = 0;
-                        gCurFile->sx = editorRowCxToRx(&gCurFile->row[y],
-                                                       gCurFile->cursor.x);
-                    } else {
-                        gCurFile->cursor.x = 0;
-                        gCurFile->cursor.y++;
-                        gCurFile->cursor.select_x = 0;
-                        gCurFile->sx = 0;
-                    }
-                    gCurFile->cursor.is_selected = true;
+
+                default:
+                    should_scroll = false;
+                    mouse_click = 0;
                     break;
-                case 0:
-                    goto SELECT_ALL;
             }
         } break;
 

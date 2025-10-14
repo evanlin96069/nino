@@ -27,17 +27,6 @@ enum EditorState {
     SAVE_AS_MODE,
 };
 
-enum EditorField {
-    FIELD_EMPTY,
-    FIELD_TOP_STATUS,
-    FIELD_TEXT,
-    FIELD_LINENO,
-    FIELD_PROMPT,
-    FIELD_STATUS,
-    FIELD_EXPLORER,
-    FIELD_ERROR,
-};
-
 typedef struct EditorSyntax EditorSyntax;
 
 typedef struct EditorFile {
