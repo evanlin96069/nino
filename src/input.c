@@ -525,15 +525,12 @@ static int handleTabClick(int x) {
     return -1;
 }
 
-static bool moveMouse(int x, int y) {
-    if (getMousePosField(x, y) != FIELD_TEXT)
-        return false;
+static void editorMoveMouse(int x, int y) {
     mousePosToEditorPos(&x, &y);
     gCurFile->cursor.is_selected = true;
     gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
     gCurFile->cursor.y = y;
     gCurFile->sx = x;
-    return true;
 }
 
 // Protect closing file with unsaved changes
@@ -568,12 +565,12 @@ void editorProcessKeypress(void) {
     // Protect quiting program with unsaved files
     static bool quit_protect = true;
 
-    static bool pressed = false;
+    static int mouse_pressed = FIELD_EMPTY;
     static int64_t prev_click_time = 0;
     static int mouse_click = 0;
     static int curr_x = 0;
     static int curr_y = 0;
-    static bool pressed_explorer = false;
+    static int pressed_row = 0;  // For select line drag
 
     editorMsgClear();
 
@@ -1227,9 +1224,13 @@ void editorProcessKeypress(void) {
 
         // Mouse input
         case MOUSE_PRESSED: {
+            curr_x = x;
+            curr_y = y;
             int field = getMousePosField(x, y);
             switch (field) {
                 case FIELD_TEXT: {
+                    mouse_pressed = FIELD_TEXT;
+
                     int64_t click_time = getTime();
                     int64_t time_diff = click_time - prev_click_time;
 
@@ -1239,10 +1240,6 @@ void editorProcessKeypress(void) {
                         mouse_click = 1;
                     }
                     prev_click_time = click_time;
-
-                    pressed = true;
-                    curr_x = x;
-                    curr_y = y;
 
                     gCurFile->bracket_autocomplete = 0;
 
@@ -1297,7 +1294,7 @@ void editorProcessKeypress(void) {
                     should_scroll = false;
                     mouse_click = 0;
                     if (x == gEditor.explorer.width - 1) {
-                        pressed_explorer = true;
+                        mouse_pressed = FIELD_EXPLORER;
                         break;
                     }
                     gEditor.state = EXPLORER_MODE;
@@ -1308,9 +1305,13 @@ void editorProcessKeypress(void) {
                     should_scroll = false;
                     mouse_click = 0;
                     int row = gCurFile->row_offset + y - 1;
-                    if (row >= 0 && row < gCurFile->num_rows) {
-                        editorSelectLine(row);
-                    }
+                    if (row < 0)
+                        row = 0;
+                    if (row >= gCurFile->num_rows)
+                        row = gCurFile->num_rows - 1;
+                    mouse_pressed = FIELD_LINENO;
+                    pressed_row = row;
+                    editorSelectLine(row);
                 } break;
 
                 default:
@@ -1322,19 +1323,24 @@ void editorProcessKeypress(void) {
 
         case MOUSE_RELEASED:
             should_scroll = false;
-            pressed = false;
-            pressed_explorer = false;
+            mouse_pressed = FIELD_EMPTY;
             break;
 
         case MOUSE_MOVE:
             should_scroll = false;
-            if (pressed_explorer) {
+            curr_x = x;
+            curr_y = y;
+            if (mouse_pressed == FIELD_EXPLORER) {
                 gEditor.explorer.width = gEditor.explorer.prefered_width = x;
                 if (x == 0)
                     gEditor.state = EDIT_MODE;
-            } else if (moveMouse(x, y)) {
-                curr_x = x;
-                curr_y = y;
+            } else if (mouse_pressed == FIELD_TEXT) {
+                editorMoveMouse(curr_x, curr_y);
+            } else if (mouse_pressed == FIELD_LINENO) {
+                int col = 0;
+                int row = curr_y;
+                mousePosToEditorPos(&col, &row);
+                editorMoveMouse(0, curr_y + ((row >= pressed_row) ? 1 : 0));
             }
             break;
 
@@ -1356,8 +1362,14 @@ void editorProcessKeypress(void) {
         case CTRL_UP:
             should_scroll = false;
             editorScroll(-(c == WHEEL_UP ? 3 : 1));
-            if (pressed)
-                moveMouse(curr_x, curr_y);
+            if (mouse_pressed == FIELD_TEXT) {
+                editorMoveMouse(curr_x, curr_y);
+            } else if (mouse_pressed == FIELD_LINENO) {
+                int col = 0;
+                int row = curr_y;
+                mousePosToEditorPos(&col, &row);
+                editorMoveMouse(0, curr_y + ((row >= pressed_row) ? 1 : 0));
+            }
             break;
 
         // Scroll down
@@ -1377,8 +1389,14 @@ void editorProcessKeypress(void) {
         case CTRL_DOWN:
             should_scroll = false;
             editorScroll(c == WHEEL_DOWN ? 3 : 1);
-            if (pressed)
-                moveMouse(curr_x, curr_y);
+            if (mouse_pressed == FIELD_TEXT) {
+                editorMoveMouse(curr_x, curr_y);
+            } else if (mouse_pressed == FIELD_LINENO) {
+                int col = 0;
+                int row = curr_y;
+                mousePosToEditorPos(&col, &row);
+                editorMoveMouse(0, curr_y + ((row >= pressed_row) ? 1 : 0));
+            }
             break;
 
         // Close tab
