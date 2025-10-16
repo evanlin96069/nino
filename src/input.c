@@ -1224,6 +1224,8 @@ void editorProcessKeypress(void) {
 
         // Mouse input
         case MOUSE_PRESSED: {
+            int prev_x = curr_x;
+            int prev_y = curr_y;
             curr_x = x;
             curr_y = y;
             int field = getMousePosField(x, y);
@@ -1234,7 +1236,7 @@ void editorProcessKeypress(void) {
                     int64_t click_time = getTime();
                     int64_t time_diff = click_time - prev_click_time;
 
-                    if (x == curr_x && y == curr_y && time_diff / 1000 < 500) {
+                    if (x == prev_x && y == prev_y && time_diff / 1000 < 500) {
                         mouse_click++;
                     } else {
                         mouse_click = 1;
