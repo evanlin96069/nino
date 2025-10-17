@@ -32,7 +32,11 @@ void osInit(void) {
     sig_rd = p[0];
     sig_wr = p[1];
 
-    if (signal(SIGWINCH, SIGWINCH_handler) == SIG_ERR) {
+    struct sigaction winch_action = {
+        .sa_handler = SIGWINCH_handler,
+    };
+    sigemptyset(&winch_action.sa_mask);
+    if (sigaction(SIGWINCH, &winch_action, NULL) == -1) {
         PANIC("SIGWINCH_handler");
     }
 }
