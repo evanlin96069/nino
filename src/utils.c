@@ -8,7 +8,13 @@
 
 void panic(const char *file, int line, const char *s) {
     terminalExit();
-    fprintf(stderr, "Error at %s: %d: %s\r\n", file, line, s);
+#ifdef _DEBUG
+    UNUSED(file);
+    UNUSED(line);
+    fprintf(stderr, "Fatal error: %s\r\n", s);
+#else
+    fprintf(stderr, "Fatal error at %s:%d: %s\r\n", file, line, s);
+#endif
     exit(EXIT_FAILURE);
 }
 

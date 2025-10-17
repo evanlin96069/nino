@@ -16,10 +16,10 @@ static DWORD orig_out_mode;
 void osInit(void) {
     hStdin = GetStdHandle(STD_INPUT_HANDLE);
     if (hStdin == INVALID_HANDLE_VALUE)
-        PANIC("GetStdHandle(STD_INPUT_HANDLE)");
+        PANIC("Failed to get handle for standard input");
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hStdout == INVALID_HANDLE_VALUE)
-        PANIC("GetStdHandle(STD_OUTPUT_HANDLE)");
+        PANIC("Failed to get handle for standard output");
 }
 
 void enableRawMode(void) {
@@ -27,31 +27,31 @@ void enableRawMode(void) {
     orig_cp_out = GetConsoleOutputCP();
 
     if (!SetConsoleCP(CP_UTF8))
-        PANIC("SetConsoleCP");
+        PANIC("Failed to set UTF-8 input code page");
 
     if (!SetConsoleOutputCP(CP_UTF8))
-        PANIC("SetConsoleOutputCP");
+        PANIC("Failed to set UTF-8 output code page");
 
     DWORD mode = 0;
 
     if (!GetConsoleMode(hStdin, &mode))
-        PANIC("GetConsoleMode(hStdin)");
+        PANIC("Failed to query console input mode");
     orig_in_mode = mode;
     mode |= ENABLE_WINDOW_INPUT | ENABLE_EXTENDED_FLAGS |
             ENABLE_VIRTUAL_TERMINAL_INPUT;
     mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT |
               ENABLE_QUICK_EDIT_MODE);
     if (!SetConsoleMode(hStdin, mode))
-        PANIC("SetConsoleMode(hStdin)");
+        PANIC("Failed to configure console input mode");
 
     if (!GetConsoleMode(hStdout, &mode))
-        PANIC("GetConsoleMode(hStdout)");
+        PANIC("Failed to query console output mode");
     orig_out_mode = mode;
     mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING |
             DISABLE_NEWLINE_AUTO_RETURN;
     mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
     if (!SetConsoleMode(hStdout, mode))
-        PANIC("SetConsoleMode(hStdout)");
+        PANIC("Failed to configure console output mode");
 }
 
 void disableRawMode(void) {
@@ -311,7 +311,7 @@ int64_t getTime(void) {
 void argsInit(int* argc, char*** argv) {
     LPWSTR* w_argv = CommandLineToArgvW(GetCommandLineW(), argc);
     if (!w_argv)
-        PANIC("GetCommandLine");
+        PANIC("Failed to parse command line arguments");
 
     *argv = malloc_s(*argc * sizeof(char*));
     for (int i = 0; i < *argc; i++) {

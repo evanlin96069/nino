@@ -27,7 +27,7 @@ static void SIGWINCH_handler(int sig) {
 void osInit(void) {
     int p[2];
     if (pipe(p) == -1) {
-        PANIC("pipe");
+        PANIC("Failed to create pipe for signal handling");
     }
     sig_rd = p[0];
     sig_wr = p[1];
@@ -37,7 +37,7 @@ void osInit(void) {
     };
     sigemptyset(&winch_action.sa_mask);
     if (sigaction(SIGWINCH, &winch_action, NULL) == -1) {
-        PANIC("SIGWINCH_handler");
+        PANIC("Failed to install SIGWINCH handler");
     }
 }
 
@@ -45,7 +45,7 @@ static struct termios orig_termios;
 
 void enableRawMode(void) {
     if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
-        PANIC("tcgetattr");
+        PANIC("Unable to read terminal attributes");
 
     struct termios raw = orig_termios;
 
@@ -57,12 +57,11 @@ void enableRawMode(void) {
     raw.c_cc[VTIME] = 1;
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
-        PANIC("tcsetattr");
+        PANIC("Unable to enable raw terminal mode");
 }
 
 void disableRawMode(void) {
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
-        PANIC("tcsetattr");
+    UNUSED(tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios));
 }
 
 static bool readConsoleByte(uint8_t* out, int timeout_ms) {

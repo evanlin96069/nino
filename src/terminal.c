@@ -377,7 +377,7 @@ void resizeWindow(void) {
     int cols = 0;
 
     if (getWindowSize(&rows, &cols) == -1)
-        PANIC("getWindowSize");
+        PANIC("Unable to query terminal window size");
     setWindowSize(rows, cols);
 }
 
@@ -407,11 +407,11 @@ void editorInitTerminal(void) {
     resizeWindow();
 
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
-        PANIC("SIGSEGV_handler");
+        PANIC("Failed to install SIGSEGV handler");
     }
 
     if (signal(SIGABRT, SIGABRT_handler) == SIG_ERR) {
-        PANIC("SIGABRT_handler");
+        PANIC("Failed to install SIGABRT handler");
     }
 }
 
