@@ -390,8 +390,10 @@ static void editorFindCallback(char* query, int key) {
             return;
         }
 
-        if (!match_node)
+        if (!match_node) {
+            current = 1;
             match_node = head.next;
+        }
 
         // Don't go back to head
         head.next->prev = tail_node;
