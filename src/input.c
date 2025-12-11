@@ -572,10 +572,13 @@ void editorProcessKeypress(void) {
     static int curr_y = 0;
     static int pressed_row = 0;  // For select line drag
 
-    editorMsgClear();
-
     // Only the paste input need to be free, so we skipped some cases
     EditorInput input = editorReadKey();
+
+    // TODO: Don't clear status message on all unused inputs
+    if (input.type != MOUSE_RELEASED) {
+        editorMsgClear();
+    }
 
     // Global keybinds
     switch (input.type) {
