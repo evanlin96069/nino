@@ -246,8 +246,7 @@ bool editorSave(EditorFile* file, int save_as) {
 
 void editorOpenFilePrompt(void) {
     if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
-        editorMsg("Reached max file slots! Cannot open more files.",
-                  strerror(errno));
+        editorMsg("Reached max file slots! Cannot open more files.");
         return;
     }
 
