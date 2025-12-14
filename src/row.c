@@ -150,13 +150,31 @@ void editorInsertNewline(void) {
         EditorRow* new_row = &gCurFile->row[gCurFile->cursor.y + 1];
         if (CONVAR_GETINT(autoindent)) {
             while (i < gCurFile->cursor.x &&
-                   (curr_row->data[i] == ' ' || curr_row->data[i] == '\t'))
+                   (curr_row->data[i] == ' ' || curr_row->data[i] == '\t')) {
                 i++;
-            if (i != 0)
+            }
+
+            if (i != 0) {
                 editorRowAppendString(gCurFile, new_row, curr_row->data, i);
-            if (curr_row->data[gCurFile->cursor.x - 1] == ':' ||
-                (curr_row->data[gCurFile->cursor.x - 1] == '{' &&
-                 curr_row->data[gCurFile->cursor.x] != '}')) {
+            }
+
+            // TODO: language specific auto indent
+            bool should_inc = false;
+
+            char prev = curr_row->data[gCurFile->cursor.x - 1];
+            if (prev == ':') {
+                // Python
+                should_inc = true;
+            } else if (prev == '{') {
+                // C
+                if (gCurFile->cursor.x < curr_row->size) {
+                    should_inc = (curr_row->data[gCurFile->cursor.x] != '}');
+                } else {
+                    should_inc = true;
+                }
+            }
+
+            if (should_inc) {
                 if (CONVAR_GETINT(whitespace)) {
                     for (int j = 0; j < CONVAR_GETINT(tabsize); j++, i++)
                         editorRowAppendString(gCurFile, new_row, " ", 1);
