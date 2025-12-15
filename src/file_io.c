@@ -228,20 +228,25 @@ bool editorSave(EditorFile* file, int save_as) {
     size_t len;
     char* buf = editroRowsToString(file, &len);
 
-    FILE* fp = openFile(file->filename, "wb");
-    if (fp) {
-        if (fwrite(buf, sizeof(char), len, fp) == len) {
-            fclose(fp);
-            free(buf);
-            file->dirty = 0;
-            editorMsg("%d bytes written to disk.", len);
-            return true;
-        }
-        fclose(fp);
-    }
+    OsError err = saveFile(file->filename, buf, len);
     free(buf);
-    editorMsg("Can't save \"%s\"! %s", file->filename, strerror(errno));
-    return false;
+    if (err != OS_ERROR_SUCCESS) {
+        char msg[256];
+        formatOsError(err, msg, sizeof(msg));
+        editorMsg("Can't save \"%s\"! %s", file->filename, msg);
+        return false;
+    }
+
+    file->dirty = 0;
+    editorMsg("%d bytes written to disk.", len);
+
+    // Since we save by replacing the file, we need to refresh file info
+    FileInfo file_info = getFileInfo(file->filename);
+    if (!file_info.error) {
+        file->file_info = file_info;
+    }
+
+    return true;
 }
 
 void editorOpenFilePrompt(void) {

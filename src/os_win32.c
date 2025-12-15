@@ -181,7 +181,7 @@ int getWindowSize(int* rows, int* cols) {
 FileInfo getFileInfo(const char* path) {
     FileInfo info;
     wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
 
     HANDLE hFile = CreateFileW(w_path, GENERIC_READ, FILE_SHARE_READ, NULL,
                                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -221,7 +221,7 @@ DirIter dirFindFirst(const char* path) {
     DirIter iter;
 
     wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
 
     wchar_t entry_path[EDITOR_PATH_MAX];
     swprintf(entry_path, EDITOR_PATH_MAX, L"%ls\\*", w_path);
@@ -256,38 +256,95 @@ const char* dirGetName(const DirIter* iter) {
 }
 
 FILE* openFile(const char* path, const char* mode) {
-    int size = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
-    wchar_t* w_path = malloc_s(size * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, size);
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
 
-    size = MultiByteToWideChar(CP_UTF8, 0, mode, -1, NULL, 0);
-    wchar_t* w_mode = malloc_s(size * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, mode, -1, w_mode, size);
+    wchar_t w_mode[32] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, mode, -1, w_mode, 32);
 
     FILE* file = _wfopen(w_path, w_mode);
-
-    free(w_path);
-    free(w_mode);
-
     return file;
+}
+
+OsError saveFile(const char* path, const void* buf, size_t len) {
+    OsError err;
+
+    char dir[EDITOR_PATH_MAX];
+    snprintf(dir, sizeof(dir), "%s", path);
+    getDirName(dir);
+
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+
+    wchar_t w_dir[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, dir, -1, w_dir, EDITOR_PATH_MAX + 1);
+
+    wchar_t tmpname[EDITOR_PATH_MAX + 1] = {0};
+    if (!GetTempFileNameW(w_dir, L"tmp", 0, tmpname)) {
+        err = GetLastError();
+        return err;
+    }
+
+    HANDLE h = CreateFileW(tmpname, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                           FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        err = GetLastError();
+        return err;
+    }
+
+    DWORD written = 0;
+    if (!WriteFile(h, buf, len, &written, NULL) || written != len) {
+        err = GetLastError();
+        CloseHandle(h);
+        DeleteFileW(tmpname);
+        return err;
+    }
+
+    if (!FlushFileBuffers(h)) {
+        err = GetLastError();
+        CloseHandle(h);
+        DeleteFileW(tmpname);
+        return err;
+    }
+
+    CloseHandle(h);
+    h = INVALID_HANDLE_VALUE;
+
+    DWORD attrs = GetFileAttributesW(w_path);
+    bool target_exists = (attrs != INVALID_FILE_ATTRIBUTES);
+
+    if (target_exists) {
+        if (!ReplaceFileW(w_path, tmpname, NULL,
+                          REPLACEFILE_IGNORE_MERGE_ERRORS, NULL, NULL)) {
+            err = GetLastError();
+            DeleteFileW(tmpname);
+            return err;
+        }
+    } else {
+        if (!MoveFileExW(tmpname, w_path,
+                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+            err = GetLastError();
+            DeleteFileW(tmpname);
+            return err;
+        }
+    }
+
+    return OS_ERROR_SUCCESS;
 }
 
 bool changeDir(const char* path) { return SetCurrentDirectory(path); }
 
 char* getFullPath(const char* path) {
-    static char resolved_path[EDITOR_PATH_MAX * 4];
+    static char resolved_path[(EDITOR_PATH_MAX + 1) * 4];
 
-    int size = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
-    wchar_t* w_path = malloc_s(size * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, size);
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
 
-    wchar_t w_resolved_path[EDITOR_PATH_MAX];
-    GetFullPathNameW(w_path, EDITOR_PATH_MAX, w_resolved_path, NULL);
+    wchar_t w_resolved_path[EDITOR_PATH_MAX + 1];
+    GetFullPathNameW(w_path, EDITOR_PATH_MAX + 1, w_resolved_path, NULL);
 
     WideCharToMultiByte(CP_UTF8, 0, w_resolved_path, -1, resolved_path,
-                        EDITOR_PATH_MAX, NULL, false);
-
-    free(w_path);
+                        EDITOR_PATH_MAX + 1, NULL, false);
 
     return resolved_path;
 }
@@ -328,4 +385,16 @@ void argsFree(int argc, char** argv) {
         free(argv[i]);
     }
     free(argv);
+}
+
+void formatOsError(OsError err, char* buf, size_t len) {
+    DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+
+    DWORD n = FormatMessageA(flags, NULL, err,
+                             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buf,
+                             (DWORD)len, NULL);
+
+    if (n == 0) {
+        snprintf(buf, len, "Windows error %lu", err);
+    }
 }

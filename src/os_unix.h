@@ -31,4 +31,6 @@ struct DirIter {
     bool error;
 };
 
+typedef int OsError;
+
 #endif

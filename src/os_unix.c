@@ -1,5 +1,6 @@
 #include "os_unix.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
@@ -200,6 +201,68 @@ const char* dirGetName(const DirIter* iter) {
 
 FILE* openFile(const char* path, const char* mode) { return fopen(path, mode); }
 
+OsError saveFile(const char* path, const void* buf, size_t len) {
+    OsError err;
+
+    char dir[EDITOR_PATH_MAX];
+    snprintf(dir, sizeof(dir), "%s", path);
+    getDirName(dir);
+
+    char tmp_template[PATH_MAX];
+    int tmp_len =
+        snprintf(tmp_template, sizeof(tmp_template), "%s/.tmpXXXXXX", dir);
+    UNUSED(tmp_len);
+
+    int fd = mkstemp(tmp_template);
+    if (fd < 0) {
+        err = errno;
+        return err;
+    }
+
+    // Set mode to match original
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        fchmod(fd, st.st_mode);
+    }
+
+    size_t off = 0;
+    while (off < len) {
+        ssize_t w = write(fd, (char*)buf + off, len - off);
+        if (w < 0) {
+            if (errno == EINTR)
+                continue;
+            err = errno;
+            close(fd);
+            unlink(tmp_template);
+            return err;
+        }
+        off += (size_t)w;
+    }
+
+    if (fsync(fd) != 0) {
+        err = errno;
+        close(fd);
+        unlink(tmp_template);
+        return err;
+    }
+    close(fd);
+
+    if (rename(tmp_template, path) != 0) {
+        err = errno;
+        unlink(tmp_template);
+        return err;
+    }
+
+    // fsync directory
+    int dfd = open(dir, O_DIRECTORY | O_RDONLY);
+    if (dfd >= 0) {
+        fsync(dfd);
+        close(dfd);
+    }
+
+    return OS_ERROR_SUCCESS;
+}
+
 bool changeDir(const char* path) { return chdir(path) == 0; }
 
 char* getFullPath(const char* path) {
@@ -243,4 +306,9 @@ void argsInit(int* argc, char*** argv) {
 void argsFree(int argc, char** argv) {
     UNUSED(argc);
     UNUSED(argv);
+}
+
+void formatOsError(OsError err, char* buf, size_t len) {
+    char* msg = strerror(err);
+    snprintf(buf, len, "%s", msg);
 }

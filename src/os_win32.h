@@ -26,4 +26,6 @@ struct DirIter {
     bool error;
 };
 
+typedef DWORD OsError;
+
 #endif

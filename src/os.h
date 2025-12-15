@@ -17,6 +17,8 @@
 #include "os_unix.h"
 #endif
 
+#define OS_ERROR_SUCCESS 0
+
 void osInit(void);
 
 // Terminal
@@ -47,6 +49,7 @@ void dirClose(DirIter* iter);
 const char* dirGetName(const DirIter* iter);
 
 FILE* openFile(const char* path, const char* mode);
+OsError saveFile(const char* path, const void* buf, size_t len);
 bool changeDir(const char* path);
 char* getFullPath(const char* path);
 
@@ -56,5 +59,8 @@ int64_t getTime(void);
 // Command line
 void argsInit(int* argc, char*** argv);
 void argsFree(int argc, char** argv);
+
+// Error
+void formatOsError(OsError err, char* buf, size_t len);
 
 #endif
