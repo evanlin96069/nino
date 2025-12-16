@@ -209,11 +209,36 @@ bool areFilesEqual(FileInfo f1, FileInfo f2) {
 }
 
 FileType getFileType(const char* path) {
-    DWORD attri = GetFileAttributes(path);
-    if (attri == INVALID_FILE_ATTRIBUTES)
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+
+    if (wcsncmp(w_path, L"\\\\.\\", 4) == 0) {
         return FT_INVALID;
-    if (attri & FILE_ATTRIBUTE_DIRECTORY)
+    }
+
+    DWORD attr = GetFileAttributesW(w_path);
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        DWORD err = GetLastError();
+        if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+            return FT_NOT_EXIST;
+        }
+        return FT_INVALID;
+    }
+
+    if (attr & FILE_ATTRIBUTE_DIRECTORY) {
         return FT_DIR;
+    }
+
+    HANDLE h =
+        CreateFileW(w_path, GENERIC_READ,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (h == INVALID_HANDLE_VALUE) {
+        return FT_INVALID;
+    }
+
+    CloseHandle(h);
     return FT_REG;
 }
 
@@ -311,7 +336,16 @@ OsError saveFile(const char* path, const void* buf, size_t len) {
     h = INVALID_HANDLE_VALUE;
 
     DWORD attrs = GetFileAttributesW(w_path);
-    bool target_exists = (attrs != INVALID_FILE_ATTRIBUTES);
+    bool target_exists = true;
+    if (attrs == INVALID_FILE_ATTRIBUTES) {
+        err = GetLastError();
+        if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+            target_exists = false;
+        } else {
+            DeleteFileW(tmpname);
+            return err;
+        }
+    }
 
     if (target_exists) {
         if (!ReplaceFileW(w_path, tmpname, NULL,

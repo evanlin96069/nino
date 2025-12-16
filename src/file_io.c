@@ -102,11 +102,11 @@ bool editorOpen(EditorFile* file, const char* path) {
             gEditor.explorer.selected_index = 0;
             return false;
 
-        case FT_DEV:
-            editorMsg("Can't load \"%s\"! It's a device file.", path);
+        case FT_INVALID:
+            editorMsg("Can't load \"%s\"! Not a normal file.", path);
             return false;
 
-        default:
+        case FT_NOT_EXIST:
             break;
     }
 

@@ -38,8 +38,9 @@ typedef enum FileType {
     FT_INVALID = -1,
     FT_REG,
     FT_DIR,
-    FT_DEV,
+    FT_NOT_EXIST,
 } FileType;
+
 FileType getFileType(const char* path);
 
 typedef struct DirIter DirIter;

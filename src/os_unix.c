@@ -156,15 +156,21 @@ bool areFilesEqual(FileInfo f1, FileInfo f2) {
 }
 
 FileType getFileType(const char* path) {
-    struct stat info;
-    if (stat(path, &info) == -1)
+    struct stat st;
+    if (stat(path, &st) == -1) {
+        if (errno == ENOENT || errno == ENOTDIR) {
+            return FT_NOT_EXIST;
+        }
         return FT_INVALID;
-    if (S_ISCHR(info.st_mode))
-        return FT_DEV;
-    if (S_ISDIR(info.st_mode))
+    }
+
+    if (S_ISDIR(st.st_mode)) {
         return FT_DIR;
-    if (S_ISREG(info.st_mode))
+    }
+
+    if (S_ISREG(st.st_mode)) {
         return FT_REG;
+    }
     return FT_INVALID;
 }
 
