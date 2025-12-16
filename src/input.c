@@ -561,6 +561,22 @@ static void editorCloseFile(int index) {
     }
 }
 
+static void editorNewTab(void) {
+    EditorFile file;
+    editorNewUntitledFile(&file);
+
+    int index = editorAddFile(&file);
+    if (index == -1) {
+        editorFreeFile(&file);
+    } else {
+        // hack: refresh screen to update gEditor.tab_displayed
+        editorRefreshScreen();
+        editorChangeToFile(index);
+    }
+
+    gEditor.state = EDIT_MODE;
+}
+
 void editorProcessKeypress(void) {
     // Protect quiting program with unsaved files
     static bool quit_protect = true;
@@ -590,6 +606,11 @@ void editorProcessKeypress(void) {
         // Open file
         case CTRL_KEY('o'):
             editorOpenFilePrompt();
+            return;
+
+        // New tab
+        case CTRL_KEY('n'):
+            editorNewTab();
             return;
     }
 
@@ -696,23 +717,6 @@ void editorProcessKeypress(void) {
             should_scroll = false;
             editorSave(gCurFile, 1);
             break;
-
-        // New tab
-        case CTRL_KEY('n'): {
-            should_scroll = false;
-
-            EditorFile file;
-            editorNewUntitledFile(&file);
-
-            int index = editorAddFile(&file);
-            if (index == -1) {
-                editorFreeFile(&file);
-            } else {
-                // hack: refresh screen to update gEditor.tab_displayed
-                editorRefreshScreen();
-                editorChangeToFile(index);
-            }
-        } break;
 
         // Toggle explorer
         case CTRL_KEY('b'):
