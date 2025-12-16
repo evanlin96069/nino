@@ -17,8 +17,6 @@
 #include "os_unix.h"
 #endif
 
-#define OS_ERROR_SUCCESS 0
-
 void osInit(void);
 
 // Terminal
@@ -50,7 +48,9 @@ void dirClose(DirIter* iter);
 const char* dirGetName(const DirIter* iter);
 
 FILE* openFile(const char* path, const char* mode);
-OsError saveFile(const char* path, const void* buf, size_t len);
+bool shouldSaveInPlace(const char* path);
+OsError saveFileInPlace(const char* path, const void* buf, size_t len);
+OsError saveFileReplace(const char* path, const void* buf, size_t len);
 bool changeDir(const char* path);
 char* getFullPath(const char* path);
 

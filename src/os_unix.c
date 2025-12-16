@@ -207,7 +207,73 @@ const char* dirGetName(const DirIter* iter) {
 
 FILE* openFile(const char* path, const char* mode) { return fopen(path, mode); }
 
-OsError saveFile(const char* path, const void* buf, size_t len) {
+bool shouldSaveInPlace(const char* path) {
+    struct stat st;
+    if (lstat(path, &st) == -1) {
+        return true;  // fail safe
+    }
+
+    // Symlink
+    if (S_ISLNK(st.st_mode)) {
+        return true;
+    }
+
+    // Hard-link
+    return st.st_nlink > 1;
+}
+
+static OsError writeFile(int fd, const void* buf, size_t len) {
+    OsError err;
+
+    size_t off = 0;
+    while (off < len) {
+        ssize_t w = write(fd, (char*)buf + off, len - off);
+        if (w < 0) {
+            if (errno == EINTR)
+                continue;
+            err = errno;
+            return err;
+        }
+        off += (size_t)w;
+    }
+    return 0;
+}
+
+OsError saveFileInPlace(const char* path, const void* buf, size_t len) {
+    OsError err;
+
+    int fd;
+    struct stat st;
+    mode_t mode = 0666;  // Default for new file
+
+    if (stat(path, &st) == 0) {
+        // File exists
+        mode = st.st_mode & 0777;
+    }
+
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, mode);
+    if (fd < 0) {
+        err = errno;
+        return err;
+    }
+
+    err = writeFile(fd, buf, len);
+    if (err) {
+        close(fd);
+        return err;
+    }
+
+    if (fsync(fd) < 0) {
+        int err = errno;
+        close(fd);
+        return err;
+    }
+
+    close(fd);
+    return 0;
+}
+
+OsError saveFileReplace(const char* path, const void* buf, size_t len) {
     OsError err;
 
     char dir[EDITOR_PATH_MAX];
@@ -231,18 +297,11 @@ OsError saveFile(const char* path, const void* buf, size_t len) {
         fchmod(fd, st.st_mode);
     }
 
-    size_t off = 0;
-    while (off < len) {
-        ssize_t w = write(fd, (char*)buf + off, len - off);
-        if (w < 0) {
-            if (errno == EINTR)
-                continue;
-            err = errno;
-            close(fd);
-            unlink(tmp_template);
-            return err;
-        }
-        off += (size_t)w;
+    err = writeFile(fd, buf, len);
+    if (err) {
+        close(fd);
+        unlink(tmp_template);
+        return err;
     }
 
     if (fsync(fd) != 0) {
@@ -266,35 +325,33 @@ OsError saveFile(const char* path, const void* buf, size_t len) {
         close(dfd);
     }
 
-    return OS_ERROR_SUCCESS;
+    return 0;
 }
 
 bool changeDir(const char* path) { return chdir(path) == 0; }
 
 char* getFullPath(const char* path) {
     static char resolved_path[EDITOR_PATH_MAX];
-    if (realpath(path, resolved_path) == NULL) {
-        char parent_dir[EDITOR_PATH_MAX];
-        char base_name[EDITOR_PATH_MAX];
 
-        snprintf(parent_dir, sizeof(parent_dir), "%s", path);
-        snprintf(base_name, sizeof(base_name), "%s", getBaseName(parent_dir));
-        getDirName(parent_dir);
-        if (parent_dir[0] == '\0') {
-            parent_dir[0] = '.';
-            parent_dir[1] = '\0';
-        }
+    char parent_dir[EDITOR_PATH_MAX];
+    char base_name[EDITOR_PATH_MAX];
 
-        char resolved_parent_dir[EDITOR_PATH_MAX];
-        if (realpath(parent_dir, resolved_parent_dir) == NULL)
-            return NULL;
-
-        int len = snprintf(resolved_path, sizeof(resolved_path), "%s/%s",
-                           resolved_parent_dir, base_name);
-        // This is just to suppress Wformat-truncation
-        if (len < 0)
-            return NULL;
+    snprintf(parent_dir, sizeof(parent_dir), "%s", path);
+    snprintf(base_name, sizeof(base_name), "%s", getBaseName(parent_dir));
+    getDirName(parent_dir);
+    if (parent_dir[0] == '\0') {
+        parent_dir[0] = '.';
+        parent_dir[1] = '\0';
     }
+
+    char resolved_parent_dir[EDITOR_PATH_MAX];
+    if (realpath(parent_dir, resolved_parent_dir) == NULL)
+        return NULL;
+
+    if (snprintf(resolved_path, sizeof(resolved_path), "%s/%s",
+                 resolved_parent_dir, base_name) < 0)
+        return NULL;
+
     return resolved_path;
 }
 

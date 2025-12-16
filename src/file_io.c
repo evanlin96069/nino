@@ -228,9 +228,16 @@ bool editorSave(EditorFile* file, int save_as) {
     size_t len;
     char* buf = editroRowsToString(file, &len);
 
-    OsError err = saveFile(file->filename, buf, len);
+    OsError err;
+    if (shouldSaveInPlace(file->filename)) {
+        err = saveFileInPlace(file->filename, buf, len);
+    } else {
+        err = saveFileReplace(file->filename, buf, len);
+    }
+
     free(buf);
-    if (err != OS_ERROR_SUCCESS) {
+
+    if (err) {
         char msg[256];
         formatOsError(err, msg, sizeof(msg));
         editorMsg("Can't save \"%s\"! %s", file->filename, msg);

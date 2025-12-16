@@ -291,7 +291,113 @@ FILE* openFile(const char* path, const char* mode) {
     return file;
 }
 
-OsError saveFile(const char* path, const void* buf, size_t len) {
+static OsError writeFile(HANDLE h, const void* buf, size_t len) {
+    OsError err;
+
+    size_t off = 0;
+    while (off < len) {
+        size_t to_write = len - off;
+        if (to_write > 0xFFFFFFFF) {
+            to_write = 0xFFFFFFFF;
+        }
+
+        DWORD written;
+        if (!WriteFile(h, (char*)buf + off, (DWORD)to_write, &written, NULL)) {
+            err = GetLastError();
+            return err;
+        }
+
+        off += (size_t)written;
+    }
+
+    return 0;
+}
+
+bool shouldSaveInPlace(const char* path) {
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+
+    // Symlink / junction
+    DWORD attr = GetFileAttributesW(w_path);
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        return true;  // fail safe
+    }
+
+    if (attr & FILE_ATTRIBUTE_REPARSE_POINT) {
+        return true;
+    }
+
+    // Hard-link
+    HANDLE h =
+        CreateFileW(w_path, GENERIC_READ,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        return true;  // fail safe
+    }
+
+    BY_HANDLE_FILE_INFORMATION info;
+    bool result;
+    if (GetFileInformationByHandle(h, &info)) {
+        result = (info.nNumberOfLinks > 1);
+    } else {
+        result = true;  // fail safe
+    }
+
+    CloseHandle(h);
+    return result;
+}
+
+OsError saveFileInPlace(const char* path, const void* buf, size_t len) {
+    OsError err;
+
+    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+
+    DWORD attr = GetFileAttributesW(w_path);
+    bool existed = (attr != INVALID_FILE_ATTRIBUTES);
+
+    HANDLE h =
+        CreateFileW(w_path, GENERIC_WRITE,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (h == INVALID_HANDLE_VALUE) {
+        err = GetLastError();
+        return err;
+    }
+
+    // Truncate file
+    if (!SetFilePointerEx(h, (LARGE_INTEGER){0}, NULL, FILE_BEGIN) ||
+        !SetEndOfFile(h)) {
+        err = GetLastError();
+        CloseHandle(h);
+        return err;
+    }
+
+    err = writeFile(h, buf, len);
+    if (err) {
+        CloseHandle(h);
+        return err;
+    }
+
+    if (!FlushFileBuffers(h)) {
+        err = GetLastError();
+        CloseHandle(h);
+        return err;
+    }
+
+    CloseHandle(h);
+
+    // Restore original attributes if file existed
+    if (existed) {
+        SetFileAttributesW(w_path, attr);
+    }
+
+    return 0;
+}
+
+OsError saveFileReplace(const char* path, const void* buf, size_t len) {
     OsError err;
 
     char dir[EDITOR_PATH_MAX];
@@ -317,9 +423,8 @@ OsError saveFile(const char* path, const void* buf, size_t len) {
         return err;
     }
 
-    DWORD written = 0;
-    if (!WriteFile(h, buf, len, &written, NULL) || written != len) {
-        err = GetLastError();
+    err = writeFile(h, buf, len);
+    if (err) {
         CloseHandle(h);
         DeleteFileW(tmpname);
         return err;
@@ -363,7 +468,7 @@ OsError saveFile(const char* path, const void* buf, size_t len) {
         }
     }
 
-    return OS_ERROR_SUCCESS;
+    return 0;
 }
 
 bool changeDir(const char* path) { return SetCurrentDirectory(path); }
