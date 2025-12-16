@@ -6,6 +6,7 @@
 #include "config.h"
 #include "editor.h"
 #include "highlight.h"
+#include "input.h"
 #include "output.h"
 #include "prompt.h"
 #include "row.h"
@@ -69,7 +70,7 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
     free(node);
 }
 
-bool editorOpen(EditorFile* file, const char* path) {
+OpenStatus editorOpen(EditorFile* file, const char* path) {
     editorInitFile(file);
 
     FileType type = getFileType(path);
@@ -78,14 +79,14 @@ bool editorOpen(EditorFile* file, const char* path) {
             FileInfo file_info = getFileInfo(path);
             if (file_info.error) {
                 editorMsg("Can't load \"%s\"! Failed to get file info.", path);
-                return false;
+                return OPEN_FAILED;
             }
             file->file_info = file_info;
             int open_index = isFileOpened(file_info);
 
             if (open_index != -1) {
                 editorChangeToFile(open_index);
-                return false;
+                return OPEN_OPENED;
             }
         } break;
 
@@ -100,11 +101,11 @@ bool editorOpen(EditorFile* file, const char* path) {
 
             gEditor.explorer.offset = 0;
             gEditor.explorer.selected_index = 0;
-            return false;
+            return OPEN_DIR;
 
         case FT_INVALID:
             editorMsg("Can't load \"%s\"! Not a normal file.", path);
-            return false;
+            return OPEN_FAILED;
 
         case FT_NOT_EXIST:
             break;
@@ -114,7 +115,7 @@ bool editorOpen(EditorFile* file, const char* path) {
     if (!fp) {
         if (errno != ENOENT) {
             editorMsg("Can't load \"%s\"! %s", path, strerror(errno));
-            return false;
+            return OPEN_FAILED;
         }
 
         // file doesn't exist
@@ -123,11 +124,11 @@ bool editorOpen(EditorFile* file, const char* path) {
         getDirName(parent_dir);
         if (access(parent_dir, 0) != 0) {  // F_OK
             editorMsg("Can't create \"%s\"! %s", path, strerror(errno));
-            return false;
+            return OPEN_FAILED;
         }
         if (access(parent_dir, 2) != 0) {  // W_OK
             editorMsg("Can't write to \"%s\"! %s", path, strerror(errno));
-            return false;
+            return OPEN_FAILED;
         }
     }
 
@@ -143,7 +144,7 @@ bool editorOpen(EditorFile* file, const char* path) {
 
     if (!fp) {
         editorInsertRow(file, file->cursor.y, "", 0);
-        return true;
+        return OPEN_FILE;
     }
 
     bool has_end_nl = true;
@@ -187,7 +188,7 @@ bool editorOpen(EditorFile* file, const char* path) {
     free(line);
     fclose(fp);
 
-    return true;
+    return OPEN_FILE;
 }
 
 bool editorSave(EditorFile* file, int save_as) {
@@ -267,7 +268,8 @@ void editorOpenFilePrompt(void) {
         return;
 
     EditorFile file;
-    if (editorOpen(&file, path)) {
+    OpenStatus result = editorOpen(&file, path);
+    if (result == OPEN_FILE) {
         gEditor.state = EDIT_MODE;
         int index = editorAddFile(&file);
         if (index == -1) {
@@ -277,6 +279,9 @@ void editorOpenFilePrompt(void) {
             editorRefreshScreen();
             editorChangeToFile(index);
         }
+    } else if (result == OPEN_DIR) {
+        gEditor.state = EXPLORER_MODE;
+        editorExplorerShow();
     }
 
     free(path);

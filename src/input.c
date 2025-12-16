@@ -24,7 +24,7 @@ static void editorExplorerNodeClicked(void) {
     if (node->is_directory) {
         node->is_open ^= 1;
         editorExplorerRefresh();
-    } else if (editorOpen(&file, node->filename)) {
+    } else if (editorOpen(&file, node->filename) == OPEN_FILE) {
         int index = editorAddFile(&file);
         if (index == -1) {
             editorFreeFile(&file);
@@ -50,7 +50,7 @@ static void editorExplorerScrollToSelect(void) {
     }
 }
 
-static inline void editorExplorerShow(void) {
+void editorExplorerShow(void) {
     if (gEditor.explorer.width == 0) {
         gEditor.explorer.width = gEditor.explorer.prefered_width
                                      ? gEditor.explorer.prefered_width

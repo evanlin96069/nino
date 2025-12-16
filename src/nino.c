@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
                 editorMsg("Already opened too many files!");
                 break;
             }
-            if (editorOpen(&file, argv[i])) {
+            if (editorOpen(&file, argv[i]) == OPEN_FILE) {
                 editorAddFile(&file);
             }
         }

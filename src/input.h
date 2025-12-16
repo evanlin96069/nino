@@ -22,4 +22,6 @@ void editorScroll(int dist);
 void mousePosToEditorPos(int* x, int* y);
 int getMousePosField(int x, int y);
 
+void editorExplorerShow(void);
+
 #endif

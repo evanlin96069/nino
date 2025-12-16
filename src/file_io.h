@@ -30,7 +30,14 @@ typedef struct EditorExplorer {
 
 typedef struct EditorFile EditorFile;
 
-bool editorOpen(EditorFile* file, const char* filename);
+typedef enum OpenStatus {
+    OPEN_FAILED = 0,
+    OPEN_FILE,
+    OPEN_DIR,
+    OPEN_OPENED,
+} OpenStatus;
+
+OpenStatus editorOpen(EditorFile* file, const char* filename);
 bool editorSave(EditorFile* file, int save_as);
 void editorOpenFilePrompt(void);
 
