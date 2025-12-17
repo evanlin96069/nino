@@ -25,14 +25,7 @@ static void editorExplorerNodeClicked(void) {
         node->is_open ^= 1;
         editorExplorerRefresh();
     } else if (editorOpen(&file, node->filename) == OPEN_FILE) {
-        int index = editorAddFile(&file);
-        if (index == -1) {
-            editorFreeFile(&file);
-        } else {
-            // hack: refresh screen to update gEditor.tab_displayed
-            editorRefreshScreen();
-            editorChangeToFile(index);
-        }
+        editorAddFile(&file);
     }
 }
 
@@ -561,22 +554,6 @@ static void editorCloseFile(int index) {
     }
 }
 
-static void editorNewTab(void) {
-    EditorFile file;
-    editorNewUntitledFile(&file);
-
-    int index = editorAddFile(&file);
-    if (index == -1) {
-        editorFreeFile(&file);
-    } else {
-        // hack: refresh screen to update gEditor.tab_displayed
-        editorRefreshScreen();
-        editorChangeToFile(index);
-    }
-
-    gEditor.state = EDIT_MODE;
-}
-
 void editorProcessKeypress(void) {
     // Protect quiting program with unsaved files
     static bool quit_protect = true;
@@ -609,9 +586,14 @@ void editorProcessKeypress(void) {
             return;
 
         // New tab
-        case CTRL_KEY('n'):
-            editorNewTab();
+        case CTRL_KEY('n'): {
+            EditorFile file;
+            editorNewUntitledFile(&file);
+            if (editorAddFile(&file) != -1) {
+                gEditor.state = EDIT_MODE;
+            }
             return;
+        }
     }
 
     if (gEditor.state == EXPLORER_MODE &&

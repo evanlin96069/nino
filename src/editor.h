@@ -129,7 +129,7 @@ void editorInitFile(EditorFile* file);
 void editorFreeFile(EditorFile* file);
 
 // Multiple files control
-int editorAddFile(const EditorFile* file);
+int editorAddFile(EditorFile* file);
 void editorRemoveFile(int index);
 void editorChangeToFile(int index);
 void editorNewUntitledFile(EditorFile* file);

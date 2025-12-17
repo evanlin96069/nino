@@ -270,14 +270,8 @@ void editorOpenFilePrompt(void) {
     EditorFile file;
     OpenStatus result = editorOpen(&file, path);
     if (result == OPEN_FILE) {
-        gEditor.state = EDIT_MODE;
-        int index = editorAddFile(&file);
-        if (index == -1) {
-            editorFreeFile(&file);
-        } else {
-            // hack: refresh screen to update gEditor.tab_displayed
-            editorRefreshScreen();
-            editorChangeToFile(index);
+        if (editorAddFile(&file) != -1) {
+            gEditor.state = EDIT_MODE;
         }
     } else if (result == OPEN_DIR) {
         gEditor.state = EXPLORER_MODE;

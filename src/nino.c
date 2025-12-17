@@ -32,14 +32,10 @@ int main(int argc, char* argv[]) {
     editorRefreshScreen();  // Draw loading
 
     EditorFile file;
-    if (argc > 0) {
-        for (int i = 0; i < argc; i++) {
-            if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
-                editorMsg("Already opened too many files!");
+    for (int i = 0; i < argc; i++) {
+        if (editorOpen(&file, argv[i]) == OPEN_FILE) {
+            if (editorAddFile(&file) == -1) {
                 break;
-            }
-            if (editorOpen(&file, argv[i]) == OPEN_FILE) {
-                editorAddFile(&file);
             }
         }
     }

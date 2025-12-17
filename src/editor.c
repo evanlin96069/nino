@@ -6,6 +6,7 @@
 #include "config.h"
 #include "highlight.h"
 #include "os.h"
+#include "output.h"
 #include "prompt.h"
 
 Editor gEditor;
@@ -55,9 +56,10 @@ void editorFreeFile(EditorFile* file) {
     free(file->filename);
 }
 
-int editorAddFile(const EditorFile* file) {
+int editorAddFile(EditorFile* file) {
     if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
         editorMsg("Already opened too many files!");
+        editorFreeFile(file);
         return -1;
     }
 
@@ -68,7 +70,15 @@ int editorAddFile(const EditorFile* file) {
     current->action_current = current->action_head;
 
     gEditor.file_count++;
-    return gEditor.file_count - 1;
+
+    int index = gEditor.file_count - 1;
+    if (gEditor.state != LOADING_MODE) {
+        // hack: refresh screen to update gEditor.tab_displayed
+        editorRefreshScreen();
+        editorChangeToFile(index);
+    }
+
+    return index;
 }
 
 void editorRemoveFile(int index) {
