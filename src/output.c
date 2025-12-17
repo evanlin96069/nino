@@ -188,13 +188,14 @@ static void editorDrawStatusBar(abuf* ab) {
 
     const char* help_str = "";
     const char* help_info[] = {
-        " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: Goto",
-        " ^Q: Quit  ^O: Open  ^P: Prompt",
-        " ^Q: Cancel  Up: Back  Down: Next",
-        " ^Q: Cancel",
-        " ^Q: Cancel",
-        " ^Q: Cancel",
-        " ^Q: Cancel",
+        [EDIT_MODE] =
+            " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: Goto",
+        [EXPLORER_MODE] = " ^Q: Quit  ^O: Open  ^P: Prompt",
+        [FIND_MODE] = " ^Q: Cancel  Up: Back  Down: Next",
+        [GOTO_LINE_MODE] = " ^Q: Cancel",
+        [OPEN_FILE_MODE] = " ^Q: Cancel",
+        [CONFIG_MODE] = " ^Q: Cancel",
+        [SAVE_AS_MODE] = " ^Q: Cancel",
     };
     if (CONVAR_GETINT(helpinfo))
         help_str = help_info[gEditor.state];
