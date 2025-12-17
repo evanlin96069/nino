@@ -755,7 +755,6 @@ void editorOpenConfigPrompt(void) {
     if (query == NULL)
         return;
 
-    editorMsgClear();
     editorCmd(query);
     free(query);
 }

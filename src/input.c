@@ -542,11 +542,6 @@ void editorProcessKeypress(void) {
     // Only the paste input need to be free, so we skipped some cases
     EditorInput input = editorReadKey();
 
-    // TODO: Don't clear status message on all unused inputs
-    if (input.type != MOUSE_RELEASED) {
-        editorMsgClear();
-    }
-
     // Global keybinds
     switch (input.type) {
         // Prompt
@@ -568,6 +563,11 @@ void editorProcessKeypress(void) {
             }
             return;
         }
+    }
+
+    // TODO: Don't clear status message on all unused inputs
+    if (input.type != MOUSE_RELEASED) {
+        editorMsgClear();
     }
 
     if (gEditor.state == EXPLORER_MODE &&
