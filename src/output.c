@@ -475,33 +475,37 @@ void editorRefreshScreen(void) {
 
     editorDrawStatusBar(&ab);
 
-    bool should_show_cursor = true;
-    if (gEditor.state == EDIT_MODE) {
-        int row = (gCurFile->cursor.y - gCurFile->row_offset) + 2;
-        int col = (editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                   gCurFile->cursor.x) -
-                   gCurFile->col_offset) +
-                  1 + LINENO_WIDTH();
-        if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 0 ||
-            col > gEditor.screen_cols - gEditor.explorer.width ||
-            row >= gEditor.screen_rows - gEditor.con_size) {
-            should_show_cursor = false;
-        } else {
-            gotoXY(&ab, row, col + gEditor.explorer.width);
-        }
-    } else {
-        // prompt
-        gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
-    }
+    bool should_show_cursor = false;
+    switch (gEditor.state) {
+        case EDIT_MODE: {
+            int row = (gCurFile->cursor.y - gCurFile->row_offset) + 2;
+            int col = (editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
+                                       gCurFile->cursor.x) -
+                       gCurFile->col_offset) +
+                      1 + LINENO_WIDTH();
+            if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 0 ||
+                col > gEditor.screen_cols - gEditor.explorer.width ||
+                row >= gEditor.screen_rows - gEditor.con_size) {
+                should_show_cursor = false;
+            } else {
+                should_show_cursor = true;
+                gotoXY(&ab, row, col + gEditor.explorer.width);
+            }
+        } break;
 
-    if (gEditor.state == EXPLORER_MODE) {
-        should_show_cursor = false;
+        case LOADING_MODE:
+        case EXPLORER_MODE:
+            should_show_cursor = false;
+            break;
+
+        default:
+            // prompt
+            should_show_cursor = true;
+            gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
     }
 
     if (should_show_cursor) {
         abufAppendStr(&ab, ANSI_CURSOR_SHOW);
-    } else {
-        abufAppendStr(&ab, ANSI_CURSOR_HIDE);
     }
 
     abufAppendStr(&ab, ANSI_CLEAR);
