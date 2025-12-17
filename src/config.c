@@ -21,21 +21,28 @@ CONVAR(trailing, "Highlight trailing spaces.", "1", NULL);
 CONVAR(drawspace, "Render whitespace and tab.", "0", NULL);
 CONVAR(syntax, "Enable syntax highlight.", "1", cvarSyntaxCallback);
 CONVAR(helpinfo, "Show the help information.", "1", NULL);
-CONVAR(ignorecase, "Use case insensitive search. Set to 2 to use smart case.",
-       "2", NULL);
+CONVAR(ignorecase,
+       "Use case insensitive search. Set to 2 to use smart case.",
+       "2",
+       NULL);
 CONVAR(mouse, "Enable mouse mode.", "1", cvarMouseCallback);
 CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
 
 CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "1024", NULL);
 
 CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
-CONVAR(ex_show_hidden, "Show hidden files in the file explorer.", "1",
+CONVAR(ex_show_hidden,
+       "Show hidden files in the file explorer.",
+       "1",
        cvarExplorerCallback);
 CONVAR(newline_default,
-       "Set the default EOL sequence (LF/CRLF). 0 is OS default.", "0", NULL);
+       "Set the default EOL sequence (LF/CRLF). 0 is OS default.",
+       "0",
+       NULL);
 CONVAR(ttimeoutlen,
        "Time in milliseconds to wait for a key code sequence to complete.",
-       "50", NULL);
+       "50",
+       NULL);
 CONVAR(lineno, "Show line numbers.", "1", NULL);
 
 static void reloadSyntax(void) {
@@ -57,9 +64,13 @@ static void reloadExplorer(void) {
     }
 }
 
-static void cvarSyntaxCallback(void) { reloadSyntax(); }
+static void cvarSyntaxCallback(void) {
+    reloadSyntax();
+}
 
-static void cvarExplorerCallback(void) { reloadExplorer(); }
+static void cvarExplorerCallback(void) {
+    reloadExplorer();
+}
 
 static void cvarMouseCallback(void) {
     bool mode = CONVAR_GETINT(mouse);
@@ -748,7 +759,9 @@ void editorLoadInitConfig(void) {
     }
 }
 
-void editorCmd(const char* command) { parseLine(command, 0); }
+void editorCmd(const char* command) {
+    parseLine(command, 0);
+}
 
 void editorOpenConfigPrompt(void) {
     char* query = editorPrompt("Prompt: %s", CONFIG_MODE, NULL);
@@ -759,7 +772,8 @@ void editorOpenConfigPrompt(void) {
     free(query);
 }
 
-void editorSetConVar(EditorConVar* thisptr, const char* string_val,
+void editorSetConVar(EditorConVar* thisptr,
+                     const char* string_val,
                      bool trigger_cb) {
     strncpy(thisptr->string_val, string_val, COMMAND_MAX_LENGTH - 1);
     thisptr->string_val[COMMAND_MAX_LENGTH - 1] = '\0';

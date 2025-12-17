@@ -29,7 +29,9 @@ void json_arena_deinit(JsonArena* arena);
 void json_arena_reset(JsonArena* arena);
 
 void* json_arena_alloc(JsonArena* arena, size_t size);
-void* json_arena_realloc(JsonArena* arena, void* ptr, size_t old_size,
+void* json_arena_realloc(JsonArena* arena,
+                         void* ptr,
+                         size_t old_size,
                          size_t size);
 
 // Parser
@@ -192,7 +194,9 @@ void* json_arena_alloc(JsonArena* arena, size_t size) {
     return out;
 }
 
-void* json_arena_realloc(JsonArena* arena, void* ptr, size_t old_size,
+void* json_arena_realloc(JsonArena* arena,
+                         void* ptr,
+                         size_t old_size,
                          size_t size) {
     if (old_size >= size)
         return ptr;
@@ -250,7 +254,8 @@ typedef struct JsonToken {
     };
 } JsonToken;
 
-static JsonToken json__token_error(JsonParserState* state, const char* fmt,
+static JsonToken json__token_error(JsonParserState* state,
+                                   const char* fmt,
                                    ...) {
     JsonToken token;
     token.type = JSON_TOKEN_ERROR;

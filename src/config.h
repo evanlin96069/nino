@@ -106,7 +106,8 @@ void editorLoadInitConfig(void);
 void editorCmd(const char* command);
 void editorOpenConfigPrompt(void);
 
-void editorSetConVar(EditorConVar* thisptr, const char* string_val,
+void editorSetConVar(EditorConVar* thisptr,
+                     const char* string_val,
                      bool trigger_cb);
 void editorInitConCmd(EditorConCmd* thisptr);
 void editorInitConVar(EditorConCmd* thisptr);

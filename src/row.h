@@ -19,10 +19,15 @@ void editorFreeRow(EditorRow* row);
 void editorDelRow(EditorFile* file, int at);
 void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c);
 void editorRowDelChar(EditorFile* file, EditorRow* row, int at);
-void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
+void editorRowAppendString(EditorFile* file,
+                           EditorRow* row,
+                           const char* s,
                            size_t len);
-void editorRowInsertString(EditorFile* file, EditorRow* row, int at,
-                           const char* s, size_t len);
+void editorRowInsertString(EditorFile* file,
+                           EditorRow* row,
+                           int at,
+                           const char* s,
+                           size_t len);
 
 // On gCurFile
 void editorInsertChar(int c);

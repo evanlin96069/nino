@@ -28,6 +28,6 @@
          : (*(--(argc), ++(argv))                                             \
                 ? *(argv)                                                     \
                 : (fprintf(stderr, "argument to '-%c' is missing\n", _p[-1]), \
-                   exit(1), (char *)0)))
+                   exit(1), (char*)0)))
 
 #endif

@@ -6,7 +6,7 @@
 #include "os.h"
 #include "terminal.h"
 
-void panic(const char *file, int line, const char *s) {
+void panic(const char* file, int line, const char* s) {
     terminalExit();
 #ifdef _DEBUG
     UNUSED(file);
@@ -18,30 +18,30 @@ void panic(const char *file, int line, const char *s) {
     exit(EXIT_FAILURE);
 }
 
-void *_malloc_s(const char *file, int line, size_t size) {
-    void *ptr = malloc(size);
+void* _malloc_s(const char* file, int line, size_t size) {
+    void* ptr = malloc(size);
     if (!ptr && size != 0)
         panic(file, line, "malloc");
 
     return ptr;
 }
 
-void *_calloc_s(const char *file, int line, size_t n, size_t size) {
-    void *ptr = calloc(n, size);
+void* _calloc_s(const char* file, int line, size_t n, size_t size) {
+    void* ptr = calloc(n, size);
     if (!ptr && size != 0)
         panic(file, line, "calloc");
 
     return ptr;
 }
 
-void *_realloc_s(const char *file, int line, void *ptr, size_t size) {
+void* _realloc_s(const char* file, int line, void* ptr, size_t size) {
     ptr = realloc(ptr, size);
     if (!ptr && size != 0)
         panic(file, line, "realloc");
     return ptr;
 }
 
-void _vector_make_room(_Vector *_vec, size_t item_size) {
+void _vector_make_room(_Vector* _vec, size_t item_size) {
     if (!_vec->capacity) {
         _vec->data = malloc_s(item_size * VECTOR_MIN_CAPACITY);
         _vec->capacity = VECTOR_MIN_CAPACITY;
@@ -52,14 +52,14 @@ void _vector_make_room(_Vector *_vec, size_t item_size) {
     }
 }
 
-void abufAppendN(abuf *ab, const char *s, size_t n) {
+void abufAppendN(abuf* ab, const char* s, size_t n) {
     if (n == 0)
         return;
 
     if (ab->len + n > ab->capacity) {
         ab->capacity += n;
         ab->capacity *= ABUF_GROWTH_RATE;
-        char *new = realloc_s(ab->buf, ab->capacity);
+        char* new = realloc_s(ab->buf, ab->capacity);
         ab->buf = new;
     }
 
@@ -67,14 +67,14 @@ void abufAppendN(abuf *ab, const char *s, size_t n) {
     ab->len += n;
 }
 
-void abufFree(abuf *ab) {
+void abufFree(abuf* ab) {
     free(ab->buf);
     ab->buf = NULL;
     ab->len = 0;
     ab->capacity = 0;
 }
 
-static inline bool isValidColor(const char *color) {
+static inline bool isValidColor(const char* color) {
     if (strlen(color) != 6)
         return false;
     for (int i = 0; i < 6; i++) {
@@ -86,7 +86,7 @@ static inline bool isValidColor(const char *color) {
     return true;
 }
 
-bool strToColor(const char *color, Color *out) {
+bool strToColor(const char* color, Color* out) {
     if (!isValidColor(color))
         return false;
 
@@ -100,7 +100,7 @@ bool strToColor(const char *color, Color *out) {
     return true;
 }
 
-void setColor(abuf *ab, Color color, int is_bg) {
+void setColor(abuf* ab, Color color, int is_bg) {
     char buf[32];
     int len;
     if (color.r == 0 && color.g == 0 && color.b == 0 && is_bg) {
@@ -112,7 +112,7 @@ void setColor(abuf *ab, Color color, int is_bg) {
     abufAppendN(ab, buf, len);
 }
 
-void gotoXY(abuf *ab, int x, int y) {
+void gotoXY(abuf* ab, int x, int y) {
     char buf[32];
     int len = snprintf(buf, sizeof(buf), "\x1b[%d;%dH", x, y);
     abufAppendN(ab, buf, len);
@@ -126,7 +126,9 @@ int isSeparator(int c) {
     return strchr("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", c) != NULL;
 }
 
-int isNonSeparator(int c) { return !isSeparator(c); }
+int isNonSeparator(int c) {
+    return !isSeparator(c);
+}
 
 int isSpace(int c) {
     switch (c) {
@@ -142,13 +144,17 @@ int isSpace(int c) {
     }
 }
 
-int isNonSpace(int c) { return !isSpace(c); }
+int isNonSpace(int c) {
+    return !isSpace(c);
+}
 
 int isNonIdentifierChar(int c) {
     return isSpace(c) || c == '\0' || isSeparator(c);
 }
 
-int isIdentifierChar(int c) { return !isNonIdentifierChar(c); }
+int isIdentifierChar(int c) {
+    return !isNonIdentifierChar(c);
+}
 
 char isOpenBracket(int key) {
     switch (key) {
@@ -196,8 +202,8 @@ int getDigit(int n) {
     return 10;
 }
 
-char *getBaseName(char *path) {
-    char *file = path + strlen(path);
+char* getBaseName(char* path) {
+    char* file = path + strlen(path);
     for (; file > path; file--) {
         if (*file == '/'
 #ifdef _WIN32
@@ -211,8 +217,8 @@ char *getBaseName(char *path) {
     return file;
 }
 
-char *getDirName(char *path) {
-    char *name = getBaseName(path);
+char* getDirName(char* path) {
+    char* name = getBaseName(path);
     if (name == path) {
         name = path;
         *name = '.';
@@ -225,8 +231,8 @@ char *getDirName(char *path) {
 }
 
 // if path doesn't have a .EXT, append extension
-void addDefaultExtension(char *path, const char *extension, int path_length) {
-    char *src = path + strlen(path) - 1;
+void addDefaultExtension(char* path, const char* extension, int path_length) {
+    char* src = path + strlen(path) - 1;
 
     while (!(*src == '/'
 #ifdef _WIN32
@@ -243,8 +249,8 @@ void addDefaultExtension(char *path, const char *extension, int path_length) {
     strncat(path, extension, path_length);
 }
 
-int64_t getLine(char **lineptr, size_t *n, FILE *stream) {
-    char *buf = NULL;
+int64_t getLine(char** lineptr, size_t* n, FILE* stream) {
+    char* buf = NULL;
     size_t capacity;
     int64_t size = 0;
     int c;
@@ -285,7 +291,7 @@ int64_t getLine(char **lineptr, size_t *n, FILE *stream) {
     return size;
 }
 
-int strCaseCmp(const char *s1, const char *s2) {
+int strCaseCmp(const char* s1, const char* s2) {
     if (s1 == s2)
         return 0;
 
@@ -299,19 +305,19 @@ int strCaseCmp(const char *s1, const char *s2) {
     return result;
 }
 
-char *strCaseStr(const char *str, const char *sub_str) {
+char* strCaseStr(const char* str, const char* sub_str) {
     // O(n*m), but should be ok
     if (*sub_str == '\0')
-        return (char *)str;
+        return (char*)str;
 
     while (*str != '\0') {
-        const char *s = str;
-        const char *sub = sub_str;
+        const char* s = str;
+        const char* sub = sub_str;
         while (tolower(*s) == tolower(*sub)) {
             s++;
             sub++;
             if (*sub == '\0') {
-                return (char *)str;
+                return (char*)str;
             }
         }
         str++;
@@ -320,8 +326,12 @@ char *strCaseStr(const char *str, const char *sub_str) {
     return NULL;
 }
 
-int findSubstring(const char *haystack, size_t haystack_len, const char *needle,
-                  size_t needle_len, size_t start, bool ignore_case) {
+int findSubstring(const char* haystack,
+                  size_t haystack_len,
+                  const char* needle,
+                  size_t needle_len,
+                  size_t start,
+                  bool ignore_case) {
     if (needle_len == 0) {
         return (start <= haystack_len) ? (int)start : -1;
     }
@@ -352,7 +362,7 @@ int findSubstring(const char *haystack, size_t haystack_len, const char *needle,
     return -1;
 }
 
-int strToInt(const char *str) {
+int strToInt(const char* str) {
     if (!str) {
         return 0;
     }
@@ -397,9 +407,9 @@ int strToInt(const char *str) {
 static const char basis_64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-int base64Encode(const char *string, int len, char *output) {
+int base64Encode(const char* string, int len, char* output) {
     int i;
-    char *p = output;
+    char* p = output;
 
     for (i = 0; i < len - 2; i += 3) {
         *p++ = basis_64[(string[i] >> 2) & 0x3F];
@@ -427,8 +437,8 @@ int base64Encode(const char *string, int len, char *output) {
     return p - output;
 }
 
-bool writeConsoleAll(const void *buf, size_t len) {
-    const uint8_t *p = (const uint8_t *)buf;
+bool writeConsoleAll(const void* buf, size_t len) {
+    const uint8_t* p = (const uint8_t*)buf;
     while (len) {
         int n = writeConsole(p, len);
         if (n <= 0)

@@ -5,7 +5,8 @@
 #include "unicode.h"
 #include "utils.h"
 
-static inline bool ensureCapacity(size_t capacity, size_t size,
+static inline bool ensureCapacity(size_t capacity,
+                                  size_t size,
                                   size_t* new_capacity) {
     if (capacity >= size)
         return false;
@@ -88,7 +89,9 @@ void editorRowDelChar(EditorFile* file, EditorRow* row, int at) {
     editorUpdateRow(file, row);
 }
 
-void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
+void editorRowAppendString(EditorFile* file,
+                           EditorRow* row,
+                           const char* s,
                            size_t len) {
     editorRowEnsureCapacity(row, row->size + len);
     memcpy(&row->data[row->size], s, len);
@@ -96,8 +99,11 @@ void editorRowAppendString(EditorFile* file, EditorRow* row, const char* s,
     editorUpdateRow(file, row);
 }
 
-void editorRowInsertString(EditorFile* file, EditorRow* row, int at,
-                           const char* s, size_t len) {
+void editorRowInsertString(EditorFile* file,
+                           EditorRow* row,
+                           int at,
+                           const char* s,
+                           size_t len) {
     if (at < 0 || at > row->size)
         return;
 

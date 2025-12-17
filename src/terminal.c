@@ -11,7 +11,7 @@
 #include "utils.h"
 
 typedef struct {
-    const char *str;
+    const char* str;
     int value;
 } StrIntPair;
 
@@ -92,8 +92,11 @@ static const StrIntPair sequence_lookup[] = {
     {"[6;6~", SHIFT_CTRL_PAGE_DOWN},
 };
 
-static bool parseMouseSGR(const char *seq, int *Cb, int *Cx, int *Cy,
-                          char *fin) {
+static bool parseMouseSGR(const char* seq,
+                          int* Cb,
+                          int* Cx,
+                          int* Cy,
+                          char* fin) {
     if (*seq != '<')
         return false;
     seq++;
@@ -337,7 +340,7 @@ EditorInput editorReadKey(void) {
     return result;
 }
 
-void editorFreeInput(EditorInput *input) {
+void editorFreeInput(EditorInput* input) {
     if (!input)
         return;
     if (input->type == PASTE_INPUT) {
@@ -368,9 +371,13 @@ static void SIGABRT_handler(int sig) {
 #define BRACKETED_PASTE_ENABLE "\x1b[?2004h"
 #define BRACKETED_PASTE_DISABLE "\x1b[?2004l"
 
-void enableMouse(void) { writeConsoleStr(MOUSE_ENABLE); }
+void enableMouse(void) {
+    writeConsoleStr(MOUSE_ENABLE);
+}
 
-void disableMouse(void) { writeConsoleStr(MOUSE_DISABLE); }
+void disableMouse(void) {
+    writeConsoleStr(MOUSE_DISABLE);
+}
 
 void resizeWindow(void) {
     int rows = 0;

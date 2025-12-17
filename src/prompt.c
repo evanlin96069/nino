@@ -50,7 +50,8 @@ static void editorSetRightPrompt(const char* fmt, ...) {
 #define PROMPT_BUF_INIT_SIZE 64
 #define PROMPT_BUF_GROWTH_RATE 2.0f
 
-char* editorPrompt(const char* prompt, int state,
+char* editorPrompt(const char* prompt,
+                   int state,
                    void (*callback)(char*, int)) {
     int old_state = gEditor.state;
     gEditor.state = state;

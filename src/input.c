@@ -346,7 +346,8 @@ void editorMoveCursor(int key) {
     }
 }
 
-static int findNextCharIndex(const EditorRow* row, int index,
+static int findNextCharIndex(const EditorRow* row,
+                             int index,
                              IsCharFunc is_char) {
     while (index < row->size && !is_char(row->data[index])) {
         index++;
@@ -354,7 +355,8 @@ static int findNextCharIndex(const EditorRow* row, int index,
     return index;
 }
 
-static int findPrevCharIndex(const EditorRow* row, int index,
+static int findPrevCharIndex(const EditorRow* row,
+                             int index,
                              IsCharFunc is_char) {
     while (index > 0 && !is_char(row->data[index - 1])) {
         index--;

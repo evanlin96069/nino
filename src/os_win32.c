@@ -471,7 +471,9 @@ OsError saveFileReplace(const char* path, const void* buf, size_t len) {
     return 0;
 }
 
-bool changeDir(const char* path) { return SetCurrentDirectory(path); }
+bool changeDir(const char* path) {
+    return SetCurrentDirectory(path);
+}
 
 char* getFullPath(const char* path) {
     static char resolved_path[(EDITOR_PATH_MAX + 1) * 4];

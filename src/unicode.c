@@ -167,7 +167,7 @@ static const struct interval double_width[] = {
     {0x30000, 0x3FFFD},
 };
 
-static bool inTable(uint32_t ucs, const struct interval *table, int max) {
+static bool inTable(uint32_t ucs, const struct interval* table, int max) {
     int min = 0;
     if (ucs < table[0].start || ucs > table[max].end)
         return false;
@@ -222,7 +222,7 @@ int encodeUTF8(unsigned int code_point, char output[4]) {
     return -1;
 }
 
-uint32_t decodeUTF8(const char *str, size_t len, size_t *byte_size) {
+uint32_t decodeUTF8(const char* str, size_t len, size_t* byte_size) {
     if (len == 0) {
         *byte_size = 0;
         return 0xFFFD;
@@ -264,8 +264,8 @@ uint32_t decodeUTF8(const char *str, size_t len, size_t *byte_size) {
     return result;
 }
 
-int strUTF8Width(const char *str) {
-    const char *p = str;
+int strUTF8Width(const char* str) {
+    const char* p = str;
     int width = 0;
     size_t len = strlen(str);
 

@@ -205,7 +205,9 @@ const char* dirGetName(const DirIter* iter) {
     return iter->entry->d_name;
 }
 
-FILE* openFile(const char* path, const char* mode) { return fopen(path, mode); }
+FILE* openFile(const char* path, const char* mode) {
+    return fopen(path, mode);
+}
 
 bool shouldSaveInPlace(const char* path) {
     struct stat st;
@@ -328,7 +330,9 @@ OsError saveFileReplace(const char* path, const void* buf, size_t len) {
     return 0;
 }
 
-bool changeDir(const char* path) { return chdir(path) == 0; }
+bool changeDir(const char* path) {
+    return chdir(path) == 0;
+}
 
 char* getFullPath(const char* path) {
     static char resolved_path[EDITOR_PATH_MAX];
