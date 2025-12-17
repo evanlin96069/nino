@@ -150,6 +150,32 @@ int isNonIdentifierChar(int c) {
 
 int isIdentifierChar(int c) { return !isNonIdentifierChar(c); }
 
+char isOpenBracket(int key) {
+    switch (key) {
+        case '(':
+            return ')';
+        case '[':
+            return ']';
+        case '{':
+            return '}';
+        default:
+            return 0;
+    }
+}
+
+char isCloseBracket(int key) {
+    switch (key) {
+        case ')':
+            return '(';
+        case ']':
+            return '[';
+        case '}':
+            return '{';
+        default:
+            return 0;
+    }
+}
+
 int getDigit(int n) {
     if (n < 10)
         return 1;

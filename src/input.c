@@ -439,32 +439,6 @@ static void editorSelectAll(void) {
     gCurFile->cursor.select_x = 0;
 }
 
-static char isOpenBracket(int key) {
-    switch (key) {
-        case '(':
-            return ')';
-        case '[':
-            return ']';
-        case '{':
-            return '}';
-        default:
-            return 0;
-    }
-}
-
-static char isCloseBracket(int key) {
-    switch (key) {
-        case ')':
-            return '(';
-        case ']':
-            return '[';
-        case '}':
-            return '{';
-        default:
-            return 0;
-    }
-}
-
 static int handleTabClick(int x) {
     if (gEditor.state == LOADING_MODE)
         return -1;

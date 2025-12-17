@@ -86,6 +86,8 @@ int isNonIdentifierChar(int c);
 int isIdentifierChar(int c);
 int isSpace(int c);
 int isNonSpace(int c);
+char isOpenBracket(int key);
+char isCloseBracket(int key);
 
 // File
 char* getBaseName(char* path);
