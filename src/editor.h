@@ -53,6 +53,7 @@ typedef struct EditorFile {
     // File info
     char* filename;  // NULL if untitled
     int new_id;
+    bool has_file_info;
     FileInfo file_info;
 
     // Text buffers

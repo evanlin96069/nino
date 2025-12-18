@@ -13,7 +13,7 @@
 
 static int isFileOpened(FileInfo info) {
     for (int i = 0; i < gEditor.file_count; i++) {
-        if (gEditor.files[i].filename &&
+        if (gEditor.files[i].has_file_info &&
             areFilesEqual(gEditor.files[i].file_info, info)) {
             return i;
         }
@@ -81,6 +81,7 @@ OpenStatus editorOpen(EditorFile* file, const char* path) {
                 editorMsg("Can't load \"%s\"! Failed to get file info.", path);
                 return OPEN_FAILED;
             }
+            file->has_file_info = true;
             file->file_info = file_info;
             int open_index = isFileOpened(file_info);
 
@@ -242,6 +243,7 @@ bool editorSave(EditorFile* file, int save_as) {
         char msg[256];
         formatOsError(err, msg, sizeof(msg));
         editorMsg("Can't save \"%s\"! %s", file->filename, msg);
+        editorMsg("Use Alt+A to save as a different file.");
         return false;
     }
 
@@ -255,6 +257,31 @@ bool editorSave(EditorFile* file, int save_as) {
     }
 
     return true;
+}
+
+bool editorIsDangerousSave(const EditorFile* file) {
+    if (!file->has_file_info)
+        return false;
+
+    FileInfo new_info = getFileInfo(file->filename);
+    if (new_info.error) {
+        // File probably removed
+        return false;
+    }
+
+    if (access(file->filename, 2) != 0) {  // W_OK
+        editorMsg("File is read-only.");
+        editorMsg("Save again to save anyway.");
+        return true;
+    }
+
+    if (isFileModified(new_info, file->file_info)) {
+        editorMsg("File modified by other program since open.");
+        editorMsg("Save again to save anyway.");
+        return true;
+    }
+
+    return false;
 }
 
 void editorOpenFilePrompt(void) {
