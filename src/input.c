@@ -670,8 +670,8 @@ void editorProcessKeypress(void) {
             break;
 
         // Save as
-        case ALT_KEY(CTRL_KEY('s')):
-            // Alt+Ctrl+S
+        case ALT_KEY('a'):
+            // Alt+A
             should_scroll = false;
             editorSave(gCurFile, 1);
             break;
