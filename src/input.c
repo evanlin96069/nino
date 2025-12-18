@@ -464,12 +464,21 @@ static int handleTabClick(int x) {
             continue;
 
         const EditorFile* file = &gEditor.files[i];
-        const char* filename =
-            file->filename ? getBaseName(file->filename) : "Untitled";
-        int tab_width = strUTF8Width(filename) + 2;
+        int tab_width;
+        if (file->filename) {
+            tab_width = strUTF8Width(getBaseName(file->filename));
+        } else {
+            // Untitled-%d
+            tab_width = strlen("Untitled-") + getDigit(i + 1);
+        }
 
-        if (file->dirty)
+        // Add * if file is dirty
+        if (file->dirty) {
             tab_width++;
+        }
+
+        // Add padding
+        tab_width += 2;
 
         if (gEditor.screen_cols - len < tab_width ||
             (i != gEditor.file_count - 1 &&
