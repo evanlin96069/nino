@@ -208,6 +208,13 @@ bool areFilesEqual(FileInfo f1, FileInfo f2) {
             f1.info.nFileIndexLow == f2.info.nFileIndexLow);
 }
 
+bool isFileModified(FileInfo f1, FileInfo f2) {
+    return (f1.info.ftLastWriteTime.dwLowDateTime !=
+                f2.info.ftLastWriteTime.dwLowDateTime ||
+            f1.info.ftLastWriteTime.dwHighDateTime !=
+                f2.info.ftLastWriteTime.dwHighDateTime);
+}
+
 FileType getFileType(const char* path) {
     wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
     MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);

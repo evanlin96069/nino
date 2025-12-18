@@ -155,6 +155,10 @@ bool areFilesEqual(FileInfo f1, FileInfo f2) {
             f1.info.st_dev == f2.info.st_dev);
 }
 
+bool isFileModified(FileInfo f1, FileInfo f2) {
+    return (f1.info.st_mtime != f2.info.st_mtime);
+}
+
 FileType getFileType(const char* path) {
     struct stat st;
     if (stat(path, &st) == -1) {

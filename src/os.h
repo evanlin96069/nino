@@ -31,6 +31,7 @@ int getWindowSize(int* rows, int* cols);
 typedef struct FileInfo FileInfo;
 FileInfo getFileInfo(const char* path);
 bool areFilesEqual(FileInfo f1, FileInfo f2);
+bool isFileModified(FileInfo f1, FileInfo f2);
 
 typedef enum FileType {
     FT_INVALID = -1,
