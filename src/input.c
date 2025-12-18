@@ -502,19 +502,8 @@ static void editorMoveMouse(int x, int y) {
     gCurFile->sx = x;
 }
 
-// Protect closing file with unsaved changes
-static int close_protect = -1;
 static void editorCloseFile(int index) {
     if (index < 0 || index > gEditor.file_count) {
-        close_protect = -1;
-        return;
-    }
-
-    if (gEditor.files[index].dirty && close_protect != index) {
-        editorMsg(
-            "File has unsaved changes. Press again to close file "
-            "anyway.");
-        close_protect = index;
         return;
     }
 
@@ -531,18 +520,22 @@ static void editorCloseFile(int index) {
 }
 
 void editorProcessKeypress(void) {
-    // Protect quiting program with unsaved files
-    static bool quit_protect = true;
-
     static int mouse_pressed = FIELD_EMPTY;
     static int64_t prev_click_time = 0;
     static int mouse_click = 0;
     static int curr_x = 0;
     static int curr_y = 0;
     static int pressed_row = 0;  // For select line drag
+    static EditorInput pending_input = {.type = UNKNOWN};
 
-    // Only the paste input need to be free, so we skipped some cases
-    EditorInput input = editorReadKey();
+    // Check if there's a pending input from previous call
+    EditorInput input;
+    if (pending_input.type != UNKNOWN) {
+        input = pending_input;
+        pending_input.type = UNKNOWN;
+    } else {
+        input = editorReadKey();
+    }
 
     // Global keybinds
     switch (input.type) {
@@ -623,21 +616,30 @@ void editorProcessKeypress(void) {
 
         // Quit editor
         case CTRL_KEY('q'): {
-            close_protect = -1;
-            editorFreeAction(action);
-            bool dirty = false;
+            should_scroll = false;
+
+            int dirty = 0;
             for (int i = 0; i < gEditor.file_count; i++) {
                 if (gEditor.files[i].dirty) {
-                    dirty = true;
-                    break;
+                    dirty++;
                 }
             }
-            if (dirty && quit_protect) {
-                editorMsg(
-                    "Files have unsaved changes. Press ^Q again to quit "
-                    "anyway.");
-                quit_protect = false;
-                return;
+
+            if (dirty > 0) {
+                if (dirty == 1) {
+                    editorMsg("File has unsaved changes.");
+                } else {
+                    editorMsg("Files have unsaved changes.");
+                }
+                editorMsg("Press quit again to quit anyway.");
+                editorRefreshScreen();
+
+                // Read next key to check if it's a repeat
+                EditorInput next_input = editorReadKey();
+                if (next_input.type != c) {
+                    pending_input = next_input;
+                    break;
+                }
             }
 #ifdef _DEBUG
             editorFree();
@@ -646,11 +648,24 @@ void editorProcessKeypress(void) {
         }
 
         // Close current file
-        case CTRL_KEY('w'):
-            quit_protect = true;
-            editorFreeAction(action);
+        case CTRL_KEY('w'): {
+            should_scroll = false;
+
+            if (gEditor.files[gEditor.file_index].dirty) {
+                editorMsg("File has unsaved changes.");
+                editorMsg("Press close again to close file anyway.");
+                editorRefreshScreen();
+
+                // Read next key to check if it's a repeat
+                EditorInput next_input = editorReadKey();
+                if (next_input.type != c) {
+                    pending_input = next_input;
+                    break;
+                }
+            }
             editorCloseFile(gEditor.file_index);
-            return;
+            break;
+        }
 
         // Save
         case CTRL_KEY('s'):
@@ -1368,17 +1383,42 @@ void editorProcessKeypress(void) {
 
         // Close tab
         case SCROLL_PRESSED:
-            // Return to prevent resetting close_protect
-            editorFreeAction(action);
-            return;
+            should_scroll = false;
+            break;
 
         case SCROLL_RELEASED:
             should_scroll = false;
             if (getMousePosField(x, y) == FIELD_TOP_STATUS) {
-                quit_protect = true;
-                editorFreeAction(action);
-                editorCloseFile(handleTabClick(x));
-                return;
+                int file_index = handleTabClick(x);
+                if (file_index < 0 || file_index >= gEditor.file_count) {
+                    break;
+                }
+
+                if (gEditor.files[file_index].dirty) {
+                    editorMsg("File has unsaved changes.");
+                    editorMsg("Press close again to close file anyway.");
+                    editorRefreshScreen();
+
+                    // Read next key to check if it's a repeat
+                    EditorInput next_input = editorReadKey();
+                    // Have to press in order to release the scroll button
+                    if (next_input.type != SCROLL_PRESSED) {
+                        pending_input = next_input;
+                        break;
+                    }
+
+                    next_input = editorReadKey();
+                    if (next_input.type != SCROLL_RELEASED ||
+                        getMousePosField(next_input.data.cursor.x,
+                                         next_input.data.cursor.y) !=
+                            FIELD_TOP_STATUS ||
+                        handleTabClick(next_input.data.cursor.x) !=
+                            file_index) {
+                        pending_input = next_input;
+                        break;
+                    }
+                }
+                editorCloseFile(file_index);
             }
             break;
 
@@ -1468,8 +1508,9 @@ void editorProcessKeypress(void) {
         gCurFile->cursor.select_y = gCurFile->cursor.y;
     }
 
-    if (c != MOUSE_PRESSED && c != MOUSE_RELEASED)
+    if (c != MOUSE_PRESSED && c != MOUSE_RELEASED) {
         mouse_click = 0;
+    }
 
     editorFreeInput(&input);
 
@@ -1480,8 +1521,7 @@ void editorProcessKeypress(void) {
         editorFreeAction(action);
     }
 
-    if (should_scroll)
+    if (should_scroll) {
         editorScrollToCursor();
-    close_protect = -1;
-    quit_protect = true;
+    }
 }
