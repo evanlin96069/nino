@@ -180,8 +180,8 @@ int getWindowSize(int* rows, int* cols) {
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
     HANDLE hFile = CreateFileW(w_path, GENERIC_READ, FILE_SHARE_READ, NULL,
                                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -216,8 +216,8 @@ bool isFileModified(FileInfo f1, FileInfo f2) {
 }
 
 FileType getFileType(const char* path) {
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
     if (wcsncmp(w_path, L"\\\\.\\", 4) == 0) {
         return FT_INVALID;
@@ -252,8 +252,8 @@ FileType getFileType(const char* path) {
 DirIter dirFindFirst(const char* path) {
     DirIter iter;
 
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
     wchar_t entry_path[EDITOR_PATH_MAX];
     swprintf(entry_path, EDITOR_PATH_MAX, L"%ls\\*", w_path);
@@ -288,8 +288,8 @@ const char* dirGetName(const DirIter* iter) {
 }
 
 FILE* openFile(const char* path, const char* mode) {
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
     wchar_t w_mode[32] = {0};
     MultiByteToWideChar(CP_UTF8, 0, mode, -1, w_mode, 32);
@@ -321,8 +321,8 @@ static OsError writeFile(HANDLE h, const void* buf, size_t len) {
 }
 
 bool shouldSaveInPlace(const char* path) {
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
     // Symlink / junction
     DWORD attr = GetFileAttributesW(w_path);
@@ -358,8 +358,8 @@ bool shouldSaveInPlace(const char* path) {
 OsError saveFileInPlace(const char* path, const void* buf, size_t len) {
     OsError err;
 
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
     DWORD attr = GetFileAttributesW(w_path);
     bool existed = (attr != INVALID_FILE_ATTRIBUTES);
@@ -411,13 +411,13 @@ OsError saveFileReplace(const char* path, const void* buf, size_t len) {
     snprintf(dir, sizeof(dir), "%s", path);
     getDirName(dir);
 
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
-    wchar_t w_dir[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, dir, -1, w_dir, EDITOR_PATH_MAX + 1);
+    wchar_t w_dir[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, dir, -1, w_dir, EDITOR_PATH_MAX);
 
-    wchar_t tmpname[EDITOR_PATH_MAX + 1] = {0};
+    wchar_t tmpname[EDITOR_PATH_MAX] = {0};
     if (!GetTempFileNameW(w_dir, L"tmp", 0, tmpname)) {
         err = GetLastError();
         return err;
@@ -483,16 +483,16 @@ bool changeDir(const char* path) {
 }
 
 char* getFullPath(const char* path) {
-    static char resolved_path[(EDITOR_PATH_MAX + 1) * 4];
+    static char resolved_path[(EDITOR_PATH_MAX) * 4];
 
-    wchar_t w_path[EDITOR_PATH_MAX + 1] = {0};
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX + 1);
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
-    wchar_t w_resolved_path[EDITOR_PATH_MAX + 1];
-    GetFullPathNameW(w_path, EDITOR_PATH_MAX + 1, w_resolved_path, NULL);
+    wchar_t w_resolved_path[EDITOR_PATH_MAX];
+    GetFullPathNameW(w_path, EDITOR_PATH_MAX, w_resolved_path, NULL);
 
     WideCharToMultiByte(CP_UTF8, 0, w_resolved_path, -1, resolved_path,
-                        EDITOR_PATH_MAX + 1, NULL, false);
+                        EDITOR_PATH_MAX, NULL, false);
 
     return resolved_path;
 }
