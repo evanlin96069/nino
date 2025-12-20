@@ -47,6 +47,8 @@ DirIter dirFindFirst(const char* path);
 bool dirNext(DirIter* iter);
 void dirClose(DirIter* iter);
 const char* dirGetName(const DirIter* iter);
+bool pathExists(const char* path);
+bool canWriteFile(const char* path);
 
 FILE* openFile(const char* path, const char* mode);
 bool shouldSaveInPlace(const char* path);

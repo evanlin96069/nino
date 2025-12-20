@@ -123,12 +123,9 @@ OpenStatus editorOpen(EditorFile* file, const char* path) {
         char parent_dir[EDITOR_PATH_MAX];
         snprintf(parent_dir, sizeof(parent_dir), "%s", path);
         getDirName(parent_dir);
-        if (access(parent_dir, 0) != 0) {  // F_OK
-            editorMsg("Can't create \"%s\"! %s", path, strerror(errno));
-            return OPEN_FAILED;
-        }
-        if (access(parent_dir, 2) != 0) {  // W_OK
-            editorMsg("Can't write to \"%s\"! %s", path, strerror(errno));
+
+        if (!pathExists(parent_dir)) {
+            editorMsg("Can't create \"%s\"! Directory does not exist.", path);
             return OPEN_FAILED;
         }
     }
@@ -269,7 +266,7 @@ bool editorIsDangerousSave(const EditorFile* file) {
         return false;
     }
 
-    if (access(file->filename, 2) != 0) {  // W_OK
+    if (!canWriteFile(file->filename)) {
         editorMsg("File is read-only.");
         editorMsg("Save again to save anyway.");
         return true;

@@ -287,6 +287,32 @@ const char* dirGetName(const DirIter* iter) {
     return dir_name;
 }
 
+bool pathExists(const char* path) {
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
+
+    DWORD attr = GetFileAttributesW(w_path);
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
+    return true;
+}
+
+bool canWriteFile(const char* path) {
+    wchar_t w_path[EDITOR_PATH_MAX] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
+
+    HANDLE h = CreateFileW(w_path, GENERIC_WRITE, FILE_SHARE_READ, NULL,
+                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (h == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    CloseHandle(h);
+    return true;
+}
+
 FILE* openFile(const char* path, const char* mode) {
     wchar_t w_path[EDITOR_PATH_MAX] = {0};
     MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);

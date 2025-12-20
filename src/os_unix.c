@@ -209,6 +209,20 @@ const char* dirGetName(const DirIter* iter) {
     return iter->entry->d_name;
 }
 
+bool pathExists(const char* path) {
+    struct stat st;
+    return (stat(path, &st) != -1);
+}
+
+bool canWriteFile(const char* path) {
+    int fd = open(path, O_WRONLY | O_CREAT | O_APPEND);
+    if (fd == -1) {
+        return false;
+    }
+    close(fd);
+    return true;
+}
+
 FILE* openFile(const char* path, const char* mode) {
     return fopen(path, mode);
 }
