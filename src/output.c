@@ -9,182 +9,471 @@
 #include "select.h"
 #include "terminal.h"
 #include "unicode.h"
+#include "utils.h"
 
-static void editorDrawTopStatusBar(abuf* ab) {
+static inline bool styleEql(const ScreenStyle* a, const ScreenStyle* b) {
+    return colorEql(a->fg, b->fg) && colorEql(a->bg, b->bg);
+}
+
+static inline bool graphemeEql(const Grapheme* a, const Grapheme* b) {
+    if (a->size != b->size)
+        return false;
+
+    for (int i = 0; i < a->size; i++) {
+        if (a->cluster[i] != b->cluster[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool cellEql(const ScreenCell* a, const ScreenCell* b) {
+    if (a->continuation != b->continuation)
+        return false;
+    if (a->continuation)
+        return true;
+
+    if (!graphemeEql(&a->grapheme, &b->grapheme))
+        return false;
+
+    return styleEql(&a->style, &b->style);
+}
+
+static bool editorScreenRowUpdated(int index) {
+    const ScreenCell* row = gEditor.screen[index];
+    const ScreenCell* prev_row = gEditor.prev_screen[index];
+    for (int i = 0; i < gEditor.screen_cols; i++) {
+        if (!cellEql(&row[i], &prev_row[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void updateStyle(abuf* ab,
+                        const ScreenStyle* old_style,
+                        const ScreenStyle* new_style) {
+    if (!new_style)
+        return;
+
+    bool update_fg = (!old_style || !colorEql(old_style->fg, new_style->fg));
+    bool update_bg = (!old_style || !colorEql(old_style->bg, new_style->bg));
+    if (update_fg && update_bg) {
+        setColors(ab, new_style->fg, new_style->bg);
+    } else if (update_fg) {
+        setColor(ab, new_style->fg, false);
+    } else if (update_bg) {
+        setColor(ab, new_style->bg, true);
+    }
+}
+
+static Grapheme grapheme_space = {
+    .cluster = {[0] = ' '},
+    .size = 1,
+    .width = 1,
+};
+
+static void editorRenderRow(abuf* ab, int row_index) {
+    ScreenCell* row = gEditor.screen[row_index];
+
+    const ScreenStyle* old_style = NULL;
+
+    gotoXY(ab, row_index + 1, 1);
+
+    int index = 0;
+    while (index < gEditor.screen_cols) {
+        ScreenCell* cell = &row[index];
+        Grapheme grapheme = cell->grapheme;
+
+        updateStyle(ab, old_style, &cell->style);
+        old_style = &cell->style;
+
+        if (cell->continuation || grapheme.size == 0 || grapheme.width == 0) {
+            // These are not supposed to happen
+            // Default to white space
+            grapheme = grapheme_space;
+        }
+
+        char output[4];
+        int utf8_len = encodeUTF8(grapheme.cluster[0], output);
+        if (utf8_len == -1) {
+            // Replace with the replacement character
+            grapheme.cluster[0] = 0xFFFD;
+            grapheme.size = 1;
+            grapheme.width = 1;
+            utf8_len = encodeUTF8(grapheme.cluster[0], output);
+        }
+
+        // Check if this character fits
+        bool canDraw = true;
+        int offset = 1;
+        while (offset < grapheme.width) {
+            if (index + offset >= gEditor.screen_cols ||
+                !row[index + offset].continuation) {
+                canDraw = false;
+                break;
+            }
+            offset++;
+        }
+
+        index += offset;
+
+        if (!canDraw) {
+            // Draw spaces until filling the character width we can draw
+            output[0] = ' ';
+            for (int j = 0; j < offset; j++) {
+                abufAppendN(ab, output, 1);
+            }
+        } else {
+            abufAppendN(ab, output, (size_t)utf8_len);
+            for (int i = 1; i < grapheme.size; i++) {
+                utf8_len = encodeUTF8(grapheme.cluster[i], output);
+                if (utf8_len != -1) {
+                    abufAppendN(ab, output, (size_t)utf8_len);
+                }
+            }
+        }
+    }
+}
+
+static void screenClearCells(ScreenCell* row,
+                             int max_width,
+                             int x,
+                             int count,
+                             ScreenStyle style) {
+    if (x >= max_width)
+        return;
+
+    int to_clear = count;
+    if (x + count > max_width) {
+        to_clear = max_width - x;
+    }
+
+    for (int i = 0; i < to_clear; i++) {
+        row[x + i].continuation = false;
+        row[x + i].grapheme = grapheme_space;
+        row[x + i].style = style;
+    }
+}
+
+// Put a grapheme in a cell
+// Marks the cells occupied by the grapheme as continuation
+// Returns the number of cells used (grapheme width)
+static int screenPutGrapheme(ScreenCell* row,
+                             int max_width,
+                             int x,
+                             const Grapheme* grapheme,
+                             const ScreenStyle* style) {
+    if (x >= max_width || grapheme->width <= 0)
+        return 0;
+
+    int width = grapheme->width;
+    if (x + width > max_width)
+        width = max_width - x;
+
+    // Set the first cell
+    row[x].continuation = false;
+    row[x].grapheme = *grapheme;
+    row[x].style = *style;
+
+    // Mark continuation cells
+    for (int i = 1; i < width; i++) {
+        row[x + i].continuation = true;
+        row[x + i].style = *style;
+    }
+
+    return width;
+}
+
+static int screenPutChar(ScreenCell* row,
+                         int max_width,
+                         int x,
+                         uint32_t code_point,
+                         const ScreenStyle* style) {
+    int width = unicodeWidth(code_point);
+    if (width < 0 || x >= max_width)
+        return 0;
+
+    Grapheme grapheme = {0};
+    grapheme.cluster[0] = code_point;
+    grapheme.size = 1;
+    grapheme.width = width;
+
+    return screenPutGrapheme(row, max_width, x, &grapheme, style);
+}
+
+static int screenPutUtf8(ScreenCell* row,
+                         int max_width,
+                         int x,
+                         const char* s,
+                         const ScreenStyle style) {
+    int start_x = x;
+    size_t len = strlen(s);
+    const char* p = s;
+
+    while (*p != '\0' && x < max_width) {
+        // Skip zero-width characters until we find a base character (width > 0)
+        size_t byte_size;
+        uint32_t code_point = decodeUTF8(p, len, &byte_size);
+
+        if (byte_size == 0)
+            break;
+
+        int width = unicodeWidth(code_point);
+        if (width <= 0) {
+            // Invalid or zero-width character
+            p += byte_size;
+            len -= byte_size;
+            continue;
+        }
+
+        if (x + width > max_width)
+            break;
+
+        // Build grapheme cluster
+        Grapheme grapheme = {0};
+        grapheme.cluster[0] = code_point;
+        grapheme.size = 1;
+        grapheme.width = width;
+
+        p += byte_size;
+        len -= byte_size;
+
+        // Add following zero-width characters
+        while (grapheme.size < MAX_CLUSTER_SIZE && *p != '\0' && len > 0) {
+            size_t comb_byte_size;
+            uint32_t comb_code_point = decodeUTF8(p, len, &comb_byte_size);
+
+            if (comb_byte_size == 0)
+                break;
+
+            int comb_width = unicodeWidth(comb_code_point);
+            if (comb_width < 0) {
+                // Invalid character
+                p += comb_byte_size;
+                len -= comb_byte_size;
+                break;
+            }
+
+            if (comb_width > 0)
+                break;
+
+            grapheme.cluster[grapheme.size] = comb_code_point;
+            grapheme.size++;
+
+            p += comb_byte_size;
+            len -= comb_byte_size;
+        }
+
+        x += screenPutGrapheme(row, max_width, x, &grapheme, &style);
+    }
+
+    return x - start_x;
+}
+
+static int screenPutAscii(ScreenCell* row,
+                          int max_width,
+                          int x,
+                          const char* s,
+                          const ScreenStyle style) {
+    int start_x = x;
+    const char* p = s;
+
+    while (*p != '\0' && x < max_width) {
+        unsigned char c = (unsigned char)*p;
+
+        // Fast path: ASCII characters are always width 1
+        Grapheme grapheme = {0};
+        grapheme.cluster[0] = c;
+        grapheme.size = 1;
+        grapheme.width = 1;
+
+        x += screenPutGrapheme(row, max_width, x, &grapheme, &style);
+        p++;
+    }
+
+    return x - start_x;
+}
+
+static void editorDrawTopStatusBar(void) {
+    if (gEditor.explorer.width >= gEditor.screen_cols) {
+        return;
+    }
+
+    ScreenCell* row = gEditor.screen[0];
+    ScreenStyle default_style = {
+        .fg = gEditor.color_cfg.top_status[0],
+        .bg = gEditor.color_cfg.top_status[1],
+    };
+
+    screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
+                     gEditor.screen_cols - gEditor.explorer.width,
+                     default_style);
+
     const char* right_buf = "  " EDITOR_NAME " v" EDITOR_VERSION " ";
-    bool has_more_files = false;
     int rlen = strlen(right_buf);
-    int len = gEditor.explorer.width;
+    int x = gEditor.explorer.width;
 
-    gotoXY(ab, 1, gEditor.explorer.width + 1);
-
-    setColor(ab, gEditor.color_cfg.top_status[0], 0);
-    setColor(ab, gEditor.color_cfg.top_status[1], 1);
+    ScreenStyle style = default_style;
 
     if (gEditor.tab_offset != 0) {
-        abufAppendN(ab, "<", 1);
-        len++;
+        screenPutAscii(row, gEditor.screen_cols, x, "<", style);
+        x++;
     }
 
     gEditor.tab_displayed = 0;
     if (gEditor.state == LOADING_MODE) {
         const char* loading_text = "Loading...";
-        int loading_text_len = strlen(loading_text);
-        abufAppendN(ab, loading_text, loading_text_len);
-        len = loading_text_len;
+        x += screenPutAscii(row, gEditor.screen_cols, x, loading_text, style);
     } else {
         for (int i = 0; i < gEditor.file_count; i++) {
             if (i < gEditor.tab_offset)
                 continue;
 
+            int remaining_width = gEditor.screen_cols - x;
+            if (remaining_width < 0)
+                break;
+
             const EditorFile* file = &gEditor.files[i];
 
             bool is_current = (file == gCurFile);
             if (is_current) {
-                setColor(ab, gEditor.color_cfg.top_status[4], 0);
-                setColor(ab, gEditor.color_cfg.top_status[5], 1);
+                style.fg = gEditor.color_cfg.top_status[4];
+                style.bg = gEditor.color_cfg.top_status[5];
             } else {
-                setColor(ab, gEditor.color_cfg.top_status[2], 0);
-                setColor(ab, gEditor.color_cfg.top_status[3], 1);
+                style.fg = gEditor.color_cfg.top_status[2];
+                style.bg = gEditor.color_cfg.top_status[3];
             }
 
-            int buf_len;
             char buf[EDITOR_PATH_MAX] = {0};
             if (file->filename) {
-                buf_len =
-                    snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
-                             getBaseName(file->filename));
+                const char* basename = getBaseName(file->filename);
+                snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
+                         basename);
             } else {
-                buf_len = snprintf(buf, sizeof(buf), " Untitled-%d%s ",
-                                   file->new_id + 1, file->dirty ? "*" : "");
+                snprintf(buf, sizeof(buf), " Untitled-%d%s ", file->new_id + 1,
+                         file->dirty ? "*" : "");
             }
 
             int tab_width = strUTF8Width(buf);
 
-            if (gEditor.screen_cols - len < tab_width ||
-                (i != gEditor.file_count - 1 &&
-                 gEditor.screen_cols - len == tab_width)) {
-                has_more_files = true;
+            if (remaining_width < tab_width ||
+                (i != gEditor.file_count - 1 && remaining_width == tab_width)) {
                 if (gEditor.tab_displayed == 0) {
-                    // Display at least one tab
-                    // TODO: This is wrong
-                    tab_width = gEditor.screen_cols - len - 1;
-                    buf_len = gEditor.screen_cols - len - 1;
+                    // Display at least one tab (truncated if needed)
+                    if (remaining_width > 1) {
+                        x += screenPutUtf8(row, gEditor.screen_cols, x, buf,
+                                           style);
+                        gEditor.tab_displayed++;
+                    }
                 } else {
                     break;
                 }
+            } else {
+                // Not enough space to even show one tab
+                if (remaining_width <= 0)
+                    break;
+
+                x += screenPutUtf8(row, gEditor.screen_cols, x, buf, style);
+                gEditor.tab_displayed++;
             }
+        }
 
-            // Not enough space to even show one tab
-            if (tab_width < 0)
-                break;
+        style = default_style;
 
-            abufAppendN(ab, buf, buf_len);
-            len += tab_width;
-            gEditor.tab_displayed++;
+        if (gEditor.tab_offset + gEditor.tab_displayed < gEditor.file_count) {
+            if (x >= gEditor.screen_cols) {
+                screenPutAscii(row, gEditor.screen_cols,
+                               gEditor.screen_cols - 1, ">", style);
+                x = gEditor.screen_cols;
+            } else {
+                screenPutAscii(row, gEditor.screen_cols, x, ">", style);
+                x++;
+            }
         }
     }
 
-    setColor(ab, gEditor.color_cfg.top_status[0], 0);
-    setColor(ab, gEditor.color_cfg.top_status[1], 1);
-
-    if (has_more_files) {
-        abufAppendN(ab, ">", 1);
-        len++;
-    }
-
-    while (len < gEditor.screen_cols) {
-        if (gEditor.screen_cols - len == rlen) {
-            abufAppendN(ab, right_buf, rlen);
-            break;
-        } else {
-            abufAppendN(ab, " ", 1);
-            len++;
-        }
+    if (gEditor.screen_cols - x >= rlen && rlen > 0) {
+        screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
+                       right_buf, style);
     }
 }
 
-static void editorDrawConMsg(abuf* ab) {
+static void editorDrawConMsg(void) {
     if (gEditor.con_size == 0) {
         return;
     }
 
-    setColor(ab, gEditor.color_cfg.prompt[0], 0);
-    setColor(ab, gEditor.color_cfg.prompt[1], 1);
+    ScreenStyle style = {
+        .fg = gEditor.color_cfg.prompt[0],
+        .bg = gEditor.color_cfg.prompt[1],
+    };
+
+    // con_size + status bar
+    int draw_row = gEditor.screen_rows - (gEditor.con_size + 1);
 
     bool should_draw_prompt =
         (gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE);
-    int draw_x = gEditor.screen_rows - gEditor.con_size;
     if (should_draw_prompt) {
-        draw_x--;
+        draw_row--;
     }
 
     int index = gEditor.con_front;
     for (int i = 0; i < gEditor.con_size; i++) {
-        gotoXY(ab, draw_x, 0);
-        draw_x++;
+        ScreenCell* row = gEditor.screen[draw_row];
+        screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols,
+                         style);
 
         const char* buf = gEditor.con_msg[index];
         index = (index + 1) % EDITOR_CON_COUNT;
 
-        int len = strlen(buf);
-        if (len > gEditor.screen_cols) {
-            len = gEditor.screen_cols;
-        }
+        screenPutUtf8(row, gEditor.screen_cols, 0, buf, style);
 
-        abufAppendN(ab, buf, len);
-
-        while (len < gEditor.screen_cols) {
-            abufAppendN(ab, " ", 1);
-            len++;
-        }
+        draw_row++;
     }
 }
 
-static void editorDrawPrompt(abuf* ab) {
+static void editorDrawPrompt(void) {
     bool should_draw_prompt =
         (gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE);
     if (!should_draw_prompt) {
         return;
     }
 
-    setColor(ab, gEditor.color_cfg.prompt[0], 0);
-    setColor(ab, gEditor.color_cfg.prompt[1], 1);
+    ScreenCell* row =
+        gEditor.screen[gEditor.screen_rows - 2];  // prompt + status bar
+    ScreenStyle style = {
+        .fg = gEditor.color_cfg.prompt[0],
+        .bg = gEditor.color_cfg.prompt[1],
+    };
 
-    gotoXY(ab, gEditor.screen_rows - 1, 0);
+    screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols, style);
 
     const char* left = gEditor.prompt;
-    int len = strlen(left);
-
     const char* right = gEditor.prompt_right;
-    int rlen = strlen(right);
 
+    // Right prompt is currently only used by find mode, assume it's ASCII
+    int rlen = strlen(right);
     if (rlen > gEditor.screen_cols) {
         rlen = 0;
     }
 
-    if (len + rlen > gEditor.screen_cols) {
-        len = gEditor.screen_cols - rlen;
-    }
-
-    abufAppendN(ab, left, len);
-
-    while (len < gEditor.screen_cols) {
-        if (gEditor.screen_cols - len == rlen) {
-            abufAppendN(ab, right, rlen);
-            break;
-        } else {
-            abufAppendN(ab, " ", 1);
-            len++;
-        }
+    int x = screenPutUtf8(row, gEditor.screen_cols, 0, left, style);
+    if (x < gEditor.screen_cols - rlen) {
+        screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
+                       right, style);
     }
 }
 
-static void editorDrawStatusBar(abuf* ab) {
-    gotoXY(ab, gEditor.screen_rows, 0);
+static void editorDrawStatusBar(void) {
+    ScreenCell* row = gEditor.screen[gEditor.screen_rows - 1];
+    ScreenStyle default_style = {
+        .fg = gEditor.color_cfg.status[0],
+        .bg = gEditor.color_cfg.status[1],
+    };
 
-    setColor(ab, gEditor.color_cfg.status[0], 0);
-    setColor(ab, gEditor.color_cfg.status[1], 1);
+    screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols,
+                     default_style);
 
     const char* help_str = "";
     const char* help_info[] = {
@@ -202,16 +491,13 @@ static void editorDrawStatusBar(abuf* ab) {
 
     char lang[16];
     char pos[64];
-    int len = strlen(help_str);
-    int lang_len, pos_len;
     int rlen;
     if (gEditor.file_count == 0) {
-        lang_len = 0;
-        pos_len = 0;
+        rlen = 0;
     } else {
         const char* file_type =
             gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text";
-        int row = gCurFile->cursor.y + 1;
+        int row_num = gCurFile->cursor.y + 1;
         int col = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
                                   gCurFile->cursor.x) +
                   1;
@@ -222,116 +508,139 @@ static void editorDrawStatusBar(abuf* ab) {
                 (float)gCurFile->row_offset / (gCurFile->num_rows - 1) * 100.0f;
         }
 
-        lang_len = snprintf(lang, sizeof(lang), "  %s  ", file_type);
-        pos_len = snprintf(pos, sizeof(pos), " %d:%d [%.f%%] <%s> ", row, col,
-                           line_percent, nl_type);
+        snprintf(lang, sizeof(lang), "  %s  ", file_type);
+        snprintf(pos, sizeof(pos), " %d:%d [%.f%%] <%s> ", row_num, col,
+                 line_percent, nl_type);
+        rlen = strUTF8Width(lang) + strUTF8Width(pos);
     }
-
-    rlen = lang_len + pos_len;
 
     if (rlen > gEditor.screen_cols)
         rlen = 0;
-    if (len + rlen > gEditor.screen_cols)
-        len = gEditor.screen_cols - rlen;
 
-    abufAppendN(ab, help_str, len);
+    int x = 0;
+    ScreenStyle style = default_style;
 
-    while (len < gEditor.screen_cols) {
-        if (gEditor.screen_cols - len == rlen) {
-            setColor(ab, gEditor.color_cfg.status[2], 0);
-            setColor(ab, gEditor.color_cfg.status[3], 1);
-            abufAppendN(ab, lang, lang_len);
-            setColor(ab, gEditor.color_cfg.status[4], 0);
-            setColor(ab, gEditor.color_cfg.status[5], 1);
-            abufAppendN(ab, pos, pos_len);
-            break;
-        } else {
-            abufAppendN(ab, " ", 1);
-            len++;
-        }
+    int max_help_width =
+        (rlen > 0) ? gEditor.screen_cols - rlen : gEditor.screen_cols;
+    if (max_help_width > 0) {
+        x += screenPutAscii(row, max_help_width, 0, help_str, style);
+    }
+
+    if (rlen > 0 && gEditor.screen_cols - x >= rlen) {
+        int right_x = gEditor.screen_cols - rlen;
+        style.fg = gEditor.color_cfg.status[2];
+        style.bg = gEditor.color_cfg.status[3];
+        int lang_width = strUTF8Width(lang);
+        screenPutAscii(row, gEditor.screen_cols, right_x, lang, style);
+        style.fg = gEditor.color_cfg.status[4];
+        style.bg = gEditor.color_cfg.status[5];
+        screenPutAscii(row, gEditor.screen_cols, right_x + lang_width, pos,
+                       style);
     }
 }
 
-static void editorDrawRows(abuf* ab) {
-    setColor(ab, gEditor.color_cfg.bg, 1);
+static void editorDrawRows(void) {
+    if (gEditor.explorer.width >= gEditor.screen_cols) {
+        return;
+    }
 
     EditorSelectRange range = {0};
     if (gCurFile->cursor.is_selected)
         getSelectStartEnd(&range);
 
-    for (int i = gCurFile->row_offset, s_row = 2;
+    int lineno_width = LINENO_WIDTH();
+    int content_start_col = gEditor.explorer.width + lineno_width;
+    int content_cols = gEditor.screen_cols - content_start_col;
+
+    for (int i = gCurFile->row_offset, s_row = 1;
          i < gCurFile->row_offset + gEditor.display_rows; i++, s_row++) {
-        int len;
-        bool is_row_full = false;
+        ScreenCell* row = gEditor.screen[s_row];
 
-        // Move cursor to the beginning of a row
-        gotoXY(ab, s_row, 1 + gEditor.explorer.width);
+        // Clear the entire row
+        ScreenStyle bg_style = {
+            .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
+            .bg = gEditor.color_cfg.bg,
+        };
+        if (i == gCurFile->cursor.y && !gCurFile->cursor.is_selected) {
+            bg_style.bg = gEditor.color_cfg.cursor_line;
+        }
+        screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
+                         gEditor.screen_cols - gEditor.explorer.width,
+                         bg_style);
 
-        gEditor.color_cfg.highlightBg[HL_BG_NORMAL] = gEditor.color_cfg.bg;
         if (i < gCurFile->num_rows) {
-            if (CONVAR_GETINT(lineno)) {
-                char line_number[16];
-                if (i == gCurFile->cursor.y) {
-                    if (!gCurFile->cursor.is_selected) {
-                        gEditor.color_cfg.highlightBg[HL_BG_NORMAL] =
-                            gEditor.color_cfg.cursor_line;
-                    }
-                    setColor(ab, gEditor.color_cfg.line_number[1], 0);
-                    setColor(ab, gEditor.color_cfg.line_number[0], 1);
-                } else {
-                    setColor(ab, gEditor.color_cfg.line_number[0], 0);
-                    setColor(ab, gEditor.color_cfg.line_number[1], 1);
-                }
+            int x = gEditor.explorer.width;
 
-                len = snprintf(line_number, sizeof(line_number), " %*d ",
-                               gCurFile->lineno_width - 2, i + 1);
-                abufAppendN(ab, line_number, len);
+            // Draw line number
+            if (CONVAR_GETINT(lineno)) {
+                ScreenStyle lineno_style;
+                lineno_style.fg = (i == gCurFile->cursor.y)
+                                      ? gEditor.color_cfg.line_number[1]
+                                      : gEditor.color_cfg.line_number[0];
+                lineno_style.bg = (i == gCurFile->cursor.y)
+                                      ? gEditor.color_cfg.line_number[0]
+                                      : gEditor.color_cfg.line_number[1];
+
+                char line_number[16];
+                snprintf(line_number, sizeof(line_number), " %*d ",
+                         gCurFile->lineno_width - 2, i + 1);
+                x += screenPutAscii(row, gEditor.screen_cols, x, line_number,
+                                    lineno_style);
             }
 
-            abufAppendStr(ab, ANSI_CLEAR);
-            setColor(ab, gEditor.color_cfg.bg, 1);
-
-            int cols =
-                gEditor.screen_cols - gEditor.explorer.width - LINENO_WIDTH();
+            // Draw content
             int col_offset =
                 editorRowRxToCx(&gCurFile->row[i], gCurFile->col_offset);
-            len = gCurFile->row[i].size - col_offset;
-            len = (len < 0) ? 0 : len;
+            int data_len = gCurFile->row[i].size - col_offset;
+            if (data_len < 0) {
+                data_len = 0;
+            }
 
             int rlen = gCurFile->row[i].rsize - gCurFile->col_offset;
-            is_row_full = (rlen > cols);
-            rlen = is_row_full ? cols : rlen;
+            if (rlen > content_cols) {
+                rlen = content_cols;
+            }
             rlen += gCurFile->col_offset;
 
             char* c = &gCurFile->row[i].data[col_offset];
             uint8_t* hl = &(gCurFile->row[i].hl[col_offset]);
-            uint8_t curr_fg = HL_BG_NORMAL;
-            uint8_t curr_bg = HL_NORMAL;
-
-            setColor(ab, gEditor.color_cfg.highlightFg[curr_fg], 0);
-            setColor(ab, gEditor.color_cfg.highlightBg[curr_bg], 1);
 
             int j = 0;
             int rx = gCurFile->col_offset;
-            while (rx < rlen) {
-                if (iscntrl((uint8_t)c[j]) && c[j] != '\t') {
-                    char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-                    abufAppendStr(ab, ANSI_INVERT);
-                    abufAppendN(ab, &sym, 1);
-                    abufAppendStr(ab, ANSI_CLEAR);
-                    setColor(ab, gEditor.color_cfg.highlightFg[curr_fg], 0);
-                    setColor(ab, gEditor.color_cfg.highlightBg[curr_bg], 1);
+            int screen_x = content_start_col;
 
+            Grapheme* curr_grapheme = NULL;
+
+            while (rx < rlen && screen_x < gEditor.screen_cols) {
+                uint8_t fg = hl[j] & HL_FG_MASK;
+                uint8_t bg = hl[j] >> HL_FG_BITS;
+                if (gCurFile->cursor.is_selected &&
+                    isPosSelected(i, j + col_offset, range)) {
+                    bg = HL_BG_SELECT;
+                }
+
+                ScreenStyle style = {0};
+
+                if (iscntrl((uint8_t)c[j]) && c[j] != '\t') {
+                    // Control character (show inverted)
+                    style.fg = gEditor.color_cfg.highlightFg[fg];
+                    if (bg == HL_BG_NORMAL) {
+                        style.bg = bg_style.bg;
+                    } else {
+                        style.bg = gEditor.color_cfg.highlightBg[bg];
+                    }
+
+                    uint32_t sym = (c[j] <= 26) ? '@' + c[j] : '?';
+                    Color tmp = style.fg;
+                    style.fg = style.bg;
+                    style.bg = tmp;
+
+                    screen_x += screenPutChar(row, gEditor.screen_cols,
+                                              screen_x, sym, &style);
+                    curr_grapheme = NULL;
                     rx++;
                     j++;
                 } else {
-                    uint8_t fg = hl[j] & HL_FG_MASK;
-                    uint8_t bg = hl[j] >> HL_FG_BITS;
-
-                    if (gCurFile->cursor.is_selected &&
-                        isPosSelected(i, j + col_offset, range)) {
-                        bg = HL_BG_SELECT;
-                    }
                     if (CONVAR_GETINT(drawspace) &&
                         (c[j] == ' ' || c[j] == '\t')) {
                         fg = HL_SPACE;
@@ -340,81 +649,115 @@ static void editorDrawRows(abuf* ab) {
                         bg = HL_BG_NORMAL;
                     }
 
-                    // Update color
-                    if (fg != curr_fg) {
-                        curr_fg = fg;
-                        setColor(ab, gEditor.color_cfg.highlightFg[fg], 0);
-                    }
-                    if (bg != curr_bg) {
-                        curr_bg = bg;
-                        setColor(ab, gEditor.color_cfg.highlightBg[bg], 1);
+                    style.fg = gEditor.color_cfg.highlightFg[fg];
+                    if (bg == HL_BG_NORMAL) {
+                        style.bg = bg_style.bg;
+                    } else {
+                        style.bg = gEditor.color_cfg.highlightBg[bg];
                     }
 
                     if (c[j] == '\t') {
-                        if (CONVAR_GETINT(drawspace)) {
-                            abufAppendN(ab, "|", 1);
-                        } else {
-                            abufAppendN(ab, " ", 1);
-                        }
-
+                        char tab_char = CONVAR_GETINT(drawspace) ? '|' : ' ';
+                        screen_x += screenPutChar(row, gEditor.screen_cols,
+                                                  screen_x, tab_char, &style);
                         rx++;
-                        while (rx % CONVAR_GETINT(tabsize) != 0 && rx < rlen) {
-                            abufAppendN(ab, " ", 1);
+                        while (rx % CONVAR_GETINT(tabsize) != 0 && rx < rlen &&
+                               screen_x < gEditor.screen_cols) {
+                            screen_x += screenPutChar(row, gEditor.screen_cols,
+                                                      screen_x, ' ', &style);
                             rx++;
                         }
+                        curr_grapheme = NULL;
                         j++;
                     } else if (c[j] == ' ') {
-                        if (CONVAR_GETINT(drawspace)) {
-                            abufAppendN(ab, ".", 1);
-                        } else {
-                            abufAppendN(ab, " ", 1);
-                        }
+                        char space_char = CONVAR_GETINT(drawspace) ? '.' : ' ';
+                        screen_x += screenPutChar(row, gEditor.screen_cols,
+                                                  screen_x, space_char, &style);
+                        curr_grapheme = NULL;
                         rx++;
                         j++;
                     } else {
                         size_t byte_size;
                         uint32_t unicode =
-                            decodeUTF8(&c[j], len - j, &byte_size);
+                            decodeUTF8(&c[j], data_len - j, &byte_size);
                         int width = unicodeWidth(unicode);
-                        if (width >= 0) {
+                        if (width < 0) {
+                            unicode = 0xFFFD;
+                            width = 1;
+                        }
+
+                        if (width == 0) {
+                            if (curr_grapheme &&
+                                curr_grapheme->size < MAX_CLUSTER_SIZE) {
+                                curr_grapheme->cluster[curr_grapheme->size] =
+                                    unicode;
+                                curr_grapheme->size++;
+                            }
+                        } else {
+                            curr_grapheme = &row[screen_x].grapheme;
+                            screen_x +=
+                                screenPutChar(row, gEditor.screen_cols,
+                                              screen_x, unicode, &style);
                             rx += width;
-                            // Make sure double won't exceed the screen
-                            if (rx <= rlen)
-                                abufAppendN(ab, &c[j], byte_size);
                         }
                         j += byte_size;
                     }
+                }
+
+                // Gather trailing zero-width characters
+                while (data_len - j > 0) {
+                    size_t byte_size;
+                    uint32_t unicode =
+                        decodeUTF8(&c[j], data_len - j, &byte_size);
+                    int width = unicodeWidth(unicode);
+                    if (width != 0)
+                        break;
+                    if (curr_grapheme &&
+                        curr_grapheme->size < MAX_CLUSTER_SIZE) {
+                        curr_grapheme->cluster[curr_grapheme->size] = unicode;
+                        curr_grapheme->size++;
+                    }
+                    j += byte_size;
                 }
             }
 
             // Add newline character when selected
             if (gCurFile->cursor.is_selected && range.end_y > i &&
                 i >= range.start_y &&
-                gCurFile->row[i].rsize - gCurFile->col_offset < cols) {
-                setColor(ab, gEditor.color_cfg.highlightBg[HL_BG_SELECT], 1);
-                abufAppendN(ab, " ", 1);
+                gCurFile->row[i].rsize - gCurFile->col_offset < content_cols &&
+                screen_x < gEditor.screen_cols) {
+                ScreenStyle select_style = {
+                    .fg = gEditor.color_cfg.highlightFg[HL_BG_NORMAL],
+                    .bg = gEditor.color_cfg.highlightBg[HL_BG_SELECT],
+                };
+                screenPutChar(row, gEditor.screen_cols, screen_x, ' ',
+                              &select_style);
             }
-            setColor(ab, gEditor.color_cfg.highlightBg[HL_BG_NORMAL], 1);
         }
-        if (!is_row_full)
-            abufAppendStr(ab, ANSI_ERASE_LINE);
-        setColor(ab, gEditor.color_cfg.bg, 1);
     }
 }
 
-static void editorDrawFileExplorer(abuf* ab) {
-    char* explorer_buf = malloc_s(gEditor.explorer.width + 1);
-    gotoXY(ab, 1, 1);
+static void editorDrawFileExplorer(void) {
+    if (gEditor.explorer.width == 0) {
+        return;
+    }
 
-    setColor(ab, gEditor.color_cfg.explorer[3], 0);
-    if (gEditor.state == EXPLORER_MODE)
-        setColor(ab, gEditor.color_cfg.explorer[4], 1);
-    else
-        setColor(ab, gEditor.color_cfg.explorer[0], 1);
+    int explorer_width = gEditor.explorer.width;
+    if (explorer_width > gEditor.screen_cols) {
+        explorer_width = gEditor.screen_cols;
+    }
 
-    snprintf(explorer_buf, gEditor.explorer.width + 1, " EXPLORER%*s",
-             gEditor.explorer.width, "");
-    abufAppendN(ab, explorer_buf, gEditor.explorer.width);
+    // Draw header
+    ScreenCell* header_row = gEditor.screen[0];
+    ScreenStyle header_style = {
+        .fg = gEditor.color_cfg.explorer[3],
+        .bg = (gEditor.state == EXPLORER_MODE) ? gEditor.color_cfg.explorer[4]
+                                               : gEditor.color_cfg.explorer[0],
+    };
+
+    screenClearCells(header_row, gEditor.screen_cols, 0, explorer_width,
+                     header_style);
+    screenPutAscii(header_row, explorer_width, 0, " EXPLORER", header_style);
 
     int lines = gEditor.explorer.flatten.size - gEditor.explorer.offset;
     if (lines < 0) {
@@ -423,59 +766,103 @@ static void editorDrawFileExplorer(abuf* ab) {
         lines = gEditor.display_rows;
     }
 
-    for (int i = 0; i < lines; i++) {
-        gotoXY(ab, i + 2, 1);
+    ScreenStyle default_style = {
+        .fg = gEditor.color_cfg.explorer[3],
+        .bg = gEditor.color_cfg.explorer[0],
+    };
+    ScreenStyle directory_style = {
+        .fg = gEditor.color_cfg.explorer[2],
+        .bg = gEditor.color_cfg.explorer[0],
+    };
 
+    for (int i = 0; i < lines; i++) {
+        ScreenCell* row = gEditor.screen[i + 1];  // Row 1 to display_rows+1
         int index = gEditor.explorer.offset + i;
         EditorExplorerNode* node = gEditor.explorer.flatten.data[index];
-        if (index == gEditor.explorer.selected_index)
-            setColor(ab, gEditor.color_cfg.explorer[1], 1);
-        else
-            setColor(ab, gEditor.color_cfg.explorer[0], 1);
 
-        const char* icon = "";
-        if (node->is_directory) {
-            setColor(ab, gEditor.color_cfg.explorer[2], 0);
-            icon = node->is_open ? "v " : "> ";
-        } else {
-            setColor(ab, gEditor.color_cfg.explorer[3], 0);
+        ScreenStyle row_style =
+            (node->is_directory) ? directory_style : default_style;
+        if (index == gEditor.explorer.selected_index) {
+            row_style.bg = gEditor.color_cfg.explorer[1];
         }
-        const char* filename = getBaseName(node->filename);
 
-        snprintf(explorer_buf, gEditor.explorer.width + 1, "%*s%s%s%*s",
-                 node->depth * 2, "", icon, filename, gEditor.explorer.width,
-                 "");
-        abufAppendN(ab, explorer_buf, gEditor.explorer.width);
+        screenClearCells(row, gEditor.screen_cols, 0, explorer_width,
+                         row_style);
+
+        // Indentation
+        int x = node->depth * 2;
+
+        if (node->is_directory) {
+            const char* icon = node->is_open ? "v " : "> ";
+            x += screenPutAscii(row, explorer_width, x, icon, row_style);
+        }
+
+        const char* filename = getBaseName(node->filename);
+        screenPutUtf8(row, explorer_width, x, filename, row_style);
     }
 
     // Draw blank lines
-    setColor(ab, gEditor.color_cfg.explorer[0], 1);
-    setColor(ab, gEditor.color_cfg.explorer[3], 0);
-
-    memset(explorer_buf, ' ', gEditor.explorer.width);
-
     for (int i = 0; i < gEditor.display_rows - lines; i++) {
-        gotoXY(ab, lines + i + 2, 1);
-        abufAppendN(ab, explorer_buf, gEditor.explorer.width);
+        ScreenCell* row = gEditor.screen[lines + i + 1];
+        screenClearCells(row, gEditor.screen_cols, 0, explorer_width,
+                         default_style);
     }
-
-    free(explorer_buf);
 }
 
 void editorRefreshScreen(void) {
+    if (gEditor.screen_size_updated) {
+        if (gEditor.screen) {
+            for (int i = 0; i < gEditor.old_screen_rows; i++) {
+                free(gEditor.screen[i]);
+            }
+            free(gEditor.screen);
+        }
+        if (gEditor.prev_screen) {
+            for (int i = 0; i < gEditor.old_screen_rows; i++) {
+                free(gEditor.prev_screen[i]);
+            }
+            free(gEditor.prev_screen);
+        }
+
+        gEditor.screen = malloc_s(gEditor.screen_rows * sizeof(ScreenCell*));
+        for (int i = 0; i < gEditor.screen_rows; i++) {
+            gEditor.screen[i] =
+                malloc_s(gEditor.screen_cols * sizeof(ScreenCell));
+        }
+        gEditor.prev_screen =
+            malloc_s(gEditor.screen_rows * sizeof(ScreenCell*));
+        for (int i = 0; i < gEditor.screen_rows; i++) {
+            gEditor.prev_screen[i] =
+                malloc_s(gEditor.screen_cols * sizeof(ScreenCell));
+        }
+    }
+
     abuf ab = ABUF_INIT;
 
     abufAppendStr(&ab, ANSI_CURSOR_HIDE ANSI_CURSOR_RESET_POS);
 
-    editorDrawTopStatusBar(&ab);
-    editorDrawRows(&ab);
-    editorDrawFileExplorer(&ab);
+    // Draw screen
+    editorDrawTopStatusBar();
+    editorDrawRows();
+    editorDrawFileExplorer();
 
-    editorDrawConMsg(&ab);
-    editorDrawPrompt(&ab);
+    editorDrawConMsg();
+    editorDrawPrompt();
 
-    editorDrawStatusBar(&ab);
+    editorDrawStatusBar();
 
+    // Render sreen
+    for (int i = 0; i < gEditor.screen_rows; i++) {
+        if (gEditor.screen_size_updated || editorScreenRowUpdated(i)) {
+            editorRenderRow(&ab, i);
+            // Save current screen
+            memcpy(gEditor.prev_screen[i], gEditor.screen[i],
+                   sizeof(ScreenCell) * gEditor.screen_cols);
+        }
+    }
+    gEditor.screen_size_updated = false;
+
+    // Crosshair
     bool should_show_cursor = false;
     switch (gEditor.state) {
         case EDIT_MODE: {

@@ -100,15 +100,22 @@ bool strToColor(const char* color, Color* out) {
     return true;
 }
 
-void setColor(abuf* ab, Color color, int is_bg) {
-    char buf[32];
-    int len;
+void setColor(abuf* ab, Color color, bool is_bg) {
     if (color.r == 0 && color.g == 0 && color.b == 0 && is_bg) {
-        len = snprintf(buf, sizeof(buf), "%s", ANSI_DEFAULT_BG);
-    } else {
-        len = snprintf(buf, sizeof(buf), "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38,
-                       color.r, color.g, color.b);
+        abufAppendStr(ab, ANSI_DEFAULT_BG);
+        return;
     }
+
+    char buf[32];
+    int len = snprintf(buf, sizeof(buf), "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38,
+                       color.r, color.g, color.b);
+    abufAppendN(ab, buf, len);
+}
+
+void setColors(abuf* ab, Color fg, Color bg) {
+    char buf[48];
+    int len = snprintf(buf, sizeof(buf), "\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm",
+                       fg.r, fg.g, fg.b, bg.r, bg.g, bg.b);
     abufAppendN(ab, buf, len);
 }
 

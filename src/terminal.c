@@ -393,8 +393,11 @@ void setWindowSize(int rows, int cols) {
     cols = cols < 1 ? 1 : cols;
 
     if (gEditor.screen_rows != rows || gEditor.screen_cols != cols) {
+        gEditor.old_screen_rows = gEditor.screen_rows;
+        gEditor.old_screen_cols = gEditor.screen_cols;
         gEditor.screen_rows = rows;
         gEditor.screen_cols = cols;
+        gEditor.screen_size_updated = true;
         // TODO: Don't hard coding rows
         gEditor.display_rows = (rows < 2) ? 0 : rows - 2;
         editorRefreshScreen();
@@ -411,8 +414,6 @@ void editorInitTerminal(void) {
     }
     atexit(terminalExit);
 
-    resizeWindow();
-
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
         PANIC("Failed to install SIGSEGV handler");
     }
@@ -420,6 +421,8 @@ void editorInitTerminal(void) {
     if (signal(SIGABRT, SIGABRT_handler) == SIG_ERR) {
         PANIC("Failed to install SIGABRT handler");
     }
+
+    resizeWindow();
 }
 
 void terminalExit(void) {

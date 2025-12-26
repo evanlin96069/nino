@@ -5,7 +5,6 @@
 #include "input.h"
 #include "opt.h"
 #include "output.h"
-#include "prompt.h"
 #include "row.h"
 #include "terminal.h"
 
@@ -29,7 +28,6 @@ int main(int argc, char* argv[]) {
     }
 
     editorInitTerminal();
-    editorRefreshScreen();  // Draw loading
 
     EditorFile file;
     for (int i = 0; i < argc; i++) {

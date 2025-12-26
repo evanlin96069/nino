@@ -74,9 +74,14 @@ typedef struct Color {
     int r, g, b;
 } Color;
 
+static inline bool colorEql(Color a, Color b) {
+    return a.r == b.r && a.g == b.g && a.b == b.b;
+}
+
 bool strToColor(const char* color, Color* out);
 int colorToStr(Color color, char buf[8]);
-void setColor(abuf* ab, Color color, int is_bg);
+void setColor(abuf* ab, Color color, bool is_bg);
+void setColors(abuf* ab, Color fg, Color bg);
 
 // Separator
 typedef int (*IsCharFunc)(int c);

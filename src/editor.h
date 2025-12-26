@@ -5,6 +5,7 @@
 #include "config.h"
 #include "file_io.h"
 #include "os.h"
+#include "output.h"
 #include "row.h"
 #include "select.h"
 
@@ -70,9 +71,14 @@ typedef struct EditorFile {
 } EditorFile;
 
 typedef struct Editor {
-    // Raw screen size
+    // Screen
+    ScreenCell** screen;
+    ScreenCell** prev_screen;
     int screen_rows;
     int screen_cols;
+    int old_screen_rows;
+    int old_screen_cols;
+    bool screen_size_updated;
 
     // Text field size
     int display_rows;
