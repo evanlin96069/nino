@@ -114,8 +114,14 @@ void setColor(abuf* ab, Color color, bool is_bg) {
 
 void setColors(abuf* ab, Color fg, Color bg) {
     char buf[48];
-    int len = snprintf(buf, sizeof(buf), "\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm",
+    int len;
+    if (bg.r == 0 && bg.g == 0 && bg.b == 0) {
+        len = snprintf(buf, sizeof(buf), "\x1b[38;2;%d;%d;%d;49m", fg.r, fg.g,
+                       fg.b);
+    } else {
+        len = snprintf(buf, sizeof(buf), "\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm",
                        fg.r, fg.g, fg.b, bg.r, bg.g, bg.b);
+    }
     abufAppendN(ab, buf, len);
 }
 
