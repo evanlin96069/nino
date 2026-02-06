@@ -232,6 +232,9 @@ bool editorSave(EditorFile* file, int save_as) {
         err = saveFileInPlace(file->filename, buf, len);
     } else {
         err = saveFileReplace(file->filename, buf, len);
+        if (err) {
+            err = saveFileInPlace(file->filename, buf, len);
+        }
     }
 
     free(buf);
