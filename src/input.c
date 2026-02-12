@@ -604,10 +604,10 @@ void editorProcessKeypress(void) {
             edit.x = gCurFile->cursor.x;
             edit.y = gCurFile->cursor.y;
 
-            EditorSelectRange to_delete = {0};
+            EditorSelectRange delete_range = {0};
             if (gCurFile->cursor.is_selected) {
-                getSelectStartEnd(&gCurFile->cursor, &to_delete);
-                editorCopyText(&edit.before, to_delete);
+                getSelectStartEnd(&gCurFile->cursor, &delete_range);
+                editorCopyText(&edit.before, delete_range);
             }
 
             editorFreeClipboardContent(&edit.after);
@@ -616,12 +616,17 @@ void editorProcessKeypress(void) {
 
             if (CONVAR_GETINT(autoindent)) {
                 const EditorRow* row = &gCurFile->row[gCurFile->cursor.y];
-                bool should_indent = true;
+                bool should_indent;
                 if (gCurFile->cursor.x < row->size) {
-                    char next = row->data[gCurFile->cursor.x];
-                    if (next == ' ' || next == '\t') {
-                        should_indent = false;
+                    should_indent = false;
+                    for (int i = gCurFile->cursor.x; i < row->size; i++) {
+                        if (row->data[i] != ' ' && row->data[i] != '\t') {
+                            should_indent = true;
+                            break;
+                        }
                     }
+                } else {
+                    should_indent = true;
                 }
 
                 if (should_indent) {
@@ -632,14 +637,24 @@ void editorProcessKeypress(void) {
                     }
                     if (i > 0) {
                         editorClipboardAppendAt(&edit.after, 1, row->data,
-                                              (size_t)i);
+                                                (size_t)i);
                     }
 
+                    // TODO: language specific auto indent
                     bool should_inc = false;
                     if (row->size > 0) {
                         char prev = row->data[row->size - 1];
-                        if (prev == ':' || prev == '{') {
+                        if (prev == ':') {
+                            // Python
                             should_inc = true;
+                        } else if (prev == '{') {
+                            // C
+                            if (gCurFile->cursor.x < row->size) {
+                                should_inc =
+                                    (row->data[gCurFile->cursor.x] != '}');
+                            } else {
+                                should_inc = true;
+                            }
                         }
                     }
 
@@ -867,34 +882,34 @@ void editorProcessKeypress(void) {
             int new_y = cy;
             int bracket_delta = 0;
 
+            EditorRow* row = &gCurFile->row[cy];
+
             if (c == DEL_KEY) {
                 if (cx < gCurFile->row[cy].size) {
-                    end_x = editorRowNextUTF8(&gCurFile->row[cy], cx);
+                    end_x = editorRowNextUTF8(row, cx);
                 } else if (cy + 1 < gCurFile->num_rows) {
                     end_x = 0;
                     end_y = cy + 1;
                 }
             } else {
                 if (cx > 0) {
-                    start_x = editorRowPreviousUTF8(&gCurFile->row[cy], cx);
-                    char deleted_char = gCurFile->row[cy].data[start_x];
+                    start_x = editorRowPreviousUTF8(row, cx);
+                    char deleted_char = row->data[start_x];
                     bool should_delete_tab =
                         CONVAR_GETINT(backspace) && deleted_char == ' ';
                     if (should_delete_tab) {
                         bool only_spaces = true;
                         for (int i = 0; i < start_x; i++) {
-                            char curr = gCurFile->row[cy].data[i];
-                            if (curr != ' ' && curr != '\t') {
+                            if (row->data[i] != ' ' && row->data[i] != '\t') {
                                 only_spaces = false;
                                 break;
                             }
                         }
                         if (only_spaces) {
-                            int rx =
-                                editorRowCxToRx(&gCurFile->row[cy], start_x);
+                            int rx = editorRowCxToRx(row, start_x);
                             while (rx % CONVAR_GETINT(tabsize) != 0 &&
                                    start_x > 0 &&
-                                   gCurFile->row[cy].data[start_x - 1] == ' ') {
+                                   row->data[start_x - 1] == ' ') {
                                 start_x--;
                                 rx--;
                             }
@@ -909,20 +924,19 @@ void editorProcessKeypress(void) {
                 }
             }
 
-            if (gCurFile->bracket_autocomplete && cy < gCurFile->num_rows &&
-                cx > 0 && cx < gCurFile->row[cy].size) {
-                char left = gCurFile->row[cy].data[cx - 1];
-                char right = gCurFile->row[cy].data[cx];
+            if (gCurFile->bracket_autocomplete && cx > 0 && cx < row->size) {
+                char left = row->data[cx - 1];
+                char right = row->data[cx];
                 bool match = isCloseBracket(right) == left ||
                              (left == '\'' && right == '\'') ||
                              (left == '"' && right == '"');
                 if (match && c != DEL_KEY) {
-                    end_x = editorRowNextUTF8(&gCurFile->row[cy], cx);
-                    start_x = editorRowPreviousUTF8(&gCurFile->row[cy], cx);
+                    end_x = editorRowNextUTF8(row, cx);
+                    start_x = editorRowPreviousUTF8(row, cx);
                     new_x = start_x;
                     bracket_delta = -1;
                 } else if (match && c == DEL_KEY) {
-                    end_x = editorRowNextUTF8(&gCurFile->row[cy], cx);
+                    end_x = editorRowNextUTF8(row, cx);
                     bracket_delta = -1;
                 }
             }
@@ -1025,16 +1039,16 @@ void editorProcessKeypress(void) {
             has_edit = true;
 
             bool copy_line = (c == PASTE_INPUT) ? false : gEditor.copy_line;
-            EditorSelectRange to_delete = {
+            EditorSelectRange delete_range = {
                 gCurFile->cursor.x, gCurFile->cursor.y, gCurFile->cursor.x,
                 gCurFile->cursor.y};
             if (gCurFile->cursor.is_selected) {
-                getSelectStartEnd(&gCurFile->cursor, &to_delete);
-                editorCopyText(&edit.before, to_delete);
+                getSelectStartEnd(&gCurFile->cursor, &delete_range);
+                editorCopyText(&edit.before, delete_range);
             }
 
-            edit.x = to_delete.start_x;
-            edit.y = to_delete.start_y;
+            edit.x = delete_range.start_x;
+            edit.y = delete_range.start_y;
             editorFreeClipboardContent(&edit.after);
             if (clipboard->size > 0) {
                 edit.after.size = clipboard->size;
@@ -1053,7 +1067,7 @@ void editorProcessKeypress(void) {
                 }
             }
 
-            if (copy_line) {
+            if (!gCurFile->cursor.is_selected && copy_line) {
                 edit.x = 0;
             }
 
@@ -1396,15 +1410,12 @@ void editorProcessKeypress(void) {
                 } break;
 
                 case FIELD_TOP_STATUS: {
-                    int in_x = input.data.cursor.x;
                     should_scroll = false;
                     mouse_click = 0;
                     editorChangeToFile(handleTabClick(in_x));
                 } break;
 
                 case FIELD_EXPLORER: {
-                    int in_x = input.data.cursor.x;
-
                     should_scroll = false;
                     mouse_click = 0;
                     if (in_x == gEditor.explorer.width - 1) {
@@ -1568,18 +1579,18 @@ void editorProcessKeypress(void) {
         case CHAR_INPUT: {
             c = input.data.unicode;
             has_edit = true;
-            EditorSelectRange to_delete = {
+            EditorSelectRange delete_range = {
                 gCurFile->cursor.x, gCurFile->cursor.y, gCurFile->cursor.x,
                 gCurFile->cursor.y};
 
             if (gCurFile->cursor.is_selected) {
-                getSelectStartEnd(&gCurFile->cursor, &to_delete);
-                editorCopyText(&edit.before, to_delete);
+                getSelectStartEnd(&gCurFile->cursor, &delete_range);
+                editorCopyText(&edit.before, delete_range);
                 gCurFile->cursor.is_selected = false;
             }
 
-            edit.x = to_delete.start_x;
-            edit.y = to_delete.start_y;
+            edit.x = delete_range.start_x;
+            edit.y = delete_range.start_y;
             editorFreeClipboardContent(&edit.after);
 
             int close_bracket = isOpenBracket(c);
@@ -1595,7 +1606,7 @@ void editorProcessKeypress(void) {
                     total_spaces = tabsize;
 
                 editorClipboardAppendAtRepeat(&edit.after, 0, ' ',
-                                            (size_t)total_spaces);
+                                              (size_t)total_spaces);
             } else if (!CONVAR_GETINT(bracket)) {
                 editorClipboardAppendUnicode(&edit.after, c);
             } else if (close_bracket) {
@@ -1639,8 +1650,7 @@ void editorProcessKeypress(void) {
             new_cursor.is_selected = false;
             if (should_skip) {
                 has_edit = false;
-                new_cursor.x = gCurFile->cursor.x + 1;
-                new_cursor.y = gCurFile->cursor.y;
+                gCurFile->cursor.x++;
             } else if (did_autocomplete) {
                 new_cursor.x = edit.x + edit.after.lines[0].size - 1;
                 new_cursor.y = edit.y;
