@@ -1,7 +1,6 @@
 #ifndef ROW_H
 #define ROW_H
 
-struct EditorFile;
 typedef struct EditorFile EditorFile;
 
 typedef struct EditorRow {
@@ -28,12 +27,6 @@ void editorRowInsertString(EditorFile* file,
                            int at,
                            const char* s,
                            size_t len);
-
-// On gCurFile
-void editorInsertChar(int c);
-void editorInsertUnicode(uint32_t unicode);
-void editorInsertNewline(void);
-void editorDelChar(void);
 
 // UTF-8
 int editorRowPreviousUTF8(EditorRow* row, int cx);

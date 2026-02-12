@@ -553,7 +553,7 @@ static void editorDrawRows(void) {
 
     EditorSelectRange range = {0};
     if (gCurFile->cursor.is_selected)
-        getSelectStartEnd(&range);
+        getSelectStartEnd(&gCurFile->cursor, &range);
 
     int lineno_width = LINENO_WIDTH();
     int content_start_col = gEditor.explorer.width + lineno_width;

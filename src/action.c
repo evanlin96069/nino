@@ -2,6 +2,21 @@
 
 #include "editor.h"
 
+void editorApplyEdit(Edit* edit, bool undo) {
+    EditorSelectRange delete_range;
+    EditorClipboard* to_add;
+    if (undo) {
+        delete_range = getClipboardRange(edit->x, edit->y, &edit->after);
+        to_add = &edit->before;
+    } else {
+        delete_range = getClipboardRange(edit->x, edit->y, &edit->before);
+        to_add = &edit->after;
+    }
+
+    editorDeleteText(delete_range);
+    editorPasteText(to_add, edit->x, edit->y);
+}
+
 bool editorUndo(void) {
     if (gCurFile->action_current == gCurFile->action_head)
         return false;
@@ -9,9 +24,7 @@ bool editorUndo(void) {
     switch (gCurFile->action_current->action->type) {
         case ACTION_EDIT: {
             EditAction* edit = &gCurFile->action_current->action->edit;
-            editorDeleteText(edit->added_range);
-            editorPasteText(&edit->deleted_text, edit->deleted_range.start_x,
-                            edit->deleted_range.start_y);
+            editorApplyEdit(&edit->data, true);
             gCurFile->cursor = edit->old_cursor;
         } break;
 
@@ -35,9 +48,7 @@ bool editorRedo(void) {
     switch (gCurFile->action_current->action->type) {
         case ACTION_EDIT: {
             EditAction* edit = &gCurFile->action_current->action->edit;
-            editorDeleteText(edit->deleted_range);
-            editorPasteText(&edit->added_text, edit->added_range.start_x,
-                            edit->added_range.start_y);
+            editorApplyEdit(&edit->data, false);
             gCurFile->cursor = edit->new_cursor;
         } break;
 
@@ -80,8 +91,8 @@ void editorFreeAction(EditorAction* action) {
         return;
 
     if (action->type == ACTION_EDIT) {
-        editorFreeClipboardContent(&action->edit.deleted_text);
-        editorFreeClipboardContent(&action->edit.added_text);
+        editorFreeClipboardContent(&action->edit.data.before);
+        editorFreeClipboardContent(&action->edit.data.after);
     }
 
     free(action);

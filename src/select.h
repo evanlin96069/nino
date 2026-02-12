@@ -3,6 +3,8 @@
 
 #include "utils.h"
 
+typedef struct EditorCursor EditorCursor;
+
 typedef struct EditorClipboard {
     size_t size;
     Str* lines;
@@ -15,8 +17,11 @@ typedef struct EditorSelectRange {
     int end_y;
 } EditorSelectRange;
 
-void getSelectStartEnd(EditorSelectRange* range);
+void getSelectStartEnd(const EditorCursor* cursor, EditorSelectRange* range);
 bool isPosSelected(int row, int col, EditorSelectRange range);
+EditorSelectRange getClipboardRange(int x,
+                                    int y,
+                                    const EditorClipboard* clipboard);
 
 void editorDeleteText(EditorSelectRange range);
 void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range);
@@ -26,5 +31,17 @@ void editorPasteText(const EditorClipboard* clipboard, int x, int y);
 void editorFreeClipboardContent(EditorClipboard* clipboard);
 
 void editorCopyToSysClipboard(EditorClipboard* clipboard, uint8_t newline);
+
+void editorClipboardAppendAt(EditorClipboard* clipboard,
+                           size_t line_index,
+                           const char* data,
+                           size_t len);
+void editorClipboardAppendAtRepeat(EditorClipboard* clipboard,
+                                 size_t line_index,
+                                 char value,
+                                 size_t count);
+void editorClipboardAppendChar(EditorClipboard* clipboard, char c);
+void editorClipboardAppendUnicode(EditorClipboard* clipboard, uint32_t unicode);
+void editorClipboardAppendNewline(EditorClipboard* clipboard);
 
 #endif

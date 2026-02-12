@@ -10,13 +10,14 @@ typedef struct EditorCursor {
     int select_y;
 } EditorCursor;
 
+typedef struct Edit {
+    int x, y;
+    EditorClipboard before;
+    EditorClipboard after;
+} Edit;
+
 typedef struct EditAction {
-    EditorSelectRange deleted_range;
-    EditorClipboard deleted_text;
-
-    EditorSelectRange added_range;
-    EditorClipboard added_text;
-
+    Edit data;
     EditorCursor old_cursor;
     EditorCursor new_cursor;
 } EditAction;
@@ -45,6 +46,7 @@ typedef struct EditorActionList {
     EditorAction* action;
 } EditorActionList;
 
+void editorApplyEdit(Edit* edit, bool undo);
 bool editorUndo(void);
 bool editorRedo(void);
 void editorAppendAction(EditorAction* action);
