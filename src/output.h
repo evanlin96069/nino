@@ -3,8 +3,6 @@
 
 #include "utils.h"
 
-#define LINENO_WIDTH() (CONVAR_GETINT(lineno) ? gCurFile->lineno_width : 0)
-
 #define MAX_CLUSTER_SIZE 8  // Good enough
 typedef struct Grapheme {
     uint32_t cluster[MAX_CLUSTER_SIZE];

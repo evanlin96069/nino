@@ -72,59 +72,52 @@ EditorSelectRange getClipboardRange(int x,
     return range;
 }
 
-void editorDeleteText(EditorSelectRange range) {
+void editorDeleteText(EditorFile* file, EditorSelectRange range) {
     if (range.start_x == range.end_x && range.start_y == range.end_y)
         return;
 
     if (range.start_y == range.end_y) {
-        EditorRow* row = &gCurFile->row[range.start_y];
+        EditorRow* row = &file->row[range.start_y];
         if (range.start_x < range.end_x) {
             memmove(&row->data[range.start_x], &row->data[range.end_x],
                     row->size - range.end_x);
             row->size -= range.end_x - range.start_x;
-            editorUpdateRow(gCurFile, row);
+            editorUpdateRow(file, row);
         }
-        gCurFile->cursor.x = range.start_x;
-        gCurFile->cursor.y = range.start_y;
-        gCurFile->sx = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                       gCurFile->cursor.x);
         return;
     }
 
-    EditorRow* start_row = &gCurFile->row[range.start_y];
-    EditorRow* end_row = &gCurFile->row[range.end_y];
+    EditorRow* start_row = &file->row[range.start_y];
+    EditorRow* end_row = &file->row[range.end_y];
     int tail_len = end_row->size - range.end_x;
 
     start_row->size = range.start_x;
     if (tail_len > 0) {
-        editorRowAppendString(gCurFile, start_row, &end_row->data[range.end_x],
+        editorRowAppendString(file, start_row, &end_row->data[range.end_x],
                               tail_len);
     } else {
-        editorUpdateRow(gCurFile, start_row);
+        editorUpdateRow(file, start_row);
     }
 
     for (int i = range.start_y + 1; i <= range.end_y; i++) {
-        editorFreeRow(&gCurFile->row[i]);
+        editorFreeRow(&file->row[i]);
     }
 
     int removed_rows = range.end_y - range.start_y;
-    memmove(&gCurFile->row[range.start_y + 1], &gCurFile->row[range.end_y + 1],
-            sizeof(EditorRow) * (gCurFile->num_rows - range.end_y - 1));
+    memmove(&file->row[range.start_y + 1], &file->row[range.end_y + 1],
+            sizeof(EditorRow) * (file->num_rows - range.end_y - 1));
 
-    gCurFile->num_rows -= removed_rows;
-    gCurFile->lineno_width = getDigit(gCurFile->num_rows) + 2;
+    file->num_rows -= removed_rows;
+    file->lineno_width = getDigit(file->num_rows) + 2;
 
-    if (range.start_y + 1 < gCurFile->num_rows) {
-        editorUpdateRow(gCurFile, &gCurFile->row[range.start_y + 1]);
+    if (range.start_y + 1 < file->num_rows) {
+        editorUpdateRow(file, &file->row[range.start_y + 1]);
     }
-
-    gCurFile->cursor.x = range.start_x;
-    gCurFile->cursor.y = range.start_y;
-    gCurFile->sx =
-        editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
 }
 
-void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range) {
+void editorCopyText(EditorFile* file,
+                    EditorClipboard* clipboard,
+                    EditorSelectRange range) {
     if (range.start_x == range.end_x && range.start_y == range.end_y) {
         clipboard->size = 0;
         clipboard->lines = NULL;
@@ -142,24 +135,24 @@ void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range) {
         clipboard->lines[0].size = size;
         clipboard->lines[0].data = malloc_s(size);
         memcpy(clipboard->lines[0].data,
-               &gCurFile->row[range.start_y].data[range.start_x],
+               &file->row[range.start_y].data[range.start_x],
                range.end_x - range.start_x);
         return;
     }
 
     // First line
-    size = gCurFile->row[range.start_y].size - range.start_x;
+    size = file->row[range.start_y].size - range.start_x;
     clipboard->lines[0].size = size;
     clipboard->lines[0].data = malloc_s(size);
     memcpy(clipboard->lines[0].data,
-           &gCurFile->row[range.start_y].data[range.start_x], size);
+           &file->row[range.start_y].data[range.start_x], size);
 
     // Middle
     for (int i = range.start_y + 1; i < range.end_y; i++) {
-        size = gCurFile->row[i].size;
+        size = file->row[i].size;
         clipboard->lines[i - range.start_y].size = size;
         clipboard->lines[i - range.start_y].data = malloc_s(size);
-        memcpy(clipboard->lines[i - range.start_y].data, gCurFile->row[i].data,
+        memcpy(clipboard->lines[i - range.start_y].data, file->row[i].data,
                size);
     }
     // Last line
@@ -167,11 +160,11 @@ void editorCopyText(EditorClipboard* clipboard, EditorSelectRange range) {
     clipboard->lines[range.end_y - range.start_y].size = size;
     clipboard->lines[range.end_y - range.start_y].data = malloc_s(size);
     memcpy(clipboard->lines[range.end_y - range.start_y].data,
-           gCurFile->row[range.end_y].data, size);
+           file->row[range.end_y].data, size);
 }
 
-void editorCopyLine(EditorClipboard* clipboard, int row) {
-    if (row < 0 || row >= gCurFile->num_rows) {
+void editorCopyLine(EditorFile* file, EditorClipboard* clipboard, int row) {
+    if (row < 0 || row >= file->num_rows) {
         clipboard->size = 0;
         clipboard->lines = NULL;
         return;
@@ -181,54 +174,46 @@ void editorCopyLine(EditorClipboard* clipboard, int row) {
     clipboard->lines = malloc_s(sizeof(Str) * clipboard->size);
 
     // First line
-    size_t size = gCurFile->row[row].size;
+    size_t size = file->row[row].size;
     clipboard->lines[0].size = size;
     clipboard->lines[0].data = malloc_s(size);
-    memcpy(clipboard->lines[0].data, &gCurFile->row[row].data[0], size);
+    memcpy(clipboard->lines[0].data, &file->row[row].data[0], size);
     // Empty line
     clipboard->lines[1].size = 0;
     clipboard->lines[1].data = NULL;
-    ;
 }
 
-void editorPasteText(const EditorClipboard* clipboard, int x, int y) {
+void editorPasteText(EditorFile* file,
+                     const EditorClipboard* clipboard,
+                     int x,
+                     int y) {
     if (!clipboard->size)
         return;
 
-    gCurFile->cursor.x = x;
-    gCurFile->cursor.y = y;
-
     if (clipboard->size == 1) {
-        EditorRow* row = &gCurFile->row[y];
+        EditorRow* row = &file->row[y];
         char* paste = clipboard->lines[0].data;
         size_t paste_len = clipboard->lines[0].size;
 
-        editorRowInsertString(gCurFile, row, x, paste, paste_len);
-        gCurFile->cursor.x += paste_len;
+        editorRowInsertString(file, row, x, paste, paste_len);
     } else {
         // First line
-        size_t tail_len = gCurFile->row[y].size - x;
-        editorInsertRow(gCurFile, y + 1, &gCurFile->row[y].data[x], tail_len);
-        gCurFile->row[y].size = x;
-        editorRowAppendString(gCurFile, &gCurFile->row[y],
-                              clipboard->lines[0].data,
+        size_t tail_len = file->row[y].size - x;
+        editorInsertRow(file, y + 1, &file->row[y].data[x], tail_len);
+        file->row[y].size = x;
+        editorRowAppendString(file, &file->row[y], clipboard->lines[0].data,
                               clipboard->lines[0].size);
         // Middle
         for (size_t i = 1; i < clipboard->size - 1; i++) {
-            editorInsertRow(gCurFile, y + i, clipboard->lines[i].data,
+            editorInsertRow(file, y + i, clipboard->lines[i].data,
                             clipboard->lines[i].size);
         }
         // Last line
-        EditorRow* row = &gCurFile->row[y + clipboard->size - 1];
+        EditorRow* row = &file->row[y + clipboard->size - 1];
         char* paste = clipboard->lines[clipboard->size - 1].data;
         size_t paste_len = clipboard->lines[clipboard->size - 1].size;
-        editorRowInsertString(gCurFile, row, 0, paste, paste_len);
-
-        gCurFile->cursor.y = y + clipboard->size - 1;
-        gCurFile->cursor.x = paste_len;
+        editorRowInsertString(file, row, 0, paste, paste_len);
     }
-    gCurFile->sx =
-        editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y], gCurFile->cursor.x);
 }
 
 void editorFreeClipboardContent(EditorClipboard* clipboard) {
@@ -310,9 +295,9 @@ static void editorClipboardEnsureLine(EditorClipboard* clipboard,
 }
 
 void editorClipboardAppendAt(EditorClipboard* clipboard,
-                           size_t line_index,
-                           const char* data,
-                           size_t len) {
+                             size_t line_index,
+                             const char* data,
+                             size_t len) {
     if (!clipboard || len == 0)
         return;
 
@@ -326,9 +311,9 @@ void editorClipboardAppendAt(EditorClipboard* clipboard,
 }
 
 void editorClipboardAppendAtRepeat(EditorClipboard* clipboard,
-                                 size_t line_index,
-                                 char value,
-                                 size_t count) {
+                                   size_t line_index,
+                                   char value,
+                                   size_t count) {
     if (!clipboard || count == 0)
         return;
 
@@ -360,8 +345,8 @@ void editorClipboardAppendUnicode(EditorClipboard* clipboard,
         return;
 
     editorClipboardAppendAt(clipboard,
-                          clipboard->size == 0 ? 0 : clipboard->size - 1,
-                          output, (size_t)len);
+                            clipboard->size == 0 ? 0 : clipboard->size - 1,
+                            output, (size_t)len);
 }
 
 void editorClipboardAppendNewline(EditorClipboard* clipboard) {

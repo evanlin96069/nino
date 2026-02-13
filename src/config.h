@@ -114,5 +114,6 @@ void editorInitConVar(EditorConCmd* thisptr);
 EditorConCmd* editorFindCmd(const char* name);
 
 int editorGetDefaultNewline(void);
+int editorGetLinenoWidth(const EditorFile* file);
 
 #endif

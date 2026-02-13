@@ -332,17 +332,14 @@ static void editorDrawTopStatusBar(void) {
         const char* loading_text = "Loading...";
         x += screenPutAscii(row, gEditor.screen_cols, x, loading_text, style);
     } else {
-        for (int i = 0; i < gEditor.file_count; i++) {
-            if (i < gEditor.tab_offset)
-                continue;
-
+        for (int i = gEditor.tab_offset; i < gEditor.tab_count; i++) {
             int remaining_width = gEditor.screen_cols - x;
             if (remaining_width < 0)
                 break;
 
-            const EditorFile* file = &gEditor.files[i];
+            const EditorFile* file = editorTabGetFile(&gEditor.tabs[i]);
 
-            bool is_current = (file == gCurFile);
+            bool is_current = (file == editorGetActiveFile());
             if (is_current) {
                 style.fg = gEditor.color_cfg.top_status[4];
                 style.bg = gEditor.color_cfg.top_status[5];
@@ -364,7 +361,7 @@ static void editorDrawTopStatusBar(void) {
             int tab_width = strUTF8Width(buf);
 
             if (remaining_width < tab_width ||
-                (i != gEditor.file_count - 1 && remaining_width == tab_width)) {
+                (i != gEditor.tab_count - 1 && remaining_width == tab_width)) {
                 if (gEditor.tab_displayed == 0) {
                     // Display at least one tab (truncated if needed)
                     if (remaining_width > 1) {
@@ -387,7 +384,7 @@ static void editorDrawTopStatusBar(void) {
 
         style = default_style;
 
-        if (gEditor.tab_offset + gEditor.tab_displayed < gEditor.file_count) {
+        if (gEditor.tab_offset + gEditor.tab_displayed < gEditor.tab_count) {
             if (x >= gEditor.screen_cols) {
                 screenPutAscii(row, gEditor.screen_cols,
                                gEditor.screen_cols - 1, ">", style);
@@ -499,20 +496,21 @@ static void editorDrawStatusBar(void) {
     char lang[16];
     char pos[64];
     int rlen;
-    if (gEditor.file_count == 0) {
+    if (gEditor.tab_count == 0) {
         rlen = 0;
     } else {
+        const EditorTab* tab = editorGetActiveTab();
+        const EditorFile* file = editorTabGetFile(tab);
+
         const char* file_type =
-            gCurFile->syntax ? gCurFile->syntax->file_type : "Plain Text";
-        int row_num = gCurFile->cursor.y + 1;
-        int col = editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                  gCurFile->cursor.x) +
-                  1;
+            file->syntax ? file->syntax->file_type : "Plain Text";
+        int row_num = tab->cursor.y + 1;
+        int col = editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x) + 1;
         float line_percent = 0.0f;
-        const char* nl_type = (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF";
-        if (gCurFile->num_rows - 1 > 0) {
+        const char* nl_type = (file->newline == NL_UNIX) ? "LF" : "CRLF";
+        if (file->num_rows - 1 > 0) {
             line_percent =
-                (float)gCurFile->row_offset / (gCurFile->num_rows - 1) * 100.0f;
+                (float)tab->row_offset / (file->num_rows - 1) * 100.0f;
         }
 
         snprintf(lang, sizeof(lang), "  %s  ", file_type);
@@ -546,21 +544,38 @@ static void editorDrawStatusBar(void) {
     }
 }
 
-static void editorDrawRows(void) {
+static void editorDrawRows(const EditorTab* tab) {
     if (gEditor.explorer.width >= gEditor.screen_cols) {
         return;
     }
 
-    EditorSelectRange range = {0};
-    if (gCurFile->cursor.is_selected)
-        getSelectStartEnd(&gCurFile->cursor, &range);
+    if (gEditor.tab_count == 0) {
+        ScreenStyle bg_style = {
+            .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
+            .bg = gEditor.color_cfg.bg,
+        };
 
-    int lineno_width = LINENO_WIDTH();
+        for (int i = 0; i < gEditor.display_rows; i++) {
+            ScreenCell* row = gEditor.screen[i + 1];
+            screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
+                             gEditor.screen_cols - gEditor.explorer.width,
+                             bg_style);
+        }
+        return;
+    }
+
+    const EditorFile* file = editorTabGetFile(tab);
+
+    EditorSelectRange range = {0};
+    if (tab->cursor.is_selected)
+        getSelectStartEnd(&tab->cursor, &range);
+
+    int lineno_width = editorGetLinenoWidth(file);
     int content_start_col = gEditor.explorer.width + lineno_width;
     int content_cols = gEditor.screen_cols - content_start_col;
 
-    for (int i = gCurFile->row_offset, s_row = 1;
-         i < gCurFile->row_offset + gEditor.display_rows; i++, s_row++) {
+    for (int i = tab->row_offset, s_row = 1;
+         i < tab->row_offset + gEditor.display_rows; i++, s_row++) {
         ScreenCell* row = gEditor.screen[s_row];
 
         // Clear the entire row
@@ -568,52 +583,51 @@ static void editorDrawRows(void) {
             .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
             .bg = gEditor.color_cfg.bg,
         };
-        if (i == gCurFile->cursor.y && !gCurFile->cursor.is_selected) {
+        if (i == tab->cursor.y && !tab->cursor.is_selected) {
             bg_style.bg = gEditor.color_cfg.cursor_line;
         }
         screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
                          gEditor.screen_cols - gEditor.explorer.width,
                          bg_style);
 
-        if (i < gCurFile->num_rows) {
+        if (i < file->num_rows) {
             int x = gEditor.explorer.width;
 
             // Draw line number
             if (CONVAR_GETINT(lineno)) {
                 ScreenStyle lineno_style;
-                lineno_style.fg = (i == gCurFile->cursor.y)
+                lineno_style.fg = (i == tab->cursor.y)
                                       ? gEditor.color_cfg.line_number[1]
                                       : gEditor.color_cfg.line_number[0];
-                lineno_style.bg = (i == gCurFile->cursor.y)
+                lineno_style.bg = (i == tab->cursor.y)
                                       ? gEditor.color_cfg.line_number[0]
                                       : gEditor.color_cfg.line_number[1];
 
                 char line_number[16];
                 snprintf(line_number, sizeof(line_number), " %*d ",
-                         gCurFile->lineno_width - 2, i + 1);
+                         file->lineno_width - 2, i + 1);
                 x += screenPutAscii(row, gEditor.screen_cols, x, line_number,
                                     lineno_style);
             }
 
             // Draw content
-            int col_offset =
-                editorRowRxToCx(&gCurFile->row[i], gCurFile->col_offset);
-            int data_len = gCurFile->row[i].size - col_offset;
+            int col_offset = editorRowRxToCx(&file->row[i], tab->col_offset);
+            int data_len = file->row[i].size - col_offset;
             if (data_len < 0) {
                 data_len = 0;
             }
 
-            int rlen = gCurFile->row[i].rsize - gCurFile->col_offset;
+            int rlen = file->row[i].rsize - tab->col_offset;
             if (rlen > content_cols) {
                 rlen = content_cols;
             }
-            rlen += gCurFile->col_offset;
+            rlen += tab->col_offset;
 
-            char* c = &gCurFile->row[i].data[col_offset];
-            uint8_t* hl = &(gCurFile->row[i].hl[col_offset]);
+            char* c = &file->row[i].data[col_offset];
+            uint8_t* hl = &(file->row[i].hl[col_offset]);
 
             int j = 0;
-            int rx = gCurFile->col_offset;
+            int rx = tab->col_offset;
             int screen_x = content_start_col;
 
             Grapheme* curr_grapheme = NULL;
@@ -621,7 +635,7 @@ static void editorDrawRows(void) {
             while (rx < rlen && screen_x < gEditor.screen_cols) {
                 uint8_t fg = hl[j] & HL_FG_MASK;
                 uint8_t bg = hl[j] >> HL_FG_BITS;
-                if (gCurFile->cursor.is_selected &&
+                if (tab->cursor.is_selected &&
                     isPosSelected(i, j + col_offset, range)) {
                     bg = HL_BG_SELECT;
                 }
@@ -729,9 +743,9 @@ static void editorDrawRows(void) {
             }
 
             // Add newline character when selected
-            if (gCurFile->cursor.is_selected && range.end_y > i &&
+            if (tab->cursor.is_selected && range.end_y > i &&
                 i >= range.start_y &&
-                gCurFile->row[i].rsize - gCurFile->col_offset < content_cols &&
+                file->row[i].rsize - tab->col_offset < content_cols &&
                 screen_x < gEditor.screen_cols) {
                 ScreenStyle select_style = {
                     .fg = gEditor.color_cfg.highlightFg[HL_BG_NORMAL],
@@ -848,9 +862,12 @@ void editorRefreshScreen(void) {
 
     abufAppendStr(&ab, ANSI_CURSOR_HIDE ANSI_CURSOR_RESET_POS);
 
+    const EditorTab* tab = editorGetActiveTab();
+    const EditorFile* file = editorTabGetFile(tab);
+
     // Draw screen
     editorDrawTopStatusBar();
-    editorDrawRows();
+    editorDrawRows(tab);
     editorDrawFileExplorer();
 
     editorDrawConMsg();
@@ -873,11 +890,11 @@ void editorRefreshScreen(void) {
     bool should_show_cursor = false;
     switch (gEditor.state) {
         case EDIT_MODE: {
-            int row = (gCurFile->cursor.y - gCurFile->row_offset) + 2;
-            int col = (editorRowCxToRx(&gCurFile->row[gCurFile->cursor.y],
-                                       gCurFile->cursor.x) -
-                       gCurFile->col_offset) +
-                      1 + LINENO_WIDTH();
+            int row = (tab->cursor.y - tab->row_offset) + 2;
+            int col =
+                (editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x) -
+                 tab->col_offset) +
+                1 + editorGetLinenoWidth(file);
             if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 0 ||
                 col > gEditor.screen_cols - gEditor.explorer.width ||
                 row >= gEditor.screen_rows - gEditor.con_size) {

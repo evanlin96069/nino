@@ -2,7 +2,6 @@
 
 #include "buildnum.h"
 #include "editor.h"
-#include "input.h"
 #include "prompt.h"
 #include "terminal.h"
 
@@ -46,7 +45,9 @@ CONVAR(ttimeoutlen,
 CONVAR(lineno, "Show line numbers.", "1", NULL);
 
 static void reloadSyntax(void) {
-    for (int i = 0; i < gEditor.file_count; i++) {
+    for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+        if (gEditor.files[i].reference_count == 0)
+            continue;
         for (int j = 0; j < gEditor.files[i].num_rows; j++) {
             editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
         }
@@ -197,11 +198,13 @@ CON_COMMAND(lang, "Set the syntax highlighting language of the current file.") {
         return;
     }
 
+    EditorFile* file = editorGetActiveFile();
+
     const char* name = args.argv[1];
     for (EditorSyntax* s = gEditor.HLDB; s; s = s->next) {
         // Match the language name or the externaion
         if (strCaseCmp(name, s->file_type) == 0) {
-            editorSetSyntaxHighlight(gCurFile, s);
+            editorSetSyntaxHighlight(file, s);
             return;
         }
 
@@ -209,7 +212,7 @@ CON_COMMAND(lang, "Set the syntax highlighting language of the current file.") {
             int is_ext = (s->file_exts.data[i][0] == '.');
             if ((is_ext && strCaseCmp(name, &s->file_exts.data[i][1]) == 0) ||
                 (!is_ext && strCaseStr(name, s->file_exts.data[i]))) {
-                editorSetSyntaxHighlight(gCurFile, s);
+                editorSetSyntaxHighlight(file, s);
                 return;
             }
         }
@@ -253,8 +256,15 @@ CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
 }
 
 CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
+    if (gEditor.file_count == 0) {
+        editorMsg("newline: No file opened");
+        return;
+    }
+
+    EditorFile* file = editorGetActiveFile();
+
     if (args.argc == 1) {
-        editorMsg("%s", (gCurFile->newline == NL_UNIX) ? "LF" : "CRLF");
+        editorMsg("%s", (file->newline == NL_UNIX) ? "LF" : "CRLF");
         return;
     }
 
@@ -269,18 +279,18 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
         return;
     }
 
-    if (gCurFile->newline == nl) {
+    if (file->newline == nl) {
         return;
     }
 
     EditorAction* action = calloc_s(1, sizeof(EditorAction));
     action->type = ACTION_ATTRI;
     action->attri.new_newline = nl;
-    action->attri.old_newline = gCurFile->newline;
+    action->attri.old_newline = file->newline;
 
-    gCurFile->newline = nl;
+    file->newline = nl;
 
-    editorAppendAction(action);
+    editorAppendAction(file, action);
 }
 
 int editorGetDefaultNewline(void) {
@@ -815,4 +825,8 @@ EditorConCmd* editorFindCmd(const char* name) {
         curr = curr->next;
     }
     return result;
+}
+
+int editorGetLinenoWidth(const EditorFile* file) {
+    return (CONVAR_GETINT(lineno) ? file->lineno_width : 0);
 }

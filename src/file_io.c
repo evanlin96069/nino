@@ -7,13 +7,13 @@
 #include "editor.h"
 #include "highlight.h"
 #include "input.h"
-#include "output.h"
 #include "prompt.h"
 #include "row.h"
 
 static int isFileOpened(FileInfo info) {
-    for (int i = 0; i < gEditor.file_count; i++) {
-        if (gEditor.files[i].has_file_info &&
+    for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+        if (gEditor.files[i].reference_count > 0 &&
+            gEditor.files[i].has_file_info &&
             areFilesEqual(gEditor.files[i].file_info, info)) {
             return i;
         }
@@ -86,7 +86,12 @@ OpenStatus editorOpen(EditorFile* file, const char* path) {
             int open_index = isFileOpened(file_info);
 
             if (open_index != -1) {
-                editorChangeToFile(open_index);
+                int tab_index = editorFindTabByFileIndex(open_index);
+                if (tab_index != -1) {
+                    editorChangeToFile(tab_index);
+                } else {
+                    editorAddTab(open_index);
+                }
                 return OPEN_OPENED;
             }
         } break;
@@ -141,7 +146,7 @@ OpenStatus editorOpen(EditorFile* file, const char* path) {
     file->dirty = 0;
 
     if (!fp) {
-        editorInsertRow(file, file->cursor.y, "", 0);
+        editorInsertRow(file, 0, "", 0);
         return OPEN_FILE;
     }
 
@@ -285,11 +290,6 @@ bool editorIsDangerousSave(const EditorFile* file) {
 }
 
 void editorOpenFilePrompt(void) {
-    if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
-        editorMsg("Reached max file slots! Cannot open more files.");
-        return;
-    }
-
     char* path = editorPrompt("Open: %s", OPEN_FILE_MODE, NULL);
     if (!path)
         return;
@@ -297,9 +297,16 @@ void editorOpenFilePrompt(void) {
     EditorFile file;
     OpenStatus result = editorOpen(&file, path);
     if (result == OPEN_FILE) {
-        if (editorAddFile(&file) != -1) {
-            gEditor.state = EDIT_MODE;
+        int file_index = editorAddFile(&file);
+        if (file_index != -1) {
+            if (editorAddTab(file_index) != -1) {
+                gEditor.state = EDIT_MODE;
+            } else {
+                editorRemoveFile(file_index);
+            }
         }
+    } else if (result == OPEN_OPENED) {
+        gEditor.state = EDIT_MODE;
     } else if (result == OPEN_DIR) {
         gEditor.state = EXPLORER_MODE;
         editorExplorerShow();

@@ -3,6 +3,8 @@
 
 #include "select.h"
 
+typedef struct EditorTab EditorTab;
+
 typedef struct EditorCursor {
     int x, y;
     bool is_selected;
@@ -46,10 +48,10 @@ typedef struct EditorActionList {
     EditorAction* action;
 } EditorActionList;
 
-void editorApplyEdit(Edit* edit, bool undo);
-bool editorUndo(void);
-bool editorRedo(void);
-void editorAppendAction(EditorAction* action);
+void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo);
+bool editorUndo(EditorTab* tab);
+bool editorRedo(EditorTab* tab);
+void editorAppendAction(EditorFile* file, EditorAction* action);
 void editorFreeActionList(EditorActionList* thisptr);
 void editorFreeAction(EditorAction* action);
 

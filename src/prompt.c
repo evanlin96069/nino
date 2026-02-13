@@ -144,15 +144,15 @@ char* editorPrompt(const char* prompt,
                 break;
 
             case WHEEL_UP:
-                editorScroll(-3);
-                break;
-
             case WHEEL_DOWN:
-                editorScroll(3);
+                if (gEditor.tab_count > 0) {
+                    editorScroll(editorGetActiveTab(),
+                                 (input.type == WHEEL_UP) ? -3 : 3);
+                }
                 break;
 
             case MOUSE_PRESSED: {
-                int field = getMousePosField(x, y);
+                int field = editorGetMousePosField(x, y);
                 if (field == FIELD_PROMPT) {
                     if (x >= start) {
                         size_t cx = x - start;
@@ -163,10 +163,13 @@ char* editorPrompt(const char* prompt,
                     }
                     break;
                 } else if (field == FIELD_TEXT) {
-                    mousePosToEditorPos(&x, &y);
-                    gCurFile->cursor.y = y;
-                    gCurFile->cursor.x = editorRowRxToCx(&gCurFile->row[y], x);
-                    gCurFile->sx = x;
+                    EditorTab* tab = editorGetActiveTab();
+                    const EditorFile* file = editorTabGetFile(tab);
+
+                    editorMousePosToEditorPos(&x, &y);
+                    tab->cursor.y = y;
+                    tab->cursor.x = editorRowRxToCx(&file->row[y], x);
+                    tab->sx = x;
                 }
             }
             // fall through
@@ -233,20 +236,23 @@ static void editorGotoCallback(char* query, int key) {
         return;
     }
 
+    EditorTab* tab = editorGetActiveTab();
+    const EditorFile* file = editorTabGetFile(tab);
+
     int line = strToInt(query);
 
     if (line < 0) {
-        line = gCurFile->num_rows + 1 + line;
+        line = file->num_rows + 1 + line;
     }
 
-    if (line > 0 && line <= gCurFile->num_rows) {
-        gCurFile->cursor.x = 0;
-        gCurFile->sx = 0;
-        gCurFile->cursor.y = line - 1;
-        editorScrollToCursorCenter();
+    if (line > 0 && line <= file->num_rows) {
+        tab->cursor.x = 0;
+        tab->sx = 0;
+        tab->cursor.y = line - 1;
+        editorScrollToCursorCenter(tab);
     } else {
         editorMsg("Type a line number between 1 to %d (negative too).",
-                  gCurFile->num_rows);
+                  file->num_rows);
     }
 }
 
@@ -319,6 +325,9 @@ static void editorFindCallback(char* query, int key) {
         return;
     }
 
+    EditorTab* tab = editorGetActiveTab();
+    EditorFile* file = editorTabGetFile(tab);
+
     FindList* tail_node = NULL;
     if (!head.next || !prev_query || strcmp(prev_query, query) != 0) {
         // Recompute find list
@@ -352,13 +361,13 @@ static void editorFindCallback(char* query, int key) {
         }
 
         FindList* cur = &head;
-        for (int i = 0; i < gCurFile->num_rows; i++) {
+        for (int i = 0; i < file->num_rows; i++) {
             size_t col = 0;
-            size_t row_len = (size_t)gCurFile->row[i].size;
+            size_t row_len = (size_t)file->row[i].size;
 
             while (col < row_len) {
-                int match_idx = findSubstring(gCurFile->row[i].data, row_len,
-                                              query, len, col, ignore_case);
+                int match_idx = findSubstring(file->row[i].data, row_len, query,
+                                              len, col, ignore_case);
                 if (match_idx < 0)
                     break;
 
@@ -376,9 +385,8 @@ static void editorFindCallback(char* query, int key) {
                 total++;
                 if (!match_node) {
                     current++;
-                    if (((i == gCurFile->cursor.y &&
-                          col >= (size_t)gCurFile->cursor.x) ||
-                         i > gCurFile->cursor.y)) {
+                    if (((i == tab->cursor.y && col >= (size_t)tab->cursor.x) ||
+                         i > tab->cursor.y)) {
                         match_node = cur;
                     }
                 }
@@ -417,12 +425,11 @@ static void editorFindCallback(char* query, int key) {
     }
     editorSetRightPrompt("  %d of %d", current, total);
 
-    gCurFile->cursor.x = match_node->col;
-    gCurFile->cursor.y = match_node->row;
+    tab->cursor.x = match_node->col;
+    tab->cursor.y = match_node->row;
+    editorScrollToCursorCenter(tab);
 
-    editorScrollToCursorCenter();
-
-    uint8_t* match_pos = &gCurFile->row[match_node->row].hl[match_node->col];
+    uint8_t* match_pos = &file->row[match_node->row].hl[match_node->col];
     saved_hl_len = len;
     saved_hl_pos = match_pos;
     saved_hl = malloc_s(len + 1);

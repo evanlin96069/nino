@@ -114,7 +114,7 @@ void editorRowInsertString(EditorFile* file,
     editorUpdateRow(file, row);
 }
 
-int editorRowNextUTF8(EditorRow* row, int cx) {
+int editorRowNextUTF8(const EditorRow* row, int cx) {
     if (cx < 0)
         return 0;
 
@@ -127,7 +127,7 @@ int editorRowNextUTF8(EditorRow* row, int cx) {
     return cx + byte_size;
 }
 
-int editorRowPreviousUTF8(EditorRow* row, int cx) {
+int editorRowPreviousUTF8(const EditorRow* row, int cx) {
     if (cx <= 0)
         return 0;
 

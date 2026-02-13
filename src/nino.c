@@ -32,19 +32,29 @@ int main(int argc, char* argv[]) {
     EditorFile file;
     for (int i = 0; i < argc; i++) {
         if (editorOpen(&file, argv[i]) == OPEN_FILE) {
-            if (editorAddFile(&file) == -1) {
+            int file_index = editorAddFile(&file);
+            if (file_index == -1) {
+                break;
+            }
+            if (editorAddTab(file_index) == -1) {
+                editorRemoveFile(file_index);
                 break;
             }
         }
     }
 
     gEditor.state = EDIT_MODE;
-    if (gEditor.file_count == 0) {
+    if (gEditor.tab_count == 0) {
         if (gEditor.explorer.node) {
             gEditor.state = EXPLORER_MODE;
         } else {
             editorNewUntitledFile(&file);
-            editorAddFile(&file);
+            int file_index = editorAddFile(&file);
+            if (file_index != -1) {
+                if (editorAddTab(file_index) == -1) {
+                    editorRemoveFile(file_index);
+                }
+            }
         }
     }
 

@@ -10,7 +10,6 @@
 #include "prompt.h"
 
 Editor gEditor;
-EditorFile* gCurFile;
 
 void editorInit(void) {
     memset(&gEditor, 0, sizeof(Editor));
@@ -29,12 +28,14 @@ void editorInit(void) {
     editorLoadInitConfig();
 
     memset(&gEditor.files[0], 0, sizeof(EditorFile));
-    gCurFile = &gEditor.files[0];
 }
 
 void editorFree(void) {
-    for (int i = 0; i < gEditor.file_count; i++) {
-        editorFreeFile(&gEditor.files[i]);
+    for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+        if (gEditor.files[i].reference_count > 0) {
+            editorFreeFile(&gEditor.files[i]);
+            gEditor.files[i].reference_count = 0;
+        }
     }
     editorFreeClipboardContent(&gEditor.clipboard);
     editorExplorerFree();
@@ -57,21 +58,69 @@ void editorFreeFile(EditorFile* file) {
 }
 
 int editorAddFile(EditorFile* file) {
-    if (gEditor.file_count >= EDITOR_FILE_MAX_SLOT) {
+    int index = -1;
+    for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+        if (gEditor.files[i].reference_count == 0) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
         editorMsg("Already opened too many files!");
         editorFreeFile(file);
         return -1;
     }
 
-    EditorFile* current = &gEditor.files[gEditor.file_count];
+    EditorFile* current = &gEditor.files[index];
 
     *current = *file;
     current->action_head = calloc_s(1, sizeof(EditorActionList));
     current->action_current = current->action_head;
+    current->reference_count = 0;
 
-    gEditor.file_count++;
+    return index;
+}
 
-    int index = gEditor.file_count - 1;
+void editorRemoveFile(int index) {
+    if (index < 0 || index >= EDITOR_FILE_MAX_SLOT)
+        return;
+
+    EditorFile* file = &gEditor.files[index];
+    if (file->reference_count <= 0) {
+        return;
+    }
+
+    file->reference_count--;
+    if (file->reference_count == 0) {
+        editorFreeFile(file);
+        memset(file, 0, sizeof(EditorFile));
+        gEditor.file_count--;
+    }
+}
+
+int editorAddTab(int file_index) {
+    if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
+        return -1;
+
+    if (gEditor.tab_count >= EDITOR_FILE_MAX_SLOT) {
+        editorMsg("Already opened too many tabs!");
+        return -1;
+    }
+
+    EditorFile* file = &gEditor.files[file_index];
+    EditorTab* tab = &gEditor.tabs[gEditor.tab_count];
+    memset(tab, 0, sizeof(EditorTab));
+    tab->file_index = file_index;
+
+    if (file->reference_count == 0) {
+        gEditor.file_count++;
+    }
+    file->reference_count++;
+
+    gEditor.tab_count++;
+
+    int index = gEditor.tab_count - 1;
     if (gEditor.state != LOADING_MODE) {
         // hack: refresh screen to update gEditor.tab_displayed
         editorRefreshScreen();
@@ -81,27 +130,36 @@ int editorAddFile(EditorFile* file) {
     return index;
 }
 
-void editorRemoveFile(int index) {
-    if (index < 0 || index > gEditor.file_count)
+void editorRemoveTab(int index) {
+    if (index < 0 || index >= gEditor.tab_count)
         return;
 
-    EditorFile* file = &gEditor.files[index];
-    editorFreeFile(file);
-    if (file == &gEditor.files[gEditor.file_count]) {
-        // file is at the end
-        gEditor.file_count--;
+    int file_index = gEditor.tabs[index].file_index;
+    editorRemoveFile(file_index);
+
+    if (index == gEditor.tab_count - 1) {
+        gEditor.tab_count--;
         return;
     }
-    memmove(file, &gEditor.files[index + 1],
-            sizeof(EditorFile) * (gEditor.file_count - index));
-    gEditor.file_count--;
+
+    memmove(&gEditor.tabs[index], &gEditor.tabs[index + 1],
+            sizeof(EditorTab) * (gEditor.tab_count - index - 1));
+    gEditor.tab_count--;
+}
+
+int editorFindTabByFileIndex(int file_index) {
+    for (int i = 0; i < gEditor.tab_count; i++) {
+        if (gEditor.tabs[i].file_index == file_index) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 void editorChangeToFile(int index) {
-    if (index < 0 || index >= gEditor.file_count)
+    if (index < 0 || index >= gEditor.tab_count)
         return;
-    gEditor.file_index = index;
-    gCurFile = &gEditor.files[index];
+    gEditor.tab_active_index = index;
 
     if (gEditor.tab_offset > index ||
         gEditor.tab_offset + gEditor.tab_displayed <= index) {
@@ -112,8 +170,10 @@ void editorChangeToFile(int index) {
 static int findAvailableUntitledId(void) {
     for (int id = 0;; id++) {
         int used = 0;
-        for (int i = 0; i < gEditor.file_count; i++) {
+        for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
             const EditorFile* open_file = &gEditor.files[i];
+            if (open_file->reference_count == 0)
+                continue;
             if (!open_file->filename && open_file->new_id == id) {
                 used = 1;
                 break;

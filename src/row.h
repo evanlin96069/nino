@@ -29,8 +29,8 @@ void editorRowInsertString(EditorFile* file,
                            size_t len);
 
 // UTF-8
-int editorRowPreviousUTF8(EditorRow* row, int cx);
-int editorRowNextUTF8(EditorRow* row, int cx);
+int editorRowPreviousUTF8(const EditorRow* row, int cx);
+int editorRowNextUTF8(const EditorRow* row, int cx);
 
 // Cx Rx
 int editorRowCxToRx(const EditorRow* row, int cx);

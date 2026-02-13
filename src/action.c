@@ -2,7 +2,9 @@
 
 #include "editor.h"
 
-void editorApplyEdit(Edit* edit, bool undo) {
+void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
+    EditorFile* file = editorTabGetFile(tab);
+
     EditorSelectRange delete_range;
     EditorClipboard* to_add;
     if (undo) {
@@ -13,56 +15,66 @@ void editorApplyEdit(Edit* edit, bool undo) {
         to_add = &edit->after;
     }
 
-    editorDeleteText(delete_range);
-    editorPasteText(to_add, edit->x, edit->y);
+    editorDeleteText(file, delete_range);
+    editorPasteText(file, to_add, edit->x, edit->y);
+
+    EditorSelectRange insert_range =
+        getClipboardRange(edit->x, edit->y, to_add);
+    tab->cursor.x = insert_range.end_x;
+    tab->cursor.y = insert_range.end_y;
+    editorUpdateSx(tab);
 }
 
-bool editorUndo(void) {
-    if (gCurFile->action_current == gCurFile->action_head)
+bool editorUndo(EditorTab* tab) {
+    EditorFile* file = editorTabGetFile(tab);
+
+    if (file->action_current == file->action_head)
         return false;
 
-    switch (gCurFile->action_current->action->type) {
+    switch (file->action_current->action->type) {
         case ACTION_EDIT: {
-            EditAction* edit = &gCurFile->action_current->action->edit;
-            editorApplyEdit(&edit->data, true);
-            gCurFile->cursor = edit->old_cursor;
+            EditAction* edit = &file->action_current->action->edit;
+            editorApplyEdit(tab, &edit->data, true);
+            tab->cursor = edit->old_cursor;
         } break;
 
         case ACTION_ATTRI: {
-            AttributeAction* attri = &gCurFile->action_current->action->attri;
-            gCurFile->newline = attri->old_newline;
+            AttributeAction* attri = &file->action_current->action->attri;
+            file->newline = attri->old_newline;
         } break;
     }
 
-    gCurFile->action_current = gCurFile->action_current->prev;
-    gCurFile->dirty--;
+    file->action_current = file->action_current->prev;
+    file->dirty--;
     return true;
 }
 
-bool editorRedo(void) {
-    if (!gCurFile->action_current->next)
+bool editorRedo(EditorTab* tab) {
+    EditorFile* file = editorTabGetFile(tab);
+
+    if (!file->action_current->next)
         return false;
 
-    gCurFile->action_current = gCurFile->action_current->next;
+    file->action_current = file->action_current->next;
 
-    switch (gCurFile->action_current->action->type) {
+    switch (file->action_current->action->type) {
         case ACTION_EDIT: {
-            EditAction* edit = &gCurFile->action_current->action->edit;
-            editorApplyEdit(&edit->data, false);
-            gCurFile->cursor = edit->new_cursor;
+            EditAction* edit = &file->action_current->action->edit;
+            editorApplyEdit(tab, &edit->data, false);
+            tab->cursor = edit->new_cursor;
         } break;
 
         case ACTION_ATTRI: {
-            AttributeAction* attri = &gCurFile->action_current->action->attri;
-            gCurFile->newline = attri->new_newline;
+            AttributeAction* attri = &file->action_current->action->attri;
+            file->newline = attri->new_newline;
         } break;
     }
 
-    gCurFile->dirty++;
+    file->dirty++;
     return true;
 }
 
-void editorAppendAction(EditorAction* action) {
+void editorAppendAction(EditorFile* file, EditorAction* action) {
     if (!action)
         return;
 
@@ -70,20 +82,20 @@ void editorAppendAction(EditorAction* action) {
     node->action = action;
     node->next = NULL;
 
-    gCurFile->dirty++;
+    file->dirty++;
 
-    editorFreeActionList(gCurFile->action_current->next);
+    editorFreeActionList(file->action_current->next);
 
-    if (gCurFile->action_current == gCurFile->action_head) {
-        gCurFile->action_head->next = node;
-        node->prev = gCurFile->action_head;
-        gCurFile->action_current = node;
+    if (file->action_current == file->action_head) {
+        file->action_head->next = node;
+        node->prev = file->action_head;
+        file->action_current = node;
         return;
     }
 
-    node->prev = gCurFile->action_current;
-    gCurFile->action_current->next = node;
-    gCurFile->action_current = gCurFile->action_current->next;
+    node->prev = file->action_current;
+    file->action_current->next = node;
+    file->action_current = file->action_current->next;
 }
 
 void editorFreeAction(EditorAction* action) {
