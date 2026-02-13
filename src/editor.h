@@ -168,6 +168,5 @@ void editorRemoveTab(int index);
 int editorFindTabByFileIndex(int file_index);
 void editorChangeToFile(int index);
 void editorNewUntitledFile(EditorFile* file);
-void editorUpdateTabs(int file_index);
 
 #endif

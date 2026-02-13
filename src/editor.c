@@ -88,6 +88,11 @@ void editorRemoveFile(int index) {
 
     EditorFile* file = &gEditor.files[index];
     if (file->reference_count <= 0) {
+        // Likely during the file creation
+        if (file->row || file->filename || file->action_head) {
+            editorFreeFile(file);
+            memset(file, 0, sizeof(EditorFile));
+        }
         return;
     }
 
