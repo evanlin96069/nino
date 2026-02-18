@@ -402,6 +402,17 @@ static void editorDrawTopStatusBar(void) {
     }
 }
 
+static inline bool editorShouldDrawPrompt(void) {
+    switch (gEditor.state) {
+        case LOADING_MODE:
+        case EDIT_MODE:
+        case EXPLORER_MODE:
+            return false;
+        default:
+            return (gEditor.screen_rows > 2);
+    }
+}
+
 static void editorDrawConMsg(void) {
     if (gEditor.con_size == 0) {
         return;
@@ -414,10 +425,7 @@ static void editorDrawConMsg(void) {
 
     // con_size + status bar
     int draw_row = gEditor.screen_rows - (gEditor.con_size + 1);
-
-    bool should_draw_prompt =
-        (gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE);
-    if (should_draw_prompt) {
+    if (editorShouldDrawPrompt()) {
         draw_row--;
     }
 
@@ -437,9 +445,7 @@ static void editorDrawConMsg(void) {
 }
 
 static void editorDrawPrompt(void) {
-    bool should_draw_prompt =
-        (gEditor.state != EDIT_MODE && gEditor.state != EXPLORER_MODE);
-    if (!should_draw_prompt) {
+    if (!editorShouldDrawPrompt()) {
         return;
     }
 
@@ -912,8 +918,10 @@ void editorRefreshScreen(void) {
 
         default:
             // prompt
-            should_show_cursor = true;
-            gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
+            if (editorShouldDrawPrompt()) {
+                should_show_cursor = true;
+                gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
+            }
     }
 
     if (should_show_cursor) {
