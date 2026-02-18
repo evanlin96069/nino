@@ -70,7 +70,7 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
     free(node);
 }
 
-OpenStatus editorOpen(EditorFile* file, const char* path) {
+OpenStatus editorLoadFile(EditorFile* file, const char* path) {
     editorInitFile(file);
 
     FileType type = getFileType(path);
@@ -295,15 +295,10 @@ void editorOpenFilePrompt(void) {
         return;
 
     EditorFile file;
-    OpenStatus result = editorOpen(&file, path);
+    OpenStatus result = editorLoadFile(&file, path);
     if (result == OPEN_FILE) {
-        int file_index = editorAddFile(&file);
-        if (file_index != -1) {
-            if (editorAddTab(file_index) != -1) {
-                gEditor.state = EDIT_MODE;
-            } else {
-                editorRemoveFile(file_index);
-            }
+        if (editorAddFileToActiveSplit(&file) != -1) {
+            gEditor.state = EDIT_MODE;
         }
     } else if (result == OPEN_OPENED) {
         gEditor.state = EDIT_MODE;

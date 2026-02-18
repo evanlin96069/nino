@@ -161,6 +161,7 @@ void editorInitFile(EditorFile* file);
 void editorFreeFile(EditorFile* file);
 
 // Multiple files control
+int editorAddFileToActiveSplit(EditorFile* file);
 int editorAddFile(EditorFile* file);
 void editorRemoveFile(int index);
 int editorAddTab(int file_index);

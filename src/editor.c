@@ -57,6 +57,18 @@ void editorFreeFile(EditorFile* file) {
     free(file->filename);
 }
 
+int editorAddFileToActiveSplit(EditorFile* file) {
+    int file_index = editorAddFile(file);
+    if (file_index != -1) {
+        int tab_index = editorAddTab(file_index);
+        if (tab_index != -1) {
+            return file_index;
+        }
+        editorRemoveFile(file_index);
+    }
+    return -1;
+}
+
 int editorAddFile(EditorFile* file) {
     int index = -1;
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {

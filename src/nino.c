@@ -31,13 +31,8 @@ int main(int argc, char* argv[]) {
 
     EditorFile file;
     for (int i = 0; i < argc; i++) {
-        if (editorOpen(&file, argv[i]) == OPEN_FILE) {
-            int file_index = editorAddFile(&file);
-            if (file_index == -1) {
-                break;
-            }
-            if (editorAddTab(file_index) == -1) {
-                editorRemoveFile(file_index);
+        if (editorLoadFile(&file, argv[i]) == OPEN_FILE) {
+            if (editorAddFileToActiveSplit(&file)) {
                 break;
             }
         }
@@ -49,12 +44,7 @@ int main(int argc, char* argv[]) {
             gEditor.state = EXPLORER_MODE;
         } else {
             editorNewUntitledFile(&file);
-            int file_index = editorAddFile(&file);
-            if (file_index != -1) {
-                if (editorAddTab(file_index) == -1) {
-                    editorRemoveFile(file_index);
-                }
-            }
+            editorAddFileToActiveSplit(&file);
         }
     }
 

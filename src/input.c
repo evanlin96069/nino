@@ -25,14 +25,9 @@ static void editorExplorerNodeClicked(void) {
         node->is_open ^= 1;
         editorExplorerRefresh();
     } else {
-        OpenStatus result = editorOpen(&file, node->filename);
+        OpenStatus result = editorLoadFile(&file, node->filename);
         if (result == OPEN_FILE) {
-            int file_index = editorAddFile(&file);
-            if (file_index != -1) {
-                if (editorAddTab(file_index) == -1) {
-                    editorRemoveFile(file_index);
-                }
-            }
+            editorAddFileToActiveSplit(&file);
         }
     }
 }
@@ -581,13 +576,8 @@ void editorProcessKeypress(void) {
         case CTRL_KEY('n'): {
             EditorFile new_file;
             editorNewUntitledFile(&new_file);
-            int file_index = editorAddFile(&new_file);
-            if (file_index != -1) {
-                if (editorAddTab(file_index) != -1) {
-                    gEditor.state = EDIT_MODE;
-                } else {
-                    editorRemoveFile(file_index);
-                }
+            if (editorAddFileToActiveSplit(&new_file) != -1) {
+                gEditor.state = EDIT_MODE;
             }
             return;
         }
