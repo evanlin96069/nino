@@ -16,12 +16,17 @@ enum EditorField {
 
 void editorProcessKeypress(void);
 
-void editorScrollToCursor(EditorTab* tab);
-void editorScrollToCursorCenter(EditorTab* tab);
-void editorScroll(EditorTab* tab, int dist);
+void editorScrollToCursor(int split_index);
+void editorScrollToCursorCenter(int split_index);
+void editorScroll(int split_index, int dist);
+void editorExplorerScroll(int dist);
 
-void editorMousePosToEditorPos(int* x, int* y);
-int editorGetMousePosField(int x, int y);
+void editorMousePosToEditorPos(int split_index,
+                               int mouse_x,
+                               int mouse_y,
+                               int* out_x,
+                               int* out_y);
+int editorGetMousePosField(int x, int y, int* split_index);
 
 void editorExplorerShow(void);
 

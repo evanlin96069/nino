@@ -83,6 +83,10 @@ static const StrIntPair sequence_lookup[] = {
     {"[1;6C", SHIFT_CTRL_RIGHT},
     {"[1;6D", SHIFT_CTRL_LEFT},
 
+    // Alt+Ctrl
+    {"[1;7C", CTRL_ALT_RIGHT},
+    {"[1;7D", CTRL_ALT_LEFT},
+
     // Page UP / Page Down
     {"[5;2~", SHIFT_PAGE_UP},
     {"[6;2~", SHIFT_PAGE_DOWN},

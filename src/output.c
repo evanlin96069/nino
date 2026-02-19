@@ -301,6 +301,31 @@ static int screenPutAscii(ScreenCell* row,
     return x - start_x;
 }
 
+void editorGetSplitScreenCols(int split_index,
+                              int* left_cols,
+                              int* right_cols) {
+    if (left_cols)
+        *left_cols = 0;
+    if (right_cols)
+        *right_cols = 0;
+
+    if (split_index < 0 || split_index >= gEditor.split_count)
+        return;
+
+    int split_size =
+        (gEditor.screen_cols - gEditor.explorer.width) / gEditor.split_count;
+    int left = gEditor.explorer.width + split_size * split_index;
+    int right = left + split_size;
+    if (right > gEditor.screen_cols) {
+        right = gEditor.screen_cols;
+    }
+
+    if (left_cols)
+        *left_cols = left;
+    if (right_cols)
+        *right_cols = right;
+}
+
 static void editorDrawTopStatusBar(void) {
     if (gEditor.explorer.width >= gEditor.screen_cols) {
         return;
@@ -318,28 +343,46 @@ static void editorDrawTopStatusBar(void) {
 
     const char* right_buf = "  " EDITOR_NAME " v" EDITOR_VERSION " ";
     int rlen = strlen(right_buf);
+
     int x = gEditor.explorer.width;
-
-    ScreenStyle style = default_style;
-
-    if (gEditor.tab_offset != 0) {
-        screenPutAscii(row, gEditor.screen_cols, x, "<", style);
-        x++;
-    }
-
-    gEditor.tab_displayed = 0;
     if (gEditor.state == LOADING_MODE) {
         const char* loading_text = "Loading...";
-        x += screenPutAscii(row, gEditor.screen_cols, x, loading_text, style);
-    } else {
-        for (int i = gEditor.tab_offset; i < gEditor.tab_count; i++) {
-            int remaining_width = gEditor.screen_cols - x;
+        x += screenPutAscii(row, gEditor.screen_cols, x, loading_text,
+                            default_style);
+
+        if (gEditor.screen_cols - x >= rlen && rlen > 0) {
+            screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
+                           right_buf, default_style);
+        }
+        return;
+    }
+
+    for (int i = 0; i < gEditor.split_count; i++) {
+        EditorSplit* split = &gEditor.splits[i];
+        int start, end;
+        editorGetSplitScreenCols(i, &start, &end);
+
+        ScreenStyle style = default_style;
+
+        if (split->tab_count == 0)
+            continue;
+
+        x = start;
+        if (split->tab_offset != 0) {
+            screenPutAscii(row, gEditor.screen_cols, x, "<", style);
+            x++;
+        }
+
+        split->tab_displayed = 0;
+        for (int j = split->tab_offset; j < split->tab_count; j++) {
+            int remaining_width = end - x;
             if (remaining_width < 0)
                 break;
 
-            const EditorFile* file = editorTabGetFile(&gEditor.tabs[i]);
+            const EditorFile* file = editorTabGetFile(&split->tabs[j]);
 
-            bool is_current = (file == editorGetActiveFile());
+            bool is_current = (i == gEditor.active_split_index &&
+                               file == editorGetActiveFile());
             if (is_current) {
                 style.fg = gEditor.color_cfg.top_status[4];
                 style.bg = gEditor.color_cfg.top_status[5];
@@ -361,13 +404,13 @@ static void editorDrawTopStatusBar(void) {
             int tab_width = strUTF8Width(buf);
 
             if (remaining_width < tab_width ||
-                (i != gEditor.tab_count - 1 && remaining_width == tab_width)) {
-                if (gEditor.tab_displayed == 0) {
+                (j != split->tab_count - 1 && remaining_width == tab_width)) {
+                if (split->tab_displayed == 0) {
                     // Display at least one tab (truncated if needed)
                     if (remaining_width > 1) {
                         x += screenPutUtf8(row, gEditor.screen_cols, x, buf,
                                            style);
-                        gEditor.tab_displayed++;
+                        split->tab_displayed++;
                     }
                 } else {
                     break;
@@ -378,17 +421,16 @@ static void editorDrawTopStatusBar(void) {
                     break;
 
                 x += screenPutUtf8(row, gEditor.screen_cols, x, buf, style);
-                gEditor.tab_displayed++;
+                split->tab_displayed++;
             }
         }
 
         style = default_style;
 
-        if (gEditor.tab_offset + gEditor.tab_displayed < gEditor.tab_count) {
-            if (x >= gEditor.screen_cols) {
-                screenPutAscii(row, gEditor.screen_cols,
-                               gEditor.screen_cols - 1, ">", style);
-                x = gEditor.screen_cols;
+        if (split->tab_offset + split->tab_displayed < split->tab_count) {
+            if (x >= end) {
+                screenPutAscii(row, gEditor.screen_cols, end - 1, ">", style);
+                x = end;
             } else {
                 screenPutAscii(row, gEditor.screen_cols, x, ">", style);
                 x++;
@@ -398,7 +440,7 @@ static void editorDrawTopStatusBar(void) {
 
     if (gEditor.screen_cols - x >= rlen && rlen > 0) {
         screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
-                       right_buf, style);
+                       right_buf, default_style);
     }
 }
 
@@ -502,7 +544,7 @@ static void editorDrawStatusBar(void) {
     char lang[16];
     char pos[64];
     int rlen;
-    if (gEditor.tab_count == 0) {
+    if (gEditor.split_count == 0) {
         rlen = 0;
     } else {
         const EditorTab* tab = editorGetActiveTab();
@@ -550,26 +592,28 @@ static void editorDrawStatusBar(void) {
     }
 }
 
-static void editorDrawRows(const EditorTab* tab) {
+static void editorDrawBackground(void) {
+    ScreenStyle style = {
+        .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
+        .bg = gEditor.color_cfg.bg,
+    };
+
+    for (int i = 0; i < gEditor.screen_rows; i++) {
+        ScreenCell* row = gEditor.screen[i];
+        screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols,
+                         style);
+    }
+}
+
+static void editorDrawSplit(int split_index) {
     if (gEditor.explorer.width >= gEditor.screen_cols) {
         return;
     }
 
-    if (gEditor.tab_count == 0) {
-        ScreenStyle bg_style = {
-            .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
-            .bg = gEditor.color_cfg.bg,
-        };
+    int start, end;
+    editorGetSplitScreenCols(split_index, &start, &end);
 
-        for (int i = 0; i < gEditor.display_rows; i++) {
-            ScreenCell* row = gEditor.screen[i + 1];
-            screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
-                             gEditor.screen_cols - gEditor.explorer.width,
-                             bg_style);
-        }
-        return;
-    }
-
+    const EditorTab* tab = editorSplitGetTab(split_index);
     const EditorFile* file = editorTabGetFile(tab);
 
     EditorSelectRange range = {0};
@@ -577,8 +621,8 @@ static void editorDrawRows(const EditorTab* tab) {
         getSelectStartEnd(&tab->cursor, &range);
 
     int lineno_width = editorGetLinenoWidth(file);
-    int content_start_col = gEditor.explorer.width + lineno_width;
-    int content_cols = gEditor.screen_cols - content_start_col;
+    int content_start_col = start + lineno_width;
+    int content_cols = end - content_start_col;
 
     for (int i = tab->row_offset, s_row = 1;
          i < tab->row_offset + gEditor.display_rows; i++, s_row++) {
@@ -592,12 +636,11 @@ static void editorDrawRows(const EditorTab* tab) {
         if (i == tab->cursor.y && !tab->cursor.is_selected) {
             bg_style.bg = gEditor.color_cfg.cursor_line;
         }
-        screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
-                         gEditor.screen_cols - gEditor.explorer.width,
+        screenClearCells(row, gEditor.screen_cols, start, end - start,
                          bg_style);
 
         if (i < file->num_rows) {
-            int x = gEditor.explorer.width;
+            int x = start;
 
             // Draw line number
             if (CONVAR_GETINT(lineno)) {
@@ -638,7 +681,7 @@ static void editorDrawRows(const EditorTab* tab) {
 
             Grapheme* curr_grapheme = NULL;
 
-            while (rx < rlen && screen_x < gEditor.screen_cols) {
+            while (rx < rlen && screen_x < end) {
                 uint8_t fg = hl[j] & HL_FG_MASK;
                 uint8_t bg = hl[j] >> HL_FG_BITS;
                 if (tab->cursor.is_selected &&
@@ -689,7 +732,7 @@ static void editorDrawRows(const EditorTab* tab) {
                                                   screen_x, tab_char, &style);
                         rx++;
                         while (rx % CONVAR_GETINT(tabsize) != 0 && rx < rlen &&
-                               screen_x < gEditor.screen_cols) {
+                               screen_x < end) {
                             screen_x += screenPutChar(row, gEditor.screen_cols,
                                                       screen_x, ' ', &style);
                             rx++;
@@ -752,7 +795,7 @@ static void editorDrawRows(const EditorTab* tab) {
             if (tab->cursor.is_selected && range.end_y > i &&
                 i >= range.start_y &&
                 file->row[i].rsize - tab->col_offset < content_cols &&
-                screen_x < gEditor.screen_cols) {
+                screen_x < end) {
                 ScreenStyle select_style = {
                     .fg = gEditor.color_cfg.highlightFg[HL_BG_NORMAL],
                     .bg = gEditor.color_cfg.highlightBg[HL_BG_SELECT],
@@ -873,7 +916,15 @@ void editorRefreshScreen(void) {
 
     // Draw screen
     editorDrawTopStatusBar();
-    editorDrawRows(tab);
+
+    if (gEditor.split_count == 0) {
+        editorDrawBackground();
+    } else {
+        for (int i = 0; i < gEditor.split_count; i++) {
+            editorDrawSplit(i);
+        }
+    }
+
     editorDrawFileExplorer();
 
     editorDrawConMsg();

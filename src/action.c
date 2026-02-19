@@ -20,9 +20,48 @@ void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
 
     EditorSelectRange insert_range =
         getClipboardRange(edit->x, edit->y, to_add);
-    tab->cursor.x = insert_range.end_x;
-    tab->cursor.y = insert_range.end_y;
-    editorUpdateSx(tab);
+
+    // Update all tabs referencing this file
+    for (int i = 0; i < gEditor.split_count; ++i) {
+        EditorSplit* split = &gEditor.splits[i];
+        for (int j = 0; j < split->tab_count; ++j) {
+            EditorTab* t = &split->tabs[j];
+            if (t->file_index != tab->file_index)
+                continue;
+
+            if (t == tab) {
+                t->cursor.x = insert_range.end_x;
+                t->cursor.y = insert_range.end_y;
+                t->cursor.is_selected = false;
+                editorUpdateSx(t);
+                continue;
+            }
+
+            // Cursor is after the edit
+            if (t->cursor.y > delete_range.end_y ||
+                (t->cursor.y == delete_range.end_y &&
+                 t->cursor.x >= delete_range.end_x)) {
+                int dx = insert_range.end_x - delete_range.end_x;
+                int dy = insert_range.end_y - delete_range.end_y;
+                t->cursor.x += dx;
+                t->cursor.y += dy;
+            } else if (t->cursor.y > delete_range.start_y ||
+                       (t->cursor.y == delete_range.start_y &&
+                        t->cursor.x >= delete_range.start_x)) {
+                // Cursor is inside the edited region
+                t->cursor.x = insert_range.end_x;
+                t->cursor.y = insert_range.end_y;
+            }
+
+            if (t->cursor.is_selected) {
+                if (!((t->cursor.y < delete_range.start_y) ||
+                      (t->cursor.select_y > delete_range.end_y))) {
+                    t->cursor.is_selected = false;
+                }
+            }
+            editorUpdateSx(t);
+        }
+    }
 }
 
 bool editorUndo(EditorTab* tab) {

@@ -60,7 +60,11 @@ void editorFreeFile(EditorFile* file) {
 int editorAddFileToActiveSplit(EditorFile* file) {
     int file_index = editorAddFile(file);
     if (file_index != -1) {
-        int tab_index = editorAddTab(file_index);
+        if (gEditor.split_count == 0) {
+            editorAddSplit();
+        }
+
+        int tab_index = editorAddTab(gEditor.active_split_index, file_index);
         if (tab_index != -1) {
             return file_index;
         }
@@ -94,11 +98,11 @@ int editorAddFile(EditorFile* file) {
     return index;
 }
 
-void editorRemoveFile(int index) {
-    if (index < 0 || index >= EDITOR_FILE_MAX_SLOT)
+void editorRemoveFile(int file_index) {
+    if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
         return;
 
-    EditorFile* file = &gEditor.files[index];
+    EditorFile* file = &gEditor.files[file_index];
     if (file->reference_count <= 0) {
         // Likely during the file creation
         if (file->row || file->filename || file->action_head) {
@@ -116,17 +120,21 @@ void editorRemoveFile(int index) {
     }
 }
 
-int editorAddTab(int file_index) {
+int editorAddTab(int split_index, int file_index) {
     if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
         return -1;
+    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+        return -1;
 
-    if (gEditor.tab_count >= EDITOR_FILE_MAX_SLOT) {
+    EditorSplit* split = &gEditor.splits[split_index];
+
+    if (split->tab_count >= EDITOR_FILE_MAX_SLOT) {
         editorMsg("Already opened too many tabs!");
         return -1;
     }
 
     EditorFile* file = &gEditor.files[file_index];
-    EditorTab* tab = &gEditor.tabs[gEditor.tab_count];
+    EditorTab* tab = &split->tabs[split->tab_count];
     memset(tab, 0, sizeof(EditorTab));
     tab->file_index = file_index;
 
@@ -135,75 +143,114 @@ int editorAddTab(int file_index) {
     }
     file->reference_count++;
 
-    gEditor.tab_count++;
+    split->tab_count++;
 
-    int index = gEditor.tab_count - 1;
+    int index = split->tab_count - 1;
     if (gEditor.state != LOADING_MODE) {
-        // hack: refresh screen to update gEditor.tab_displayed
+        // hack: refresh screen to update tab_displayed
         editorRefreshScreen();
-        editorChangeToFile(index);
+        editorChangeToFile(split_index, index);
     }
 
     return index;
 }
 
-void editorRemoveTab(int index) {
-    if (index < 0 || index >= gEditor.tab_count)
+// Won't update tab_active_index
+void editorRemoveTab(int split_index, int tab_index) {
+    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
         return;
 
-    int file_index = gEditor.tabs[index].file_index;
+    EditorSplit* split = &gEditor.splits[split_index];
+
+    if (tab_index < 0 || tab_index >= split->tab_count)
+        return;
+
+    int file_index = split->tabs[tab_index].file_index;
     editorRemoveFile(file_index);
 
-    if (index == gEditor.tab_count - 1) {
-        gEditor.tab_count--;
+    if (tab_index == split->tab_count - 1) {
+        split->tab_count--;
         return;
     }
 
-    memmove(&gEditor.tabs[index], &gEditor.tabs[index + 1],
-            sizeof(EditorTab) * (gEditor.tab_count - index - 1));
-    gEditor.tab_count--;
+    memmove(&split->tabs[tab_index], &split->tabs[tab_index + 1],
+            sizeof(EditorTab) * (split->tab_count - tab_index - 1));
+    split->tab_count--;
+
+    // Close split if no file in the tab
+    if (split->tab_count == 0) {
+        editorRemoveSplit(split_index);
+    }
 }
 
-int editorFindTabByFileIndex(int file_index) {
-    for (int i = 0; i < gEditor.tab_count; i++) {
-        if (gEditor.tabs[i].file_index == file_index) {
+int editorFindTabByFileIndex(int split_index, int file_index) {
+    if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
+        return -1;
+    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+        return -1;
+
+    EditorSplit* split = &gEditor.splits[split_index];
+
+    for (int i = 0; i < split->tab_count; i++) {
+        if (split->tabs[i].file_index == file_index) {
             return i;
         }
     }
     return -1;
 }
 
-void editorChangeToFile(int index) {
-    if (index < 0 || index >= gEditor.tab_count)
+void editorChangeToFile(int split_index, int tab_index) {
+    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
         return;
-    gEditor.tab_active_index = index;
 
-    if (gEditor.tab_offset > index ||
-        gEditor.tab_offset + gEditor.tab_displayed <= index) {
-        gEditor.tab_offset = index;
+    EditorSplit* split = &gEditor.splits[split_index];
+
+    if (tab_index < 0 || tab_index >= split->tab_count)
+        return;
+
+    split->tab_active_index = tab_index;
+
+    if (split->tab_offset > tab_index ||
+        split->tab_offset + split->tab_displayed <= tab_index) {
+        split->tab_offset = tab_index;
     }
 }
 
-static int findAvailableUntitledId(void) {
-    for (int id = 0;; id++) {
-        int used = 0;
-        for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
-            const EditorFile* open_file = &gEditor.files[i];
-            if (open_file->reference_count == 0)
-                continue;
-            if (!open_file->filename && open_file->new_id == id) {
-                used = 1;
-                break;
-            }
-        }
-        if (!used) {
-            return id;
-        }
+int editorAddSplit(void) {
+    if (gEditor.split_count >= EDITOR_FILE_MAX_SLOT)
+        return -1;
+
+    int index = gEditor.split_count;
+    if (gEditor.split_count == 0) {
+        gEditor.active_split_index = index;
     }
+
+    memset(&gEditor.splits[index], 0, sizeof(EditorSplit));
+    gEditor.split_count++;
+
+    return index;
 }
 
-void editorNewUntitledFile(EditorFile* file) {
-    editorInitFile(file);
-    editorInsertRow(file, 0, "", 0);
-    file->new_id = findAvailableUntitledId();
+void editorRemoveSplit(int split_index) {
+    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+        return;
+
+    EditorSplit* split = &gEditor.splits[split_index];
+    for (int i = 0; i < split->tab_count; i++) {
+        editorRemoveFile(split->tabs[i].file_index);
+    }
+
+    memmove(&gEditor.splits[split_index], &gEditor.splits[split_index + 1],
+            sizeof(EditorSplit) * (gEditor.split_count - split_index - 1));
+    gEditor.split_count--;
+
+    // Adjust active index
+    int active_index = gEditor.active_split_index;
+    if (active_index == split_index) {
+        if (active_index > 0) {
+            active_index--;
+        }
+    } else if (active_index > split_index) {
+        active_index--;
+    }
 }

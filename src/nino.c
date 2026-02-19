@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     }
 
     gEditor.state = EDIT_MODE;
-    if (gEditor.tab_count == 0) {
+    if (gEditor.file_count == 0) {
         if (gEditor.explorer.node) {
             gEditor.state = EXPLORER_MODE;
         } else {

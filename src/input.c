@@ -46,6 +46,26 @@ static void editorExplorerScrollToSelect(void) {
     }
 }
 
+void editorExplorerScroll(int dist) {
+    if (dist == 0)
+        return;
+
+    if (dist > 0) {
+        // Scroll down
+        if ((int)gEditor.explorer.flatten.size - gEditor.explorer.offset >
+            gEditor.display_rows) {
+            gEditor.explorer.offset += dist;
+        }
+    } else {
+        // Scroll up
+        if (gEditor.explorer.offset > 0) {
+            gEditor.explorer.offset = (gEditor.explorer.offset + dist) > 0
+                                          ? (gEditor.explorer.offset + dist)
+                                          : 0;
+        }
+    }
+}
+
 void editorExplorerShow(void) {
     if (gEditor.explorer.width == 0) {
         gEditor.explorer.width = gEditor.explorer.prefered_width
@@ -80,24 +100,12 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
 
     switch (input.type) {
         case WHEEL_UP:
-            if (editorGetMousePosField(input.data.cursor.x,
-                                       input.data.cursor.y) != FIELD_EXPLORER)
-                return false;
-            if (gEditor.explorer.offset > 0) {
-                gEditor.explorer.offset = (gEditor.explorer.offset - 3) > 0
-                                              ? (gEditor.explorer.offset - 3)
-                                              : 0;
-            }
-            break;
-
         case WHEEL_DOWN:
-            if (editorGetMousePosField(input.data.cursor.x,
-                                       input.data.cursor.y) != FIELD_EXPLORER)
+            if (editorGetMousePosField(input.data.cursor.x, input.data.cursor.y,
+                                       NULL) != FIELD_EXPLORER)
                 return false;
-            if ((int)gEditor.explorer.flatten.size - gEditor.explorer.offset >
-                gEditor.display_rows) {
-                gEditor.explorer.offset += 3;
-            }
+
+            editorExplorerScroll((input.type == WHEEL_UP) ? -3 : 3);
             break;
 
         case ARROW_UP:
@@ -159,8 +167,8 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
             break;
 
         case MOUSE_PRESSED:
-            if (editorGetMousePosField(input.data.cursor.x,
-                                       input.data.cursor.y) != FIELD_EXPLORER) {
+            if (editorGetMousePosField(input.data.cursor.x, input.data.cursor.y,
+                                       NULL) != FIELD_EXPLORER) {
                 gEditor.state = EDIT_MODE;
                 return false;
             }
@@ -202,7 +210,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
             return false;
 
         case CTRL_KEY('e'):
-            if (gEditor.tab_count != 0) {
+            if (gEditor.split_count != 0) {
                 gEditor.state = EDIT_MODE;
             }
             break;
@@ -210,11 +218,14 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
     return true;
 }
 
-void editorScrollToCursor(EditorTab* tab) {
+void editorScrollToCursor(int split_index) {
+    EditorTab* tab = editorSplitGetTab(split_index);
     const EditorFile* file = editorTabGetFile(tab);
 
-    int cols = gEditor.screen_cols - gEditor.explorer.width -
-               editorGetLinenoWidth(file);
+    int start, end;
+    editorGetSplitScreenCols(split_index, &start, &end);
+    int cols = (end - start) - editorGetLinenoWidth(file);
+
     int rx = 0;
     if (tab->cursor.y < file->num_rows) {
         rx = editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x);
@@ -234,62 +245,100 @@ void editorScrollToCursor(EditorTab* tab) {
     }
 }
 
-void editorScrollToCursorCenter(EditorTab* tab) {
+void editorScrollToCursorCenter(int split_index) {
+    EditorTab* tab = editorSplitGetTab(split_index);
     tab->row_offset = tab->cursor.y - gEditor.display_rows / 2;
     if (tab->row_offset < 0) {
         tab->row_offset = 0;
     }
 }
 
-int editorGetMousePosField(int x, int y) {
+int editorGetMousePosField(int x, int y, int* split_index) {
+    if (split_index)
+        *split_index = 0;
+
     if (y < 0 || y >= gEditor.screen_rows)
         return FIELD_ERROR;
-    if (y == 0)
-        return x < gEditor.explorer.width ? FIELD_EXPLORER : FIELD_TOP_STATUS;
-    if (y == gEditor.screen_rows - 2 && gEditor.state != EDIT_MODE &&
-        gEditor.state != EXPLORER_MODE)
-        return FIELD_PROMPT;
+    if (x < 0 || x >= gEditor.screen_cols)
+        return FIELD_ERROR;
+
     if (y == gEditor.screen_rows - 1)
         return FIELD_STATUS;
+
+    if (y == gEditor.screen_rows - 2 && gEditor.state != EDIT_MODE &&
+        gEditor.state != EXPLORER_MODE && gEditor.state != LOADING_MODE)
+        return FIELD_PROMPT;
+
     if (x < gEditor.explorer.width)
         return FIELD_EXPLORER;
-    if (gEditor.tab_count == 0)
-        return FIELD_EMPTY;
-    if (x <
-        gEditor.explorer.width + editorGetLinenoWidth(editorGetActiveFile()))
-        return FIELD_LINENO;
-    return FIELD_TEXT;
+
+    for (int i = 0; i < gEditor.split_count; ++i) {
+        int start, end;
+        editorGetSplitScreenCols(i, &start, &end);
+        if (x < start || x >= end)
+            continue;
+
+        if (split_index)
+            *split_index = i;
+
+        if (y == 0)
+            return FIELD_TOP_STATUS;
+        if (x < start + editorGetLinenoWidth(editorGetActiveFile()))
+            return FIELD_LINENO;
+        return FIELD_TEXT;
+    }
+
+    return FIELD_EMPTY;
 }
 
-void editorMousePosToEditorPos(int* x, int* y) {
-    const EditorTab* tab = editorGetActiveTab();
+void editorMousePosToEditorPos(int split_index,
+                               int mouse_x,
+                               int mouse_y,
+                               int* out_x,
+                               int* out_y) {
+    if (!out_x || !out_y)
+        return;
+    *out_x = 0;
+    *out_y = 0;
+
+    if (split_index < 0 || split_index >= gEditor.split_count)
+        return;
+
+    int start, end;
+    editorGetSplitScreenCols(split_index, &start, &end);
+    if (mouse_x < start || mouse_x >= end)
+        return;
+
+    if (mouse_y < 1 ||
+        mouse_y >= gEditor.screen_rows - 1)  // top and bottom status bars
+        return;
+
+    const EditorTab* tab = editorSplitGetTab(split_index);
     const EditorFile* file = editorTabGetFile(tab);
 
-    int row = tab->row_offset + *y - 1;
-    if (row < 0) {
-        *x = 0;
-        *y = 0;
+    int row = tab->row_offset + mouse_y - 1;  // offset the top status bar
+    if (row < 0)
         return;
-    }
+
     if (row >= file->num_rows) {
-        *y = file->num_rows - 1;
-        *x = file->row[*y].rsize;
+        *out_y = file->num_rows - 1;
+        *out_x = file->row[*out_y].rsize;
         return;
     }
 
-    int col = *x - gEditor.explorer.width - editorGetLinenoWidth(file) +
-              tab->col_offset;
+    int col = mouse_x - start - editorGetLinenoWidth(file) + tab->col_offset;
     if (col < 0) {
         col = 0;
     } else if (col > file->row[row].rsize) {
         col = file->row[row].rsize;
     }
 
-    *x = col;
-    *y = row;
+    *out_x = col;
+    *out_y = row;
 }
 
-void editorScroll(EditorTab* tab, int dist) {
+void editorScroll(int split_index, int dist) {
+    EditorTab* tab = editorSplitGetTab(split_index);
     const EditorFile* file = editorTabGetFile(tab);
 
     int line = tab->row_offset + dist;
@@ -451,26 +500,36 @@ static void editorSelectAll(EditorTab* tab) {
     tab->cursor.select_x = 0;
 }
 
-static int handleTabClick(int x) {
+static int editorHandleTabClick(int split_index, int x) {
     if (gEditor.state == LOADING_MODE)
         return -1;
 
     if (x < gEditor.explorer.width)
         return -1;
 
+    if (split_index < 0 || split_index >= gEditor.split_count)
+        return -1;
+
+    int start, end;
+    editorGetSplitScreenCols(split_index, &start, &end);
+    if (x < start || x >= end)
+        return -1;
+
+    EditorSplit* split = &gEditor.splits[split_index];
+
     bool has_more_files = false;
     int tab_displayed = 0;
-    int len = gEditor.explorer.width;
-    if (gEditor.tab_offset != 0) {
-        if (x == gEditor.explorer.width) {
-            gEditor.tab_offset--;
+    int curr_x = start;
+    if (split->tab_offset != 0) {
+        if (x == start) {
+            split->tab_offset--;
             return -1;
         }
-        len++;
+        curr_x++;
     }
 
-    for (int i = gEditor.tab_offset; i < gEditor.tab_count; i++) {
-        const EditorFile* file = editorTabGetFile(&gEditor.tabs[i]);
+    for (int i = split->tab_offset; i < split->tab_count; i++) {
+        const EditorFile* file = editorTabGetFile(&split->tabs[i]);
 
         int tab_width;
         if (file->filename) {
@@ -481,74 +540,85 @@ static int handleTabClick(int x) {
         }
 
         // Add * if file is dirty
-        if (file->dirty) {
+        if (file->dirty)
             tab_width++;
-        }
 
         // Add padding
         tab_width += 2;
 
-        if (gEditor.screen_cols - len < tab_width ||
-            (i != gEditor.tab_count - 1 &&
-             gEditor.screen_cols - len == tab_width)) {
+        if (end - curr_x < tab_width ||
+            (i != split->tab_count - 1 && end - curr_x == tab_width)) {
             has_more_files = true;
             if (tab_displayed == 0) {
                 // Display at least one tab
-                tab_width = gEditor.screen_cols - len - 1;
+                tab_width = end - curr_x - 1;
             } else {
                 break;
             }
         }
 
-        len += tab_width;
-        if (len > x)
+        curr_x += tab_width;
+        if (curr_x > x)
             return i;
 
         tab_displayed++;
     }
+
     if (has_more_files)
-        gEditor.tab_offset++;
+        split->tab_offset++;
+
     return -1;
 }
 
-static void editorMoveMouse(EditorTab* tab, int x, int y) {
+static void editorMoveMouse(int split_index, int mouse_x, int mouse_y) {
+    if (split_index < 0 || split_index >= gEditor.split_count)
+        return;
+
+    EditorTab* tab = editorSplitGetTab(split_index);
     const EditorFile* file = editorTabGetFile(tab);
 
-    editorMousePosToEditorPos(&x, &y);
+    int x, y;
+    editorMousePosToEditorPos(split_index, mouse_x, mouse_y, &x, &y);
     tab->cursor.is_selected = true;
     tab->cursor.x = editorRowRxToCx(&file->row[y], x);
     tab->cursor.y = y;
     tab->sx = x;
 }
 
-static void editorCloseFile(int index) {
-    if (index < 0 || index >= gEditor.tab_count) {
+static void editorCloseTab(int split_index, int tab_index) {
+    if (split_index < 0 || split_index >= gEditor.split_count)
         return;
-    }
 
-    int active_index = gEditor.tab_active_index;
-    editorRemoveTab(index);
-    if (gEditor.tab_count == 0) {
+    EditorSplit* split = &gEditor.splits[split_index];
+    if (tab_index < 0 || tab_index >= split->tab_count)
+        return;
+
+    int active_index = split->tab_active_index;
+    editorRemoveTab(split_index, tab_index);
+    if (gEditor.split_count == 0) {
         gEditor.state = EXPLORER_MODE;
         editorExplorerShow();
         return;
     }
 
-    if (index < active_index) {
+    if (tab_index < active_index) {
         active_index--;
-    } else if (index == active_index && active_index >= gEditor.tab_count) {
-        active_index = gEditor.tab_count - 1;
+    } else if (tab_index == active_index && active_index >= split->tab_count) {
+        active_index = split->tab_count - 1;
     }
-    editorChangeToFile(active_index);
+    editorChangeToFile(split_index, active_index);
 }
 
 void editorProcessKeypress(void) {
-    static int mouse_pressed = FIELD_EMPTY;
+    static int mouse_pressed_field = FIELD_EMPTY;
+    static int mouse_pressed_split_index = 0;
+    static int mouse_pressed_row = 0;  // For select line drag
+
     static int64_t prev_click_time = 0;
     static int mouse_click = 0;
     static int curr_x = 0;
     static int curr_y = 0;
-    static int pressed_row = 0;  // For select line drag
+
     static EditorInput pending_input = {.type = UNKNOWN};
 
     // Check if there's a pending input from previous call
@@ -594,12 +664,13 @@ void editorProcessKeypress(void) {
         return;
     }
 
-    if (gEditor.tab_count == 0) {
+    if (gEditor.split_count == 0) {
         gEditor.state = EXPLORER_MODE;
         editorFreeInput(&input);
         return;
     }
 
+    EditorSplit* split = editorGetActiveSplit();
     EditorTab* tab = editorGetActiveTab();
     EditorFile* file = editorTabGetFile(tab);
 
@@ -745,7 +816,7 @@ void editorProcessKeypress(void) {
                     break;
                 }
             }
-            editorCloseFile(gEditor.tab_active_index);
+            editorCloseTab(gEditor.active_split_index, split->tab_active_index);
             break;
         }
 
@@ -1135,25 +1206,30 @@ void editorProcessKeypress(void) {
         // Previous file
         case CTRL_KEY('['):
             should_scroll = false;
-            if (gEditor.tab_count < 2)
+            if (split->tab_count < 2)
                 break;
 
-            if (gEditor.tab_active_index == 0)
-                editorChangeToFile(gEditor.tab_count - 1);
-            else
-                editorChangeToFile(gEditor.tab_active_index - 1);
+            if (split->tab_active_index == 0) {
+                editorChangeToFile(gEditor.active_split_index,
+                                   split->tab_count - 1);
+            } else {
+                editorChangeToFile(gEditor.active_split_index,
+                                   split->tab_active_index - 1);
+            }
             break;
 
         // Next file
         case CTRL_KEY(']'):
             should_scroll = false;
-            if (gEditor.tab_count < 2)
+            if (split->tab_count < 2)
                 break;
 
-            if (gEditor.tab_active_index == gEditor.tab_count - 1)
-                editorChangeToFile(0);
-            else
-                editorChangeToFile(gEditor.tab_active_index + 1);
+            if (split->tab_active_index == split->tab_count - 1) {
+                editorChangeToFile(gEditor.active_split_index, 0);
+            } else {
+                editorChangeToFile(gEditor.active_split_index,
+                                   split->tab_active_index + 1);
+            }
             break;
 
         case SHIFT_PAGE_UP:
@@ -1365,10 +1441,19 @@ void editorProcessKeypress(void) {
             int prev_y = curr_y;
             curr_x = in_x;
             curr_y = in_y;
-            int field = editorGetMousePosField(in_x, in_y);
+
+            int split_index;
+            int field = editorGetMousePosField(in_x, in_y, &split_index);
+
             switch (field) {
                 case FIELD_TEXT: {
-                    mouse_pressed = FIELD_TEXT;
+                    gEditor.active_split_index = split_index;
+
+                    mouse_pressed_field = FIELD_TEXT;
+                    mouse_pressed_split_index = split_index;
+
+                    EditorTab* cursor_tab = editorSplitGetTab(split_index);
+                    EditorFile* cursor_file = editorTabGetFile(cursor_tab);
 
                     int64_t click_time = getTime();
                     int64_t time_diff = click_time - prev_click_time;
@@ -1383,20 +1468,21 @@ void editorProcessKeypress(void) {
 
                     tab->bracket_autocomplete = 0;
 
-                    editorMousePosToEditorPos(&in_x, &in_y);
-                    int cx = editorRowRxToCx(&file->row[in_y], in_x);
+                    int x, y;
+                    editorMousePosToEditorPos(split_index, in_x, in_y, &x, &y);
+                    int cx = editorRowRxToCx(&cursor_file->row[y], x);
 
                     switch (mouse_click % 4) {
                         case 1:
                             // Mouse to pos
-                            tab->cursor.is_selected = false;
-                            tab->cursor.y = in_y;
-                            tab->cursor.x = cx;
-                            tab->sx = in_x;
+                            cursor_tab->cursor.is_selected = false;
+                            cursor_tab->cursor.y = y;
+                            cursor_tab->cursor.x = cx;
+                            cursor_tab->sx = x;
                             break;
                         case 2: {
                             // Select word
-                            const EditorRow* row = &file->row[in_y];
+                            const EditorRow* row = &cursor_file->row[y];
                             if (row->size == 0)
                                 break;
                             if (cx == row->size)
@@ -1410,48 +1496,56 @@ void editorProcessKeypress(void) {
                             } else {
                                 is_char = isNonSeparator;
                             }
-                            editorSelectWord(tab, row, cx, is_char);
+                            editorSelectWord(cursor_tab, row, cx, is_char);
                         } break;
                         case 3:
                             // Select line
-                            editorSelectLine(tab, tab->cursor.y);
+                            editorSelectLine(cursor_tab, tab->cursor.y);
                             break;
                         case 0:
                             // Select all
                             should_scroll = false;
-                            editorSelectAll(tab);
+                            editorSelectAll(cursor_tab);
                             break;
                     }
                 } break;
 
                 case FIELD_TOP_STATUS: {
+                    gEditor.active_split_index = split_index;
                     should_scroll = false;
                     mouse_click = 0;
-                    editorChangeToFile(handleTabClick(in_x));
+                    editorChangeToFile(split_index,
+                                       editorHandleTabClick(split_index, in_x));
+                } break;
+
+                case FIELD_LINENO: {
+                    gEditor.active_split_index = split_index;
+                    should_scroll = false;
+                    mouse_click = 0;
+
+                    EditorTab* cursor_tab = editorSplitGetTab(split_index);
+                    EditorFile* cursor_file = editorTabGetFile(cursor_tab);
+
+                    int row = cursor_tab->row_offset + in_y - 1;
+                    if (row < 0)
+                        row = 0;
+                    if (row >= cursor_file->num_rows)
+                        row = cursor_file->num_rows - 1;
+                    mouse_pressed_field = FIELD_LINENO;
+                    mouse_pressed_split_index = split_index;
+                    mouse_pressed_row = row;
+                    editorSelectLine(cursor_tab, row);
                 } break;
 
                 case FIELD_EXPLORER: {
                     should_scroll = false;
                     mouse_click = 0;
                     if (in_x == gEditor.explorer.width - 1) {
-                        mouse_pressed = FIELD_EXPLORER;
+                        mouse_pressed_field = FIELD_EXPLORER;
                         break;
                     }
                     gEditor.state = EXPLORER_MODE;
                     editorExplorerProcessKeypress(input);
-                } break;
-
-                case FIELD_LINENO: {
-                    should_scroll = false;
-                    mouse_click = 0;
-                    int row = tab->row_offset + in_y - 1;
-                    if (row < 0)
-                        row = 0;
-                    if (row >= file->num_rows)
-                        row = file->num_rows - 1;
-                    mouse_pressed = FIELD_LINENO;
-                    pressed_row = row;
-                    editorSelectLine(tab, row);
                 } break;
 
                 default:
@@ -1463,7 +1557,7 @@ void editorProcessKeypress(void) {
 
         case MOUSE_RELEASED:
             should_scroll = false;
-            mouse_pressed = FIELD_EMPTY;
+            mouse_pressed_field = FIELD_EMPTY;
             break;
 
         case MOUSE_MOVE: {
@@ -1473,81 +1567,85 @@ void editorProcessKeypress(void) {
             should_scroll = false;
             curr_x = in_x;
             curr_y = in_y;
-            if (mouse_pressed == FIELD_EXPLORER) {
+            if (mouse_pressed_field == FIELD_EXPLORER) {
                 gEditor.explorer.width = gEditor.explorer.prefered_width = in_x;
                 if (in_x == 0)
                     gEditor.state = EDIT_MODE;
-            } else if (mouse_pressed == FIELD_TEXT) {
-                editorMoveMouse(tab, curr_x, curr_y);
-            } else if (mouse_pressed == FIELD_LINENO) {
-                int col = 0;
-                int row = curr_y;
-                editorMousePosToEditorPos(&col, &row);
-                editorMoveMouse(tab, 0,
-                                curr_y + ((row >= pressed_row) ? 1 : 0));
+            } else if (mouse_pressed_field == FIELD_TEXT) {
+                editorMoveMouse(mouse_pressed_split_index, curr_x, curr_y);
+            } else if (mouse_pressed_field == FIELD_LINENO) {
+                int x, y;
+                editorMousePosToEditorPos(mouse_pressed_split_index, 0, curr_y,
+                                          &x, &y);
+                editorMoveMouse(mouse_pressed_split_index, 0,
+                                curr_y + ((y >= mouse_pressed_row) ? 1 : 0));
             }
         } break;
 
-        // Scroll up
-        case WHEEL_UP: {
-            int in_x = input.data.cursor.x;
-            int in_y = input.data.cursor.y;
-            int field = editorGetMousePosField(in_x, in_y);
-            should_scroll = false;
-            if (field != FIELD_TEXT && field != FIELD_LINENO) {
-                if (field == FIELD_TOP_STATUS) {
-                    if (gEditor.tab_offset > 0)
-                        gEditor.tab_offset--;
-                } else if (field == FIELD_EXPLORER) {
-                    editorExplorerProcessKeypress(input);
-                }
-                break;
-            }
-        }
-        // fall through
+        // Scroll
+        case WHEEL_UP:
+        case WHEEL_DOWN:
         case CTRL_UP:
+        case CTRL_DOWN: {
             should_scroll = false;
-            editorScroll(tab, -(c == WHEEL_UP ? 3 : 1));
-            if (mouse_pressed == FIELD_TEXT) {
-                editorMoveMouse(tab, curr_x, curr_y);
-            } else if (mouse_pressed == FIELD_LINENO) {
-                int col = 0;
-                int row = curr_y;
-                editorMousePosToEditorPos(&col, &row);
-                editorMoveMouse(tab, 0,
-                                curr_y + ((row >= pressed_row) ? 1 : 0));
-            }
-            break;
+            int scroll_dist = (c == WHEEL_UP || c == WHEEL_DOWN) ? 3 : 1;
+            int scroll_dir = (c == WHEEL_UP || c == CTRL_UP) ? -1 : 1;
 
-        // Scroll down
-        case WHEEL_DOWN: {
-            int in_x = input.data.cursor.x;
-            int in_y = input.data.cursor.y;
-            int field = editorGetMousePosField(in_x, in_y);
-            should_scroll = false;
-            if (field != FIELD_TEXT && field != FIELD_LINENO) {
-                if (field == FIELD_TOP_STATUS) {
-                    handleTabClick(gEditor.screen_cols);
-                } else if (field == FIELD_EXPLORER) {
-                    editorExplorerProcessKeypress(input);
+            int scroll_split_index = gEditor.active_split_index;
+
+            if (c == WHEEL_UP || c == WHEEL_DOWN) {
+                int in_x = input.data.cursor.x;
+                int in_y = input.data.cursor.y;
+
+                bool should_break = false;
+                int split_index;
+                int field = editorGetMousePosField(in_x, in_y, &split_index);
+                switch (field) {
+                    case FIELD_TEXT:
+                    case FIELD_LINENO:
+                        scroll_split_index = split_index;
+                        break;
+                    case FIELD_TOP_STATUS: {
+                        EditorSplit* scroll_split =
+                            &gEditor.splits[split_index];
+                        if (c == WHEEL_UP) {
+                            if (scroll_split->tab_offset > 0) {
+                                scroll_split->tab_offset--;
+                            }
+                        } else {
+                            if (scroll_split->tab_offset +
+                                    scroll_split->tab_displayed <
+                                scroll_split->tab_count) {
+                                scroll_split->tab_offset++;
+                            }
+                        }
+                        should_break = true;
+                    } break;
+                    case FIELD_EXPLORER:
+                        editorExplorerProcessKeypress(input);
+                        should_break = true;
+                    default:
+                        break;
                 }
-                break;
+
+                if (should_break)
+                    break;
             }
-        }
-        // fall through
-        case CTRL_DOWN:
-            should_scroll = false;
-            editorScroll(tab, c == WHEEL_DOWN ? 3 : 1);
-            if (mouse_pressed == FIELD_TEXT) {
-                editorMoveMouse(tab, curr_x, curr_y);
-            } else if (mouse_pressed == FIELD_LINENO) {
-                int col = 0;
-                int row = curr_y;
-                editorMousePosToEditorPos(&col, &row);
-                editorMoveMouse(tab, 0,
-                                curr_y + ((row >= pressed_row) ? 1 : 0));
+
+            editorScroll(scroll_split_index, scroll_dir * scroll_dist);
+            if (scroll_split_index == mouse_pressed_split_index) {
+                if (mouse_pressed_field == FIELD_TEXT) {
+                    editorMoveMouse(mouse_pressed_split_index, curr_x, curr_y);
+                } else if (mouse_pressed_field == FIELD_LINENO) {
+                    int x, y;
+                    editorMousePosToEditorPos(mouse_pressed_split_index, 0,
+                                              curr_y, &x, &y);
+                    editorMoveMouse(
+                        mouse_pressed_split_index, 0,
+                        curr_y + ((y >= mouse_pressed_row) ? 1 : 0));
+                }
             }
-            break;
+        } break;
 
         // Close tab
         case SCROLL_PRESSED:
@@ -1557,16 +1655,18 @@ void editorProcessKeypress(void) {
         case SCROLL_RELEASED: {
             int in_x = input.data.cursor.x;
             int in_y = input.data.cursor.y;
-
             should_scroll = false;
-            if (editorGetMousePosField(in_x, in_y) == FIELD_TOP_STATUS) {
-                int tab_index = handleTabClick(in_x);
-                if (tab_index < 0 || tab_index >= gEditor.tab_count) {
-                    break;
-                }
 
-                const EditorFile* tab_file =
-                    editorTabGetFile(&gEditor.tabs[tab_index]);
+            int split_index;
+            if (editorGetMousePosField(in_x, in_y, &split_index) ==
+                FIELD_TOP_STATUS) {
+                EditorSplit* target_split = &gEditor.splits[split_index];
+                int tab_index = editorHandleTabClick(split_index, in_x);
+                if (tab_index < 0 || tab_index >= target_split->tab_count)
+                    break;
+
+                const EditorTab* target_tab = editorSplitGetTab(split_index);
+                const EditorFile* tab_file = editorTabGetFile(target_tab);
                 if (tab_file->dirty) {
                     editorMsg("File has unsaved changes.");
                     editorMsg("Press close again to close file anyway.");
@@ -1581,16 +1681,23 @@ void editorProcessKeypress(void) {
                     }
 
                     next_input = editorReadKey();
-                    if (next_input.type != SCROLL_RELEASED ||
-                        editorGetMousePosField(next_input.data.cursor.x,
-                                               next_input.data.cursor.y) !=
-                            FIELD_TOP_STATUS ||
-                        handleTabClick(next_input.data.cursor.x) != tab_index) {
-                        pending_input = next_input;
-                        break;
+                    int next_split_index;
+                    if (next_input.type == SCROLL_RELEASED &&
+                        editorGetMousePosField(
+                            next_input.data.cursor.x, next_input.data.cursor.y,
+                            &next_split_index) == FIELD_TOP_STATUS) {
+                        if (next_split_index == split_index &&
+                            editorHandleTabClick(split_index,
+                                                 next_input.data.cursor.x) ==
+                                tab_index) {
+                            editorCloseTab(split_index, tab_index);
+                            break;
+                        }
                     }
+                    pending_input = next_input;
+                } else {
+                    editorCloseTab(split_index, tab_index);
                 }
-                editorCloseFile(tab_index);
             }
         } break;
 
@@ -1718,6 +1825,6 @@ void editorProcessKeypress(void) {
     }
 
     if (should_scroll) {
-        editorScrollToCursor(tab);
+        editorScrollToCursor(gEditor.active_split_index);
     }
 }

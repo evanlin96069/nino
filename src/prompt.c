@@ -72,8 +72,8 @@ char* editorPrompt(const char* prompt,
         editorRefreshScreen();
 
         EditorInput input = editorReadKey();
-        int x = input.data.cursor.x;
-        int y = input.data.cursor.y;
+        int in_x = input.data.cursor.x;
+        int in_y = input.data.cursor.y;
 
         size_t idx = gEditor.px - start;
         switch (input.type) {
@@ -144,18 +144,23 @@ char* editorPrompt(const char* prompt,
                 break;
 
             case WHEEL_UP:
-            case WHEEL_DOWN:
-                if (gEditor.tab_count > 0) {
-                    editorScroll(editorGetActiveTab(),
+            case WHEEL_DOWN: {
+                int split_index;
+                int field = editorGetMousePosField(in_x, in_y, &split_index);
+                if (field == FIELD_TEXT) {
+                    editorScroll(split_index,
                                  (input.type == WHEEL_UP) ? -3 : 3);
+                } else if (field == FIELD_EXPLORER) {
+                    editorExplorerScroll((input.type == WHEEL_UP) ? -3 : 3);
                 }
-                break;
+            } break;
 
             case MOUSE_PRESSED: {
-                int field = editorGetMousePosField(x, y);
+                int split_index;
+                int field = editorGetMousePosField(in_x, in_y, &split_index);
                 if (field == FIELD_PROMPT) {
-                    if (x >= start) {
-                        size_t cx = x - start;
+                    if (in_x >= start) {
+                        size_t cx = in_x - start;
                         if (cx < buflen)
                             idx = cx;
                         else
@@ -163,10 +168,11 @@ char* editorPrompt(const char* prompt,
                     }
                     break;
                 } else if (field == FIELD_TEXT) {
-                    EditorTab* tab = editorGetActiveTab();
+                    EditorTab* tab = editorSplitGetTab(split_index);
                     const EditorFile* file = editorTabGetFile(tab);
 
-                    editorMousePosToEditorPos(&x, &y);
+                    int x, y;
+                    editorMousePosToEditorPos(split_index, in_x, in_y, &x, &y);
                     tab->cursor.y = y;
                     tab->cursor.x = editorRowRxToCx(&file->row[y], x);
                     tab->sx = x;
@@ -249,7 +255,7 @@ static void editorGotoCallback(char* query, int key) {
         tab->cursor.x = 0;
         tab->sx = 0;
         tab->cursor.y = line - 1;
-        editorScrollToCursorCenter(tab);
+        editorScrollToCursorCenter(gEditor.active_split_index);
     } else {
         editorMsg("Type a line number between 1 to %d (negative too).",
                   file->num_rows);
@@ -427,7 +433,7 @@ static void editorFindCallback(char* query, int key) {
 
     tab->cursor.x = match_node->col;
     tab->cursor.y = match_node->row;
-    editorScrollToCursorCenter(tab);
+    editorScrollToCursorCenter(gEditor.active_split_index);
 
     uint8_t* match_pos = &file->row[match_node->row].hl[match_node->col];
     saved_hl_len = len;

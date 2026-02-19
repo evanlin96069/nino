@@ -22,5 +22,6 @@ typedef struct ScreenCell {
 } ScreenCell;
 
 void editorRefreshScreen(void);
+void editorGetSplitScreenCols(int split_index, int* left_cols, int* right_cols);
 
 #endif

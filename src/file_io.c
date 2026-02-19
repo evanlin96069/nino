@@ -86,11 +86,12 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
             int open_index = isFileOpened(file_info);
 
             if (open_index != -1) {
-                int tab_index = editorFindTabByFileIndex(open_index);
+                int tab_index = editorFindTabByFileIndex(
+                    gEditor.active_split_index, open_index);
                 if (tab_index != -1) {
-                    editorChangeToFile(tab_index);
+                    editorChangeToFile(gEditor.active_split_index, tab_index);
                 } else {
-                    editorAddTab(open_index);
+                    editorAddTab(gEditor.active_split_index, open_index);
                 }
                 return OPEN_OPENED;
             }
@@ -287,6 +288,30 @@ bool editorIsDangerousSave(const EditorFile* file) {
     }
 
     return false;
+}
+
+static int findAvailableUntitledId(void) {
+    for (int id = 0;; id++) {
+        int used = 0;
+        for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+            const EditorFile* open_file = &gEditor.files[i];
+            if (open_file->reference_count == 0)
+                continue;
+            if (!open_file->filename && open_file->new_id == id) {
+                used = 1;
+                break;
+            }
+        }
+        if (!used) {
+            return id;
+        }
+    }
+}
+
+void editorNewUntitledFile(EditorFile* file) {
+    editorInitFile(file);
+    editorInsertRow(file, 0, "", 0);
+    file->new_id = findAvailableUntitledId();
 }
 
 void editorOpenFilePrompt(void) {
