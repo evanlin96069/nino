@@ -332,9 +332,23 @@ static void editorDrawTopStatusBar(void) {
     }
 
     ScreenCell* row = gEditor.screen[0];
-    ScreenStyle default_style = {
+    const ScreenStyle default_style = {
         .fg = gEditor.color_cfg.top_status[0],
         .bg = gEditor.color_cfg.top_status[1],
+    };
+    const ScreenStyle tab_default_style = {
+        .fg = gEditor.color_cfg.top_status[2],
+        .bg = gEditor.color_cfg.top_status[3],
+    };
+    // Active split active tab style
+    const ScreenStyle tab_active_style1 = {
+        .fg = gEditor.color_cfg.top_status[4],
+        .bg = gEditor.color_cfg.top_status[5],
+    };
+    // Non-active split active tab style
+    const ScreenStyle tab_active_style2 = {
+        .fg = gEditor.color_cfg.top_status[4],
+        .bg = gEditor.color_cfg.top_status[3],
     };
 
     screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
@@ -379,16 +393,17 @@ static void editorDrawTopStatusBar(void) {
             if (remaining_width < 0)
                 break;
 
-            const EditorFile* file = editorTabGetFile(&split->tabs[j]);
+            const EditorTab* tab = &split->tabs[j];
+            const EditorFile* file = editorTabGetFile(tab);
 
-            bool is_current = (i == gEditor.active_split_index &&
-                               file == editorGetActiveFile());
-            if (is_current) {
-                style.fg = gEditor.color_cfg.top_status[4];
-                style.bg = gEditor.color_cfg.top_status[5];
+            if (j == split->tab_active_index) {
+                if (i == gEditor.split_active_index) {
+                    style = tab_active_style1;
+                } else {
+                    style = tab_active_style2;
+                }
             } else {
-                style.fg = gEditor.color_cfg.top_status[2];
-                style.bg = gEditor.color_cfg.top_status[3];
+                style = tab_default_style;
             }
 
             char buf[EDITOR_PATH_MAX] = {0};
@@ -947,18 +962,22 @@ void editorRefreshScreen(void) {
     bool should_show_cursor = false;
     switch (gEditor.state) {
         case EDIT_MODE: {
+            int split_start, split_end;
+            editorGetSplitScreenCols(gEditor.split_active_index, &split_start,
+                                     &split_end);
+
             int row = (tab->cursor.y - tab->row_offset) + 2;
             int col =
                 (editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x) -
                  tab->col_offset) +
                 1 + editorGetLinenoWidth(file);
             if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 0 ||
-                col > gEditor.screen_cols - gEditor.explorer.width ||
+                col > split_end - split_start ||
                 row >= gEditor.screen_rows - gEditor.con_size) {
                 should_show_cursor = false;
             } else {
                 should_show_cursor = true;
-                gotoXY(&ab, row, col + gEditor.explorer.width);
+                gotoXY(&ab, row, col + split_start);
             }
         } break;
 

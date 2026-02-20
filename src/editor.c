@@ -64,7 +64,7 @@ int editorAddFileToActiveSplit(EditorFile* file) {
             editorAddSplit();
         }
 
-        int tab_index = editorAddTab(gEditor.active_split_index, file_index);
+        int tab_index = editorAddTab(gEditor.split_active_index, file_index);
         if (tab_index != -1) {
             return file_index;
         }
@@ -123,7 +123,7 @@ void editorRemoveFile(int file_index) {
 int editorAddTab(int split_index, int file_index) {
     if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
         return -1;
-    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+    if (split_index < 0 || split_index >= gEditor.split_count)
         return -1;
 
     EditorSplit* split = &gEditor.splits[split_index];
@@ -143,6 +143,7 @@ int editorAddTab(int split_index, int file_index) {
     }
     file->reference_count++;
 
+    split->tab_active_index = split->tab_count;
     split->tab_count++;
 
     int index = split->tab_count - 1;
@@ -157,7 +158,7 @@ int editorAddTab(int split_index, int file_index) {
 
 // Won't update tab_active_index
 void editorRemoveTab(int split_index, int tab_index) {
-    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+    if (split_index < 0 || split_index >= gEditor.split_count)
         return;
 
     EditorSplit* split = &gEditor.splits[split_index];
@@ -168,13 +169,12 @@ void editorRemoveTab(int split_index, int tab_index) {
     int file_index = split->tabs[tab_index].file_index;
     editorRemoveFile(file_index);
 
-    if (tab_index == split->tab_count - 1) {
-        split->tab_count--;
-        return;
+    if (tab_index != split->tab_count - 1) {
+        // Move the later tabs forward
+        memmove(&split->tabs[tab_index], &split->tabs[tab_index + 1],
+                sizeof(EditorTab) * (split->tab_count - tab_index - 1));
     }
 
-    memmove(&split->tabs[tab_index], &split->tabs[tab_index + 1],
-            sizeof(EditorTab) * (split->tab_count - tab_index - 1));
     split->tab_count--;
 
     // Close split if no file in the tab
@@ -186,7 +186,7 @@ void editorRemoveTab(int split_index, int tab_index) {
 int editorFindTabByFileIndex(int split_index, int file_index) {
     if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
         return -1;
-    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+    if (split_index < 0 || split_index >= gEditor.split_count)
         return -1;
 
     EditorSplit* split = &gEditor.splits[split_index];
@@ -200,7 +200,7 @@ int editorFindTabByFileIndex(int split_index, int file_index) {
 }
 
 void editorChangeToFile(int split_index, int tab_index) {
-    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+    if (split_index < 0 || split_index >= gEditor.split_count)
         return;
 
     EditorSplit* split = &gEditor.splits[split_index];
@@ -217,12 +217,12 @@ void editorChangeToFile(int split_index, int tab_index) {
 }
 
 int editorAddSplit(void) {
-    if (gEditor.split_count >= EDITOR_FILE_MAX_SLOT)
+    if (gEditor.split_count >= EDITOR_SPLIT_MAX)
         return -1;
 
     int index = gEditor.split_count;
     if (gEditor.split_count == 0) {
-        gEditor.active_split_index = index;
+        gEditor.split_active_index = index;
     }
 
     memset(&gEditor.splits[index], 0, sizeof(EditorSplit));
@@ -232,7 +232,7 @@ int editorAddSplit(void) {
 }
 
 void editorRemoveSplit(int split_index) {
-    if (split_index < 0 || split_index >= EDITOR_SPLIT_MAX)
+    if (split_index < 0 || split_index >= gEditor.split_count)
         return;
 
     EditorSplit* split = &gEditor.splits[split_index];
@@ -245,7 +245,7 @@ void editorRemoveSplit(int split_index) {
     gEditor.split_count--;
 
     // Adjust active index
-    int active_index = gEditor.active_split_index;
+    int active_index = gEditor.split_active_index;
     if (active_index == split_index) {
         if (active_index > 0) {
             active_index--;
@@ -253,4 +253,5 @@ void editorRemoveSplit(int split_index) {
     } else if (active_index > split_index) {
         active_index--;
     }
+    gEditor.split_active_index = active_index;
 }

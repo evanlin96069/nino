@@ -87,11 +87,11 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
 
             if (open_index != -1) {
                 int tab_index = editorFindTabByFileIndex(
-                    gEditor.active_split_index, open_index);
+                    gEditor.split_active_index, open_index);
                 if (tab_index != -1) {
-                    editorChangeToFile(gEditor.active_split_index, tab_index);
+                    editorChangeToFile(gEditor.split_active_index, tab_index);
                 } else {
-                    editorAddTab(gEditor.active_split_index, open_index);
+                    editorAddTab(gEditor.split_active_index, open_index);
                 }
                 return OPEN_OPENED;
             }

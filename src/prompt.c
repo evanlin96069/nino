@@ -255,7 +255,7 @@ static void editorGotoCallback(char* query, int key) {
         tab->cursor.x = 0;
         tab->sx = 0;
         tab->cursor.y = line - 1;
-        editorScrollToCursorCenter(gEditor.active_split_index);
+        editorScrollToCursorCenter(gEditor.split_active_index);
     } else {
         editorMsg("Type a line number between 1 to %d (negative too).",
                   file->num_rows);
@@ -433,7 +433,7 @@ static void editorFindCallback(char* query, int key) {
 
     tab->cursor.x = match_node->col;
     tab->cursor.y = match_node->row;
-    editorScrollToCursorCenter(gEditor.active_split_index);
+    editorScrollToCursorCenter(gEditor.split_active_index);
 
     uint8_t* match_pos = &file->row[match_node->row].hl[match_node->col];
     saved_hl_len = len;

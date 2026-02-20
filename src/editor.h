@@ -10,7 +10,7 @@
 #include "select.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
-#define EDITOR_SPLIT_MAX 1
+#define EDITOR_SPLIT_MAX 2
 
 #define EDITOR_CON_COUNT 16
 #define EDITOR_CON_LENGTH 255
@@ -123,7 +123,7 @@ typedef struct Editor {
     // Splits
     EditorSplit splits[EDITOR_SPLIT_MAX];
     int split_count;
-    int active_split_index;
+    int split_active_index;
 
     // Syntax highlight
     EditorSyntax* HLDB;
@@ -155,7 +155,7 @@ static inline EditorTab* editorSplitGetTab(int split_index) {
 }
 
 static inline EditorSplit* editorGetActiveSplit(void) {
-    return &gEditor.splits[gEditor.active_split_index];
+    return &gEditor.splits[gEditor.split_active_index];
 }
 
 static inline EditorTab* editorGetActiveTab(void) {

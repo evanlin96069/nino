@@ -2,6 +2,55 @@
 
 #include "editor.h"
 
+static int editorPosCmp(int x1, int y1, int x2, int y2) {
+    if (y1 < y2)
+        return -1;
+    if (y1 > y2)
+        return 1;
+    if (x1 < x2)
+        return -1;
+    if (x1 > x2)
+        return 1;
+    return 0;
+}
+
+static bool editorPosInsideRange(int x, int y, EditorSelectRange range) {
+    return editorPosCmp(x, y, range.start_x, range.start_y) >= 0 &&
+           editorPosCmp(x, y, range.end_x, range.end_y) < 0;
+}
+
+static void editorPosUpdate(int* x,
+                            int* y,
+                            EditorSelectRange delete_range,
+                            EditorSelectRange insert_range) {
+    if (editorPosCmp(*x, *y, delete_range.start_x, delete_range.start_y) < 0)
+        return;
+
+    if (editorPosInsideRange(*x, *y, delete_range)) {
+        *x = insert_range.end_x;
+        *y = insert_range.end_y;
+        return;
+    }
+
+    if (editorPosCmp(*x, *y, delete_range.end_x, delete_range.end_y) >= 0) {
+        int tail_x;
+        int tail_y = *y - delete_range.end_y;
+        if (tail_y == 0) {
+            tail_x = *x - delete_range.end_x;
+        } else {
+            tail_x = *x;
+        }
+
+        if (tail_y == 0) {
+            *x = insert_range.end_x + tail_x;
+            *y = insert_range.end_y;
+        } else {
+            *x = tail_x;
+            *y = insert_range.end_y + tail_y;
+        }
+    }
+}
+
 void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
     EditorFile* file = editorTabGetFile(tab);
 
@@ -22,9 +71,9 @@ void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
         getClipboardRange(edit->x, edit->y, to_add);
 
     // Update all tabs referencing this file
-    for (int i = 0; i < gEditor.split_count; ++i) {
+    for (int i = 0; i < gEditor.split_count; i++) {
         EditorSplit* split = &gEditor.splits[i];
-        for (int j = 0; j < split->tab_count; ++j) {
+        for (int j = 0; j < split->tab_count; j++) {
             EditorTab* t = &split->tabs[j];
             if (t->file_index != tab->file_index)
                 continue;
@@ -37,25 +86,14 @@ void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
                 continue;
             }
 
-            // Cursor is after the edit
-            if (t->cursor.y > delete_range.end_y ||
-                (t->cursor.y == delete_range.end_y &&
-                 t->cursor.x >= delete_range.end_x)) {
-                int dx = insert_range.end_x - delete_range.end_x;
-                int dy = insert_range.end_y - delete_range.end_y;
-                t->cursor.x += dx;
-                t->cursor.y += dy;
-            } else if (t->cursor.y > delete_range.start_y ||
-                       (t->cursor.y == delete_range.start_y &&
-                        t->cursor.x >= delete_range.start_x)) {
-                // Cursor is inside the edited region
-                t->cursor.x = insert_range.end_x;
-                t->cursor.y = insert_range.end_y;
-            }
+            editorPosUpdate(&t->cursor.x, &t->cursor.y, delete_range,
+                            insert_range);
 
             if (t->cursor.is_selected) {
-                if (!((t->cursor.y < delete_range.start_y) ||
-                      (t->cursor.select_y > delete_range.end_y))) {
+                editorPosUpdate(&t->cursor.select_x, &t->cursor.select_y,
+                                delete_range, insert_range);
+                if (t->cursor.x == t->cursor.select_x &&
+                    t->cursor.y == t->cursor.select_y) {
                     t->cursor.is_selected = false;
                 }
             }

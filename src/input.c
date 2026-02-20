@@ -593,7 +593,8 @@ static void editorCloseTab(int split_index, int tab_index) {
     if (tab_index < 0 || tab_index >= split->tab_count)
         return;
 
-    int active_index = split->tab_active_index;
+    int old_tab_active_index = split->tab_active_index;
+    int old_split_active_index = gEditor.split_active_index;
     editorRemoveTab(split_index, tab_index);
     if (gEditor.split_count == 0) {
         gEditor.state = EXPLORER_MODE;
@@ -601,12 +602,16 @@ static void editorCloseTab(int split_index, int tab_index) {
         return;
     }
 
-    if (tab_index < active_index) {
-        active_index--;
-    } else if (tab_index == active_index && active_index >= split->tab_count) {
-        active_index = split->tab_count - 1;
+    if (gEditor.split_active_index != old_split_active_index)
+        return;
+
+    if (tab_index < old_tab_active_index) {
+        old_tab_active_index--;
+    } else if (tab_index == old_tab_active_index &&
+               old_tab_active_index >= split->tab_count) {
+        old_tab_active_index = split->tab_count - 1;
     }
-    editorChangeToFile(split_index, active_index);
+    editorChangeToFile(split_index, old_tab_active_index);
 }
 
 void editorProcessKeypress(void) {
@@ -804,7 +809,7 @@ void editorProcessKeypress(void) {
         case CTRL_KEY('w'): {
             should_scroll = false;
 
-            if (file->dirty) {
+            if (file->reference_count == 1 && file->dirty) {
                 editorMsg("File has unsaved changes.");
                 editorMsg("Press close again to close file anyway.");
                 editorRefreshScreen();
@@ -816,7 +821,7 @@ void editorProcessKeypress(void) {
                     break;
                 }
             }
-            editorCloseTab(gEditor.active_split_index, split->tab_active_index);
+            editorCloseTab(gEditor.split_active_index, split->tab_active_index);
             break;
         }
 
@@ -1210,10 +1215,10 @@ void editorProcessKeypress(void) {
                 break;
 
             if (split->tab_active_index == 0) {
-                editorChangeToFile(gEditor.active_split_index,
+                editorChangeToFile(gEditor.split_active_index,
                                    split->tab_count - 1);
             } else {
-                editorChangeToFile(gEditor.active_split_index,
+                editorChangeToFile(gEditor.split_active_index,
                                    split->tab_active_index - 1);
             }
             break;
@@ -1225,9 +1230,9 @@ void editorProcessKeypress(void) {
                 break;
 
             if (split->tab_active_index == split->tab_count - 1) {
-                editorChangeToFile(gEditor.active_split_index, 0);
+                editorChangeToFile(gEditor.split_active_index, 0);
             } else {
-                editorChangeToFile(gEditor.active_split_index,
+                editorChangeToFile(gEditor.split_active_index,
                                    split->tab_active_index + 1);
             }
             break;
@@ -1433,6 +1438,31 @@ void editorProcessKeypress(void) {
             }
         } break;
 
+        // Create new split
+        case CTRL_KEY('\\'): {
+            should_scroll = false;
+            int new_split_index = editorAddSplit();
+            if (new_split_index != -1) {
+                gEditor.split_active_index = new_split_index;
+                editorAddTab(new_split_index, tab->file_index);
+            }
+        } break;
+
+        // Focus left/right split
+        case CTRL_ALT_RIGHT:
+            should_scroll = false;
+            if (gEditor.split_active_index < gEditor.split_count - 1) {
+                gEditor.split_active_index++;
+            }
+            break;
+
+        case CTRL_ALT_LEFT:
+            should_scroll = false;
+            if (gEditor.split_active_index > 0) {
+                gEditor.split_active_index--;
+            }
+            break;
+
         // Mouse input
         case MOUSE_PRESSED: {
             int in_x = input.data.cursor.x;
@@ -1447,7 +1477,7 @@ void editorProcessKeypress(void) {
 
             switch (field) {
                 case FIELD_TEXT: {
-                    gEditor.active_split_index = split_index;
+                    gEditor.split_active_index = split_index;
 
                     mouse_pressed_field = FIELD_TEXT;
                     mouse_pressed_split_index = split_index;
@@ -1511,7 +1541,7 @@ void editorProcessKeypress(void) {
                 } break;
 
                 case FIELD_TOP_STATUS: {
-                    gEditor.active_split_index = split_index;
+                    gEditor.split_active_index = split_index;
                     should_scroll = false;
                     mouse_click = 0;
                     editorChangeToFile(split_index,
@@ -1519,7 +1549,7 @@ void editorProcessKeypress(void) {
                 } break;
 
                 case FIELD_LINENO: {
-                    gEditor.active_split_index = split_index;
+                    gEditor.split_active_index = split_index;
                     should_scroll = false;
                     mouse_click = 0;
 
@@ -1591,7 +1621,7 @@ void editorProcessKeypress(void) {
             int scroll_dist = (c == WHEEL_UP || c == WHEEL_DOWN) ? 3 : 1;
             int scroll_dir = (c == WHEEL_UP || c == CTRL_UP) ? -1 : 1;
 
-            int scroll_split_index = gEditor.active_split_index;
+            int scroll_split_index = gEditor.split_active_index;
 
             if (c == WHEEL_UP || c == WHEEL_DOWN) {
                 int in_x = input.data.cursor.x;
@@ -1665,9 +1695,10 @@ void editorProcessKeypress(void) {
                 if (tab_index < 0 || tab_index >= target_split->tab_count)
                     break;
 
-                const EditorTab* target_tab = editorSplitGetTab(split_index);
+                const EditorTab* target_tab =
+                    &gEditor.splits[split_index].tabs[tab_index];
                 const EditorFile* tab_file = editorTabGetFile(target_tab);
-                if (tab_file->dirty) {
+                if (tab_file->reference_count == 1 && tab_file->dirty) {
                     editorMsg("File has unsaved changes.");
                     editorMsg("Press close again to close file anyway.");
                     editorRefreshScreen();
@@ -1825,6 +1856,6 @@ void editorProcessKeypress(void) {
     }
 
     if (should_scroll) {
-        editorScrollToCursor(gEditor.active_split_index);
+        editorScrollToCursor(gEditor.split_active_index);
     }
 }
