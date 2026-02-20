@@ -312,10 +312,18 @@ void editorGetSplitScreenCols(int split_index,
     if (split_index < 0 || split_index >= gEditor.split_count)
         return;
 
-    int split_size =
-        (gEditor.screen_cols - gEditor.explorer.width) / gEditor.split_count;
-    int left = gEditor.explorer.width + split_size * split_index;
+    // Reserve 1 column between each pair of adjacent splits for separators
+    int separators = gEditor.split_count - 1;
+    int available = gEditor.screen_cols - gEditor.explorer.width - separators;
+    if (available < 0)
+        available = 0;
+    int split_size = available / gEditor.split_count;
+    int left = gEditor.explorer.width + split_size * split_index + split_index;
     int right = left + split_size;
+    if (split_index == gEditor.split_count - 1) {
+        // Last split takes remaining columns
+        right = gEditor.screen_cols;
+    }
     if (right > gEditor.screen_cols) {
         right = gEditor.screen_cols;
     }
@@ -894,6 +902,30 @@ static void editorDrawFileExplorer(void) {
     }
 }
 
+static void editorDrawSplitSeparators(void) {
+    if (gEditor.split_count <= 1)
+        return;
+
+    ScreenStyle style = {
+        .fg = gEditor.color_cfg.top_status[1],
+        .bg = gEditor.color_cfg.bg,
+    };
+
+    for (int i = 0; i < gEditor.split_count - 1; i++) {
+        int start, end;
+        editorGetSplitScreenCols(i, &start, &end);
+
+        int sep_col = end;
+        if (sep_col < 0 || sep_col >= gEditor.screen_cols)
+            continue;
+
+        for (int r = 0; r < gEditor.screen_rows - 1; r++) {
+            ScreenCell* row = gEditor.screen[r];
+            screenPutChar(row, gEditor.screen_cols, sep_col, '|', &style);
+        }
+    }
+}
+
 void editorRefreshScreen(void) {
     if (gEditor.screen_size_updated) {
         if (gEditor.screen) {
@@ -941,6 +973,7 @@ void editorRefreshScreen(void) {
     }
 
     editorDrawFileExplorer();
+    editorDrawSplitSeparators();
 
     editorDrawConMsg();
     editorDrawPrompt();
