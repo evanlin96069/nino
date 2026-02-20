@@ -8,6 +8,11 @@ set -eu
 : "${CC:=cc}"
 : "${CFLAGS:=-std=c11 -Wall -Wextra -pedantic}"
 
+# Add command line arguments to CFLAGS
+for arg in "$@"; do
+    CFLAGS="$CFLAGS $arg"
+done
+
 SCRIPT_DIR=$(
     cd "$(dirname "$0")" || exit 1
     pwd -P

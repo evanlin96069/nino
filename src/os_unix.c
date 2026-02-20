@@ -283,17 +283,25 @@ OsError saveFileInPlace(const char* path, const void* buf, size_t len) {
         return err;
     }
 
+#ifndef NO_FSYNC
     if (fsync(fd) < 0) {
         int err = errno;
         close(fd);
         return err;
     }
+#endif  // !NO_FSYNC
 
     close(fd);
     return 0;
 }
 
 OsError saveFileReplace(const char* path, const void* buf, size_t len) {
+#ifdef NO_RENAME
+    UNUSED(path);
+    UNUSED(buf);
+    UNUSED(len);
+    return ENOSYS;  // Not supported
+#else
     OsError err;
 
     char dir[EDITOR_PATH_MAX];
@@ -324,12 +332,15 @@ OsError saveFileReplace(const char* path, const void* buf, size_t len) {
         return err;
     }
 
+#ifndef NO_FSYNC
     if (fsync(fd) != 0) {
         err = errno;
         close(fd);
         unlink(tmp_template);
         return err;
     }
+#endif  // !NO_FSYNC
+
     close(fd);
 
     if (rename(tmp_template, path) != 0) {
@@ -338,14 +349,17 @@ OsError saveFileReplace(const char* path, const void* buf, size_t len) {
         return err;
     }
 
+#ifndef NO_FSYNC
     // fsync directory
     int dfd = open(dir, O_DIRECTORY | O_RDONLY);
     if (dfd >= 0) {
         fsync(dfd);
         close(dfd);
     }
+#endif  // !NO_FSYNC
 
     return 0;
+#endif  // NO_RENAME
 }
 
 bool changeDir(const char* path) {
