@@ -306,12 +306,15 @@ void editorMousePosToEditorPos(int split_index,
 
     int start, end;
     editorGetSplitScreenCols(split_index, &start, &end);
-    if (mouse_x < start || mouse_x >= end)
-        return;
+    if (mouse_x < start)
+        mouse_x = start;
+    if (mouse_x >= end)
+        mouse_x = end - 1;
 
-    if (mouse_y < 1 ||
-        mouse_y >= gEditor.screen_rows - 1)  // top and bottom status bars
-        return;
+    if (mouse_y < 1)
+        mouse_y = 1;
+    if (mouse_y >= gEditor.screen_rows - 1)
+        mouse_y = gEditor.screen_rows - 2;
 
     const EditorTab* tab = editorSplitGetTab(split_index);
     const EditorFile* file = editorTabGetFile(tab);
