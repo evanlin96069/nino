@@ -1485,8 +1485,9 @@ void editorProcessKeypress(void) {
                     mouse_pressed_field = FIELD_TEXT;
                     mouse_pressed_split_index = split_index;
 
-                    EditorTab* cursor_tab = editorSplitGetTab(split_index);
-                    EditorFile* cursor_file = editorTabGetFile(cursor_tab);
+                    // Update tab and file to new split
+                    tab = editorSplitGetTab(split_index);
+                    file = editorTabGetFile(tab);
 
                     int64_t click_time = getTime();
                     int64_t time_diff = click_time - prev_click_time;
@@ -1503,19 +1504,19 @@ void editorProcessKeypress(void) {
 
                     int x, y;
                     editorMousePosToEditorPos(split_index, in_x, in_y, &x, &y);
-                    int cx = editorRowRxToCx(&cursor_file->row[y], x);
+                    int cx = editorRowRxToCx(&file->row[y], x);
 
                     switch (mouse_click % 4) {
                         case 1:
                             // Mouse to pos
-                            cursor_tab->cursor.is_selected = false;
-                            cursor_tab->cursor.y = y;
-                            cursor_tab->cursor.x = cx;
-                            cursor_tab->sx = x;
+                            tab->cursor.is_selected = false;
+                            tab->cursor.y = y;
+                            tab->cursor.x = cx;
+                            tab->sx = x;
                             break;
                         case 2: {
                             // Select word
-                            const EditorRow* row = &cursor_file->row[y];
+                            const EditorRow* row = &file->row[y];
                             if (row->size == 0)
                                 break;
                             if (cx == row->size)
@@ -1529,16 +1530,16 @@ void editorProcessKeypress(void) {
                             } else {
                                 is_char = isNonSeparator;
                             }
-                            editorSelectWord(cursor_tab, row, cx, is_char);
+                            editorSelectWord(tab, row, cx, is_char);
                         } break;
                         case 3:
                             // Select line
-                            editorSelectLine(cursor_tab, tab->cursor.y);
+                            editorSelectLine(tab, tab->cursor.y);
                             break;
                         case 0:
                             // Select all
                             should_scroll = false;
-                            editorSelectAll(cursor_tab);
+                            editorSelectAll(tab);
                             break;
                     }
                 } break;
@@ -1556,18 +1557,18 @@ void editorProcessKeypress(void) {
                     should_scroll = false;
                     mouse_click = 0;
 
-                    EditorTab* cursor_tab = editorSplitGetTab(split_index);
-                    EditorFile* cursor_file = editorTabGetFile(cursor_tab);
+                    tab = editorSplitGetTab(split_index);
+                    file = editorTabGetFile(tab);
 
-                    int row = cursor_tab->row_offset + in_y - 1;
+                    int row = tab->row_offset + in_y - 1;
                     if (row < 0)
                         row = 0;
-                    if (row >= cursor_file->num_rows)
-                        row = cursor_file->num_rows - 1;
+                    if (row >= file->num_rows)
+                        row = file->num_rows - 1;
                     mouse_pressed_field = FIELD_LINENO;
                     mouse_pressed_split_index = split_index;
                     mouse_pressed_row = row;
-                    editorSelectLine(cursor_tab, row);
+                    editorSelectLine(tab, row);
                 } break;
 
                 case FIELD_EXPLORER: {
