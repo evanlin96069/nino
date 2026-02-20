@@ -207,6 +207,9 @@ static int screenPutUtf8(ScreenCell* row,
                          int x,
                          const char* s,
                          const ScreenStyle style) {
+    if (!s)
+        return 0;
+
     int start_x = x;
     size_t len = strlen(s);
     const char* p = s;
@@ -276,6 +279,9 @@ static int screenPutAscii(ScreenCell* row,
                           int x,
                           const char* s,
                           const ScreenStyle style) {
+    if (!s)
+        return 0;
+
     int start_x = x;
     const char* p = s;
 
@@ -477,6 +483,7 @@ static void editorDrawStatusBar(void) {
 
     const char* help_str = "";
     const char* help_info[] = {
+        [LOADING_MODE] = "",
         [EDIT_MODE] =
             " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: Goto",
         [EXPLORER_MODE] = " ^Q: Quit  ^O: Open  ^P: Prompt",
