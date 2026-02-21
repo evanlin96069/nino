@@ -288,6 +288,16 @@ int editorGetMousePosField(int x, int y, int* split_index) {
         return FIELD_TEXT;
     }
 
+    for (int i = 0; i < gEditor.split_count - 1; i++) {
+        int start, end;
+        editorGetSplitScreenCols(i, &start, &end);
+        if (x == end) {
+            if (split_index)
+                *split_index = i;
+            return FIELD_SPLIT_SEPARATOR;
+        }
+    }
+
     return FIELD_EMPTY;
 }
 
@@ -1582,6 +1592,13 @@ void editorProcessKeypress(void) {
                     editorExplorerProcessKeypress(input);
                 } break;
 
+                case FIELD_SPLIT_SEPARATOR: {
+                    should_scroll = false;
+                    mouse_click = 0;
+                    mouse_pressed_field = FIELD_SPLIT_SEPARATOR;
+                    mouse_pressed_split_index = split_index;
+                } break;
+
                 default:
                     should_scroll = false;
                     mouse_click = 0;
@@ -1605,6 +1622,40 @@ void editorProcessKeypress(void) {
                 gEditor.explorer.width = gEditor.explorer.prefered_width = in_x;
                 if (in_x == 0)
                     gEditor.state = EDIT_MODE;
+            } else if (mouse_pressed_field == FIELD_SPLIT_SEPARATOR) {
+                int si = mouse_pressed_split_index;
+                if (si >= 0 && si + 1 < gEditor.split_count) {
+                    int left_start, left_end;
+                    editorGetSplitScreenCols(si, &left_start, NULL);
+                    editorGetSplitScreenCols(si + 1, NULL, &left_end);
+
+                    // Minimum 2 columns per split
+                    int min_w = 2;
+                    int min_x = left_start + min_w;
+                    int max_x = left_end - min_w - 1;  // -1 for separator
+                    if (min_x > max_x) {
+                        // Not enough space to resize
+                        break;
+                    }
+                    int sep_x = in_x;
+                    if (sep_x < min_x)
+                        sep_x = min_x;
+                    if (sep_x > max_x)
+                        sep_x = max_x;
+
+                    int new_w_left = sep_x - left_start;
+                    int new_w_right = left_end - sep_x - 1;
+
+                    float old_combined =
+                        gEditor.splits[si].ratio + gEditor.splits[si + 1].ratio;
+                    float total_new = (float)(new_w_left + new_w_right);
+                    if (total_new > 0) {
+                        gEditor.splits[si].ratio =
+                            old_combined * new_w_left / total_new;
+                        gEditor.splits[si + 1].ratio =
+                            old_combined * new_w_right / total_new;
+                    }
+                }
             } else if (mouse_pressed_field == FIELD_TEXT) {
                 editorMoveMouse(mouse_pressed_split_index, curr_x, curr_y);
             } else if (mouse_pressed_field == FIELD_LINENO) {

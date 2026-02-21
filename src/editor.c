@@ -226,6 +226,7 @@ int editorAddSplit(void) {
     }
 
     memset(&gEditor.splits[index], 0, sizeof(EditorSplit));
+    gEditor.splits[index].ratio = 1.0f;
     gEditor.split_count++;
 
     return index;

@@ -55,6 +55,7 @@ typedef struct EditorSplit {
     int tab_active_index;
     int tab_offset;
     int tab_displayed;
+    float ratio;
 } EditorSplit;
 
 typedef struct EditorFile {

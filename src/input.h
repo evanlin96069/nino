@@ -11,6 +11,7 @@ enum EditorField {
     FIELD_PROMPT,
     FIELD_STATUS,
     FIELD_EXPLORER,
+    FIELD_SPLIT_SEPARATOR,
     FIELD_ERROR,
 };
 

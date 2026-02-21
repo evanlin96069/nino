@@ -317,12 +317,29 @@ void editorGetSplitScreenCols(int split_index,
     int available = gEditor.screen_cols - gEditor.explorer.width - separators;
     if (available < 0)
         available = 0;
-    int split_size = available / gEditor.split_count;
-    int left = gEditor.explorer.width + split_size * split_index + split_index;
-    int right = left + split_size;
+
+    float total_ratio = 0;
+    for (int i = 0; i < gEditor.split_count; i++) {
+        total_ratio += gEditor.splits[i].ratio;
+    }
+
+    if (total_ratio <= 0)
+        total_ratio = 1.0f;
+
+    int left = gEditor.explorer.width;
+    for (int i = 0; i < split_index; i++) {
+        int w = (int)(gEditor.splits[i].ratio / total_ratio * available);
+        left += w + 1;  // +1 for separator
+    }
+
+    int right;
     if (split_index == gEditor.split_count - 1) {
         // Last split takes remaining columns
         right = gEditor.screen_cols;
+    } else {
+        int w =
+            (int)(gEditor.splits[split_index].ratio / total_ratio * available);
+        right = left + w;
     }
     if (right > gEditor.screen_cols) {
         right = gEditor.screen_cols;
