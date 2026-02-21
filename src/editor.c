@@ -220,9 +220,14 @@ int editorAddSplit(void) {
     if (gEditor.split_count >= EDITOR_SPLIT_MAX)
         return -1;
 
-    int index = gEditor.split_count;
+    int index;
     if (gEditor.split_count == 0) {
+        index = 0;
         gEditor.split_active_index = index;
+    } else {
+        index = gEditor.split_active_index + 1;
+        memmove(&gEditor.splits[index + 1], &gEditor.splits[index],
+                sizeof(EditorSplit) * (gEditor.split_count - index));
     }
 
     memset(&gEditor.splits[index], 0, sizeof(EditorSplit));
