@@ -10,7 +10,7 @@
 #include "select.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
-#define EDITOR_SPLIT_MAX 2
+#define EDITOR_SPLIT_MAX 4
 
 #define EDITOR_CON_COUNT 16
 #define EDITOR_CON_LENGTH 255
