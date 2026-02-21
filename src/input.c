@@ -835,6 +835,7 @@ void editorProcessKeypress(void) {
                 }
             }
             editorCloseTab(gEditor.split_active_index, split->tab_active_index);
+            editorMsgClear();
             break;
         }
 
@@ -1777,6 +1778,7 @@ void editorProcessKeypress(void) {
                                                  next_input.data.cursor.x) ==
                                 tab_index) {
                             editorCloseTab(split_index, tab_index);
+                            editorMsgClear();
                             break;
                         }
                     }
