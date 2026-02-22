@@ -1710,7 +1710,9 @@ void editorProcessKeypress(void) {
                     case FIELD_EXPLORER:
                         editorExplorerProcessKeypress(input);
                         should_break = true;
+                        break;
                     default:
+                        should_break = true;
                         break;
                 }
 
