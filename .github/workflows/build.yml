@@ -5,7 +5,9 @@ on:
     paths-ignore:
         - '.gitignore'
         - 'docs/*'
-        - 'themes/*'
+        - 'scripts/*'
+        - 'resources/themes/*'
+        - 'resources/README.md'
         - 'README.md'
         - 'LICENSE'
 
