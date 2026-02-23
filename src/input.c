@@ -1352,7 +1352,8 @@ void editorProcessKeypress(void) {
             break;
 
         case CTRL_HOME:
-            tab->cursor.is_selected = false;
+        case SHIFT_CTRL_HOME:
+            tab->cursor.is_selected = (c == SHIFT_CTRL_HOME);
             tab->bracket_autocomplete = 0;
             tab->cursor.y = 0;
             tab->cursor.x = 0;
@@ -1360,7 +1361,8 @@ void editorProcessKeypress(void) {
             break;
 
         case CTRL_END:
-            tab->cursor.is_selected = false;
+        case SHIFT_CTRL_END:
+            tab->cursor.is_selected = (c == SHIFT_CTRL_END);
             tab->bracket_autocomplete = 0;
             tab->cursor.y = file->num_rows - 1;
             tab->cursor.x = file->row[file->num_rows - 1].size;

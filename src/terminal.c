@@ -64,10 +64,18 @@ static const StrIntPair sequence_lookup[] = {
     // Alt
     {"[1;3A", ALT_UP},
     {"[1;3B", ALT_DOWN},
+    {"[1;3C", ALT_RIGHT},
+    {"[1;3D", ALT_LEFT},
+    {"[1;3F", ALT_END},
+    {"[1;3H", ALT_HOME},
 
     // Shift+Alt
     {"[1;4A", SHIFT_ALT_UP},
     {"[1;4B", SHIFT_ALT_DOWN},
+    {"[1;4C", SHIFT_ALT_RIGHT},
+    {"[1;4D", SHIFT_ALT_LEFT},
+    {"[1;4F", SHIFT_ALT_END},
+    {"[1;4H", SHIFT_ALT_HOME},
 
     // Ctrl
     {"[1;5A", CTRL_UP},
@@ -82,10 +90,16 @@ static const StrIntPair sequence_lookup[] = {
     {"[1;6B", SHIFT_CTRL_DOWN},
     {"[1;6C", SHIFT_CTRL_RIGHT},
     {"[1;6D", SHIFT_CTRL_LEFT},
+    {"[1;6F", SHIFT_CTRL_END},
+    {"[1;6H", SHIFT_CTRL_HOME},
 
     // Alt+Ctrl
+    {"[1;7A", CTRL_ALT_UP},
+    {"[1;7B", CTRL_ALT_DOWN},
     {"[1;7C", CTRL_ALT_RIGHT},
     {"[1;7D", CTRL_ALT_LEFT},
+    {"[1;7F", CTRL_ALT_END},
+    {"[1;7H", CTRL_ALT_HOME},
 
     // Page UP / Page Down
     {"[5;2~", SHIFT_PAGE_UP},
