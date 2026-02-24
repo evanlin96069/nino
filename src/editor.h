@@ -8,6 +8,7 @@
 #include "output.h"
 #include "row.h"
 #include "select.h"
+#include "terminal.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
 #define EDITOR_SPLIT_MAX 4
@@ -143,6 +144,9 @@ typedef struct Editor {
     // Prompt
     char prompt[EDITOR_PROMPT_LENGTH];
     char prompt_right[EDITOR_RIGHT_PROMPT_LENGTH];
+
+    // Input
+    EditorInput pending_input;
 } Editor;
 
 // Text editor

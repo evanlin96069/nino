@@ -147,38 +147,47 @@ char* editorPrompt(const char* prompt,
             case WHEEL_DOWN: {
                 int split_index;
                 int field = editorGetMousePosField(in_x, in_y, &split_index);
-                if (field == FIELD_TEXT) {
-                    editorScroll(split_index,
-                                 (input.type == WHEEL_UP) ? -3 : 3);
-                } else if (field == FIELD_EXPLORER) {
-                    editorExplorerScroll((input.type == WHEEL_UP) ? -3 : 3);
+                switch (field) {
+                    case FIELD_TEXT:
+                    case FIELD_LINENO:
+                        editorScroll(split_index,
+                                     (input.type == WHEEL_UP) ? -3 : 3);
+                        break;
+                    case FIELD_EXPLORER:
+                        editorExplorerScroll((input.type == WHEEL_UP) ? -3 : 3);
+                        break;
+                    case FIELD_TOP_STATUS:
+                        editorTopStatusBarScroll(split_index,
+                                                 input.type == WHEEL_UP);
+                        break;
+                    default:
+                        break;
                 }
             } break;
 
+            case SCROLL_RELEASED:
             case MOUSE_PRESSED: {
-                int split_index;
-                int field = editorGetMousePosField(in_x, in_y, &split_index);
-                if (field == FIELD_PROMPT) {
-                    if (in_x >= start) {
-                        size_t cx = in_x - start;
-                        if (cx < buflen)
-                            idx = cx;
-                        else
-                            idx = buflen;
-                    }
-                    break;
-                } else if (field == FIELD_TEXT) {
-                    EditorTab* tab = editorSplitGetTab(split_index);
-                    const EditorFile* file = editorTabGetFile(tab);
+                int field = editorGetMousePosField(in_x, in_y, NULL);
+                if (field != FIELD_PROMPT) {
+                    editorSetPrompt("");
+                    gEditor.state = old_state;
+                    free(buf);
 
-                    int x, y;
-                    editorMousePosToEditorPos(split_index, in_x, in_y, &x, &y);
-                    tab->cursor.y = y;
-                    tab->cursor.x = editorRowRxToCx(&file->row[y], x);
-                    tab->sx = x;
+                    gEditor.pending_input = input;
+                    editorProcessKeypress();
+                    return NULL;
                 }
-            }
-            // fall through
+
+                if (in_x >= start) {
+                    size_t cx = in_x - start;
+                    if (cx < buflen) {
+                        idx = cx;
+                    } else {
+                        idx = buflen;
+                    }
+                }
+            } break;
+
             case CTRL_KEY('q'):
             case ESC:
                 editorSetPrompt("");

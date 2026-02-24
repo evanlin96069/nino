@@ -1,8 +1,6 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-typedef struct EditorTab EditorTab;
-
 enum EditorField {
     FIELD_EMPTY,
     FIELD_TOP_STATUS,
@@ -21,6 +19,7 @@ void editorScrollToCursor(int split_index);
 void editorScrollToCursorCenter(int split_index);
 void editorScroll(int split_index, int dist);
 void editorExplorerScroll(int dist);
+void editorTopStatusBarScroll(int split_index, bool scroll_up);
 
 void editorMousePosToEditorPos(int split_index,
                                int mouse_x,

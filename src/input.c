@@ -66,6 +66,20 @@ void editorExplorerScroll(int dist) {
     }
 }
 
+void editorTopStatusBarScroll(int split_index, bool scroll_up) {
+    EditorSplit* scroll_split = &gEditor.splits[split_index];
+    if (scroll_up) {
+        if (scroll_split->tab_offset > 0) {
+            scroll_split->tab_offset--;
+        }
+    } else {
+        if (scroll_split->tab_offset + scroll_split->tab_displayed <
+            scroll_split->tab_count) {
+            scroll_split->tab_offset++;
+        }
+    }
+}
+
 void editorExplorerShow(void) {
     if (gEditor.explorer.width == 0) {
         gEditor.explorer.width = gEditor.explorer.prefered_width
@@ -641,13 +655,11 @@ void editorProcessKeypress(void) {
     static int curr_x = 0;
     static int curr_y = 0;
 
-    static EditorInput pending_input = {.type = UNKNOWN};
-
     // Check if there's a pending input from previous call
     EditorInput input;
-    if (pending_input.type != UNKNOWN) {
-        input = pending_input;
-        pending_input.type = UNKNOWN;
+    if (gEditor.pending_input.type != UNKNOWN) {
+        input = gEditor.pending_input;
+        gEditor.pending_input.type = UNKNOWN;
     } else {
         input = editorReadKey();
     }
@@ -812,7 +824,7 @@ void editorProcessKeypress(void) {
                 // Read next key to check if it's a repeat
                 EditorInput next_input = editorReadKey();
                 if (next_input.type != c) {
-                    pending_input = next_input;
+                    gEditor.pending_input = next_input;
                     break;
                 }
             }
@@ -834,7 +846,7 @@ void editorProcessKeypress(void) {
                 // Read next key to check if it's a repeat
                 EditorInput next_input = editorReadKey();
                 if (next_input.type != c) {
-                    pending_input = next_input;
+                    gEditor.pending_input = next_input;
                     break;
                 }
             }
@@ -859,7 +871,7 @@ void editorProcessKeypress(void) {
 
                 EditorInput next_input = editorReadKey();
                 if (next_input.type != c) {
-                    pending_input = next_input;
+                    gEditor.pending_input = next_input;
                     break;
                 }
             }
@@ -1743,19 +1755,7 @@ void editorProcessKeypress(void) {
                         scroll_split_index = split_index;
                         break;
                     case FIELD_TOP_STATUS: {
-                        EditorSplit* scroll_split =
-                            &gEditor.splits[split_index];
-                        if (c == WHEEL_UP) {
-                            if (scroll_split->tab_offset > 0) {
-                                scroll_split->tab_offset--;
-                            }
-                        } else {
-                            if (scroll_split->tab_offset +
-                                    scroll_split->tab_displayed <
-                                scroll_split->tab_count) {
-                                scroll_split->tab_offset++;
-                            }
-                        }
+                        editorTopStatusBarScroll(split_index, c == WHEEL_UP);
                         should_break = true;
                     } break;
                     case FIELD_EXPLORER:
@@ -1816,7 +1816,7 @@ void editorProcessKeypress(void) {
                     EditorInput next_input = editorReadKey();
                     // Have to press in order to release the scroll button
                     if (next_input.type != SCROLL_PRESSED) {
-                        pending_input = next_input;
+                        gEditor.pending_input = next_input;
                         break;
                     }
 
@@ -1835,7 +1835,7 @@ void editorProcessKeypress(void) {
                             break;
                         }
                     }
-                    pending_input = next_input;
+                    gEditor.pending_input = next_input;
                 } else {
                     editorCloseTab(split_index, tab_index);
                 }
