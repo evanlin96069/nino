@@ -171,6 +171,10 @@ char* editorPrompt(const char* prompt,
                 if (field != FIELD_PROMPT) {
                     editorSetPrompt("");
                     gEditor.state = old_state;
+                    if (callback) {
+                        // Send ESC so callback know we're quitting
+                        callback(buf, ESC);
+                    }
                     free(buf);
 
                     gEditor.pending_input = input;
