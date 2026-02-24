@@ -73,7 +73,7 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
 
     while (true) {
         int ret = poll(fds, 2, timeout_ms);
-        if (ret < 0)
+        if (ret <= 0)
             return false;
 
         if (fds[0].revents & POLLIN)
