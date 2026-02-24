@@ -39,7 +39,7 @@ typedef enum OpenStatus {
 
 OpenStatus editorLoadFile(EditorFile* file, const char* filename);
 bool editorSave(EditorFile* file, int save_as);
-bool editorIsDangerousSave(const EditorFile* file);
+bool editorIsDangerousSave(const EditorFile* file, bool verbose);
 void editorNewUntitledFile(EditorFile* file);
 void editorOpenFilePrompt(void);
 

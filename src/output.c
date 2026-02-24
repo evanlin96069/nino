@@ -434,11 +434,13 @@ static void editorDrawTopStatusBar(void) {
             char buf[EDITOR_PATH_MAX] = {0};
             if (file->filename) {
                 const char* basename = getBaseName(file->filename);
-                snprintf(buf, sizeof(buf), " %s%s ", file->dirty ? "*" : "",
+                snprintf(buf, sizeof(buf), " %s%s%s ",
+                         file->read_only ? "[RO]" : "", file->dirty ? "*" : "",
                          basename);
             } else {
-                snprintf(buf, sizeof(buf), " Untitled-%d%s ", file->new_id + 1,
-                         file->dirty ? "*" : "");
+                snprintf(buf, sizeof(buf), " %s%sUntitled-%d ",
+                         file->read_only ? "[RO]" : "", file->dirty ? "*" : "",
+                         file->new_id + 1);
             }
 
             int tab_width = strUTF8Width(buf);

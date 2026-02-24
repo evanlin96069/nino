@@ -279,6 +279,11 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
         return;
     }
 
+    if (file->read_only && !file->unlocked) {
+        editorMsg("File is read-only.");
+        return;
+    }
+
     if (file->newline == nl) {
         return;
     }
@@ -291,6 +296,27 @@ CON_COMMAND(newline, "Set the EOL sequence (LF/CRLF).") {
     file->newline = nl;
 
     editorAppendAction(file, action);
+}
+
+CON_COMMAND(unlock, "Allow editing a read-only file.") {
+    if (gEditor.file_count == 0) {
+        editorMsg("unlock: No file opened");
+        return;
+    }
+
+    EditorFile* file = editorGetActiveFile();
+    if (!file->read_only) {
+        editorMsg("File is not read-only.");
+        return;
+    }
+
+    if (file->unlocked) {
+        editorMsg("File already unlocked.");
+        return;
+    }
+
+    file->unlocked = true;
+    editorMsg("File unlocked. Note: file is still read-only on disk.");
 }
 
 int editorGetDefaultNewline(void) {
@@ -714,6 +740,7 @@ void editorRegisterCommands(void) {
     INIT_CONCOMMAND(hldb_load);
     INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(newline);
+    INIT_CONCOMMAND(unlock);
 
     INIT_CONVAR(cmd_expand_depth);
     INIT_CONCOMMAND(alias);

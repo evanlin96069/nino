@@ -108,6 +108,11 @@ bool editorUndo(EditorTab* tab) {
     if (file->action_current == file->action_head)
         return false;
 
+    if (file->read_only && !file->unlocked) {
+        // This shouldn't happen since there won't be any edit, but just in case
+        return false;
+    }
+
     switch (file->action_current->action->type) {
         case ACTION_EDIT: {
             EditAction* edit = &file->action_current->action->edit;
@@ -131,6 +136,11 @@ bool editorRedo(EditorTab* tab) {
 
     if (!file->action_current->next)
         return false;
+
+    if (file->read_only && !file->unlocked) {
+        // This shouldn't happen since there won't be any edit, but just in case
+        return false;
+    }
 
     file->action_current = file->action_current->next;
 

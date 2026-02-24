@@ -73,6 +73,8 @@ typedef struct EditorFile {
     int new_id;
     bool has_file_info;
     FileInfo file_info;
+    bool read_only;
+    bool unlocked;  // Read-only but unlocked by user
 
     // Text buffers
     size_t row_capacity;

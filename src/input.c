@@ -552,6 +552,10 @@ static int editorHandleTabClick(int split_index, int x) {
             tab_width = strlen("Untitled-") + getDigit(file->new_id + 1);
         }
 
+        // Add [RO] if file is read-only
+        if (file->read_only)
+            tab_width += 4;
+
         // Add * if file is dirty
         if (file->dirty)
             tab_width++;
@@ -840,22 +844,61 @@ void editorProcessKeypress(void) {
         }
 
         // Save
-        case CTRL_KEY('s'):
+        case CTRL_KEY('s'): {
             should_scroll = false;
+            bool warn = editorIsDangerousSave(file, true);
+            if (!warn && file->read_only && file->unlocked) {
+                // File was read-only at open but permissions may have since
+                // changed
+                editorMsg("File was read-only when opened.");
+                warn = true;
+            }
+            if (warn) {
+                editorMsg("Press save again to save anyway.");
+                editorRefreshScreen();
+
+                EditorInput next_input = editorReadKey();
+                if (next_input.type != c) {
+                    pending_input = next_input;
+                    break;
+                }
+            }
             if (file->dirty || !file->filename)
                 editorSave(file, 0);
             break;
+        }
 
         // Save all
-        case ALT_KEY('s'):
+        case ALT_KEY('s'): {
             should_scroll = false;
+            bool has_readonly = false;
+            bool has_dangerous = false;
             for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
                 if (gEditor.files[i].reference_count > 0 &&
                     (gEditor.files[i].dirty || !gEditor.files[i].filename)) {
+                    if (gEditor.files[i].read_only) {
+                        has_readonly = true;
+                        continue;
+                    }
+                    if (editorIsDangerousSave(&gEditor.files[i], false)) {
+                        has_dangerous = true;
+                        continue;
+                    }
                     editorSave(&gEditor.files[i], 0);
                 }
             }
-            break;
+            if (has_dangerous) {
+                editorMsg(
+                    "Some files were skipped (modified or permissions "
+                    "changed).");
+            }
+            if (has_readonly) {
+                editorMsg("Some read-only files were skipped.");
+            }
+            if (has_dangerous || has_readonly) {
+                editorMsg("Please save them individually.");
+            }
+        } break;
 
         // Save as
         case ALT_KEY('a'):
@@ -1198,18 +1241,24 @@ void editorProcessKeypress(void) {
         } break;
 
         // Undo
-        case CTRL_KEY('z'):
-            tab->cursor.is_selected = false;
-            tab->bracket_autocomplete = 0;
-            should_scroll = editorUndo(tab);
-            break;
+        case CTRL_KEY('z'): {
+            bool undo_applied = editorUndo(tab);
+            should_scroll = undo_applied;
+            if (undo_applied) {
+                tab->cursor.is_selected = false;
+                tab->bracket_autocomplete = 0;
+            }
+        } break;
 
         // Redo
-        case CTRL_KEY('y'):
-            tab->cursor.is_selected = false;
-            tab->bracket_autocomplete = 0;
-            should_scroll = editorRedo(tab);
-            break;
+        case CTRL_KEY('y'): {
+            bool redo_applied = editorRedo(tab);
+            should_scroll = redo_applied;
+            if (redo_applied) {
+                tab->cursor.is_selected = false;
+                tab->bracket_autocomplete = 0;
+            }
+        } break;
 
         // Select word
         case CTRL_KEY('d'): {
@@ -1898,6 +1947,13 @@ void editorProcessKeypress(void) {
     }
 
     editorFreeInput(&input);
+
+    if (has_edit && file->read_only && !file->unlocked) {
+        editorMsg("File is read-only.");
+        editorFreeClipboardContent(&edit.before);
+        editorFreeClipboardContent(&edit.after);
+        has_edit = false;
+    }
 
     if (has_edit) {
         editorApplyEdit(tab, &edit, false);

@@ -145,6 +145,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
     editorSelectSyntaxHighlight(file);
 
     file->dirty = 0;
+    file->read_only = !canWriteFile(file->filename);
 
     if (!fp) {
         editorInsertRow(file, 0, "", 0);
@@ -265,7 +266,7 @@ bool editorSave(EditorFile* file, int save_as) {
     return true;
 }
 
-bool editorIsDangerousSave(const EditorFile* file) {
+bool editorIsDangerousSave(const EditorFile* file, bool verbose) {
     if (!file->has_file_info)
         return false;
 
@@ -275,15 +276,17 @@ bool editorIsDangerousSave(const EditorFile* file) {
         return false;
     }
 
-    if (!canWriteFile(file->filename)) {
-        editorMsg("File is read-only.");
-        editorMsg("Save again to save anyway.");
+    if (isFileModified(new_info, file->file_info)) {
+        if (verbose) {
+            editorMsg("File modified by other program since open.");
+        }
         return true;
     }
 
-    if (isFileModified(new_info, file->file_info)) {
-        editorMsg("File modified by other program since open.");
-        editorMsg("Save again to save anyway.");
+    if (!canWriteFile(file->filename)) {
+        if (verbose) {
+            editorMsg("File is read-only on disk.");
+        }
         return true;
     }
 
