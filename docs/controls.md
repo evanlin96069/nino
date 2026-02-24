@@ -15,6 +15,9 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Next Tab | `Ctrl+]` |
 | Focus Explorer | `Ctrl+e` |
 | Toggle Explorer | `Ctrl+b` |
+| New Split | `Ctrl+\` |
+| Focus Right Split | `Ctrl+Alt+Right` |
+| Focus Left Split | `Ctrl+Alt+Left` |
 
 ## Prompt
 | Action | Keybinding |
