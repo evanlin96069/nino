@@ -7,6 +7,8 @@
 
 static HANDLE hStdin = INVALID_HANDLE_VALUE;
 static HANDLE hStdout = INVALID_HANDLE_VALUE;
+static HANDLE hConIn = INVALID_HANDLE_VALUE;
+static HANDLE hConOut = INVALID_HANDLE_VALUE;
 
 static UINT orig_cp_in;
 static UINT orig_cp_out;
@@ -20,6 +22,18 @@ void osInit(void) {
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hStdout == INVALID_HANDLE_VALUE)
         PANIC("Failed to get handle for standard output");
+    hConIn = CreateFileW(L"CONIN$", GENERIC_READ | GENERIC_WRITE,
+                         FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    if (hConIn == INVALID_HANDLE_VALUE)
+        PANIC("Failed to open console input");
+    hConOut = CreateFileW(L"CONOUT$", GENERIC_READ | GENERIC_WRITE,
+                          FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    if (hConOut == INVALID_HANDLE_VALUE)
+        PANIC("Failed to open console output");
+}
+
+bool isStdinTty(void) {
+    return GetFileType(hStdin) == FILE_TYPE_CHAR;
 }
 
 void enableRawMode(void) {
@@ -34,29 +48,29 @@ void enableRawMode(void) {
 
     DWORD mode = 0;
 
-    if (!GetConsoleMode(hStdin, &mode))
+    if (!GetConsoleMode(hConIn, &mode))
         PANIC("Failed to query console input mode");
     orig_in_mode = mode;
     mode |= ENABLE_WINDOW_INPUT | ENABLE_EXTENDED_FLAGS |
             ENABLE_VIRTUAL_TERMINAL_INPUT;
     mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT |
               ENABLE_QUICK_EDIT_MODE);
-    if (!SetConsoleMode(hStdin, mode))
+    if (!SetConsoleMode(hConIn, mode))
         PANIC("Failed to configure console input mode");
 
-    if (!GetConsoleMode(hStdout, &mode))
+    if (!GetConsoleMode(hConOut, &mode))
         PANIC("Failed to query console output mode");
     orig_out_mode = mode;
     mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING |
             DISABLE_NEWLINE_AUTO_RETURN;
     mode &= ~ENABLE_WRAP_AT_EOL_OUTPUT;
-    if (!SetConsoleMode(hStdout, mode))
+    if (!SetConsoleMode(hConOut, mode))
         PANIC("Failed to configure console output mode");
 }
 
 void disableRawMode(void) {
-    SetConsoleMode(hStdin, orig_in_mode);
-    SetConsoleMode(hStdout, orig_out_mode);
+    SetConsoleMode(hConIn, orig_in_mode);
+    SetConsoleMode(hConOut, orig_out_mode);
     SetConsoleCP(orig_cp_in);
     SetConsoleOutputCP(orig_cp_out);
 }
@@ -74,7 +88,7 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     DWORD wait = (timeout_ms < 0) ? INFINITE : (DWORD)timeout_ms;
 
     if (wait != 0) {
-        DWORD wr = WaitForSingleObject(hStdin, wait);
+        DWORD wr = WaitForSingleObject(hConIn, wait);
         if (wr == WAIT_TIMEOUT)
             return false;
         if (wr != WAIT_OBJECT_0)
@@ -82,7 +96,7 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     }
 
     DWORD avail = 0;
-    if (!GetNumberOfConsoleInputEvents(hStdin, &avail) || avail == 0)
+    if (!GetNumberOfConsoleInputEvents(hConIn, &avail) || avail == 0)
         return false;
 
     COORD last_size = (COORD){0, 0};
@@ -92,7 +106,7 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     DWORD read = 0;
 
     while (avail--) {
-        if (!ReadConsoleInputW(hStdin, &rec, 1, &read) || read == 0)
+        if (!ReadConsoleInputW(hConIn, &rec, 1, &read) || read == 0)
             break;
 
         switch (rec.EventType) {
@@ -128,7 +142,7 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
 
 int writeConsole(const void* buf, size_t count) {
     DWORD bytes_written;
-    if (WriteFile(hStdout, buf, count, &bytes_written, NULL)) {
+    if (WriteFile(hConOut, buf, count, &bytes_written, NULL)) {
         return (int)bytes_written;
     }
     return -1;
@@ -170,7 +184,7 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
 int getWindowSize(int* rows, int* cols) {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-    if (GetConsoleScreenBufferInfo(hStdout, &csbi)) {
+    if (GetConsoleScreenBufferInfo(hConOut, &csbi)) {
         *cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
         *rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
         return 0;
@@ -306,7 +320,9 @@ bool canWriteFile(const char* path) {
                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (h == INVALID_HANDLE_VALUE) {
-        return false;
+        // File doesn't exist yet, treat as writable
+        DWORD err = GetLastError();
+        return err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND;
     }
 
     CloseHandle(h);

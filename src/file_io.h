@@ -41,6 +41,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* filename);
 bool editorSave(EditorFile* file, int save_as);
 bool editorIsDangerousSave(const EditorFile* file, bool verbose);
 void editorNewUntitledFile(EditorFile* file);
+void editorNewUntitledFileFromStdin(EditorFile* file);
 void editorOpenFilePrompt(void);
 
 EditorExplorerNode* editorExplorerCreate(const char* path);

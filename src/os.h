@@ -22,6 +22,7 @@ void osInit(void);
 // Terminal
 void enableRawMode(void);
 void disableRawMode(void);
+bool isStdinTty(void);
 
 bool readConsole(uint32_t* unicode_out, int timeout_ms);
 int writeConsole(const void* buf, size_t count);

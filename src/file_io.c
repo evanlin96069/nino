@@ -70,6 +70,46 @@ static void editorExplorerFreeNode(EditorExplorerNode* node) {
     free(node);
 }
 
+static void editorLoadRowsFromStream(EditorFile* file, FILE* fp) {
+    bool has_end_nl = true;
+    bool has_cr = false;
+    size_t at = 0;
+
+    char* line = NULL;
+    size_t n = 0;
+    int64_t len;
+
+    file->row = malloc_s(sizeof(EditorRow) * 16);
+
+    while ((len = getLine(&line, &n, fp)) != -1) {
+        has_end_nl = false;
+        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            if (line[len - 1] == '\r')
+                has_cr = true;
+            has_end_nl = true;
+            len--;
+        }
+        editorInsertRow(file, at, line, len);
+        at++;
+    }
+
+    file->lineno_width = getDigit(file->num_rows) + 2;
+
+    if (has_end_nl) {
+        editorInsertRow(file, file->num_rows, "", 0);
+    }
+
+    if (file->num_rows < 2) {
+        file->newline = editorGetDefaultNewline();
+    } else if (has_cr) {
+        file->newline = NL_DOS;
+    } else {
+        file->newline = NL_UNIX;
+    }
+
+    free(line);
+}
+
 OpenStatus editorLoadFile(EditorFile* file, const char* path) {
     editorInitFile(file);
 
@@ -152,45 +192,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
         return OPEN_FILE;
     }
 
-    bool has_end_nl = true;
-    bool has_cr = false;
-    size_t at = 0;
-    size_t cap = 16;
-
-    char* line = NULL;
-    size_t n = 0;
-    int64_t len;
-
-    file->row = malloc_s(sizeof(EditorRow) * cap);
-
-    while ((len = getLine(&line, &n, fp)) != -1) {
-        has_end_nl = false;
-        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
-            if (line[len - 1] == '\r')
-                has_cr = true;
-            has_end_nl = true;
-            len--;
-        }
-
-        editorInsertRow(file, at, line, len);
-        at++;
-    }
-
-    file->lineno_width = getDigit(file->num_rows) + 2;
-
-    if (has_end_nl) {
-        editorInsertRow(file, file->num_rows, "", 0);
-    }
-
-    if (file->num_rows < 2) {
-        file->newline = editorGetDefaultNewline();
-    } else if (has_cr) {
-        file->newline = NL_DOS;
-    } else if (file->num_rows) {
-        file->newline = NL_UNIX;
-    }
-
-    free(line);
+    editorLoadRowsFromStream(file, fp);
     fclose(fp);
 
     return OPEN_FILE;
@@ -315,6 +317,14 @@ void editorNewUntitledFile(EditorFile* file) {
     editorInitFile(file);
     editorInsertRow(file, 0, "", 0);
     file->new_id = findAvailableUntitledId();
+}
+
+void editorNewUntitledFileFromStdin(EditorFile* file) {
+    editorInitFile(file);
+    file->new_id = findAvailableUntitledId();
+    editorLoadRowsFromStream(file, stdin);
+    file->dirty =
+        1;  // Mark dirty since content is from stdin and not saved yet
 }
 
 void editorOpenFilePrompt(void) {

@@ -4,6 +4,7 @@
 #include "file_io.h"
 #include "input.h"
 #include "opt.h"
+#include "os.h"
 #include "output.h"
 #include "row.h"
 #include "terminal.h"
@@ -27,13 +28,27 @@ int main(int argc, char* argv[]) {
             break;
     }
 
+    EditorFile file;
+    bool stdin_piped = false;
+    bool is_tty = isStdinTty();
+    if ((argc == 0 && !is_tty) || (argc == 1 && strcmp(argv[0], "-") == 0)) {
+        stdin_piped = true;
+        if (is_tty) {
+            fprintf(stderr, "Reading data from keyboard...\n");
+        }
+
+        editorNewUntitledFileFromStdin(&file);
+        editorAddFileToActiveSplit(&file);
+    }
+
     editorInitTerminal();
 
-    EditorFile file;
-    for (int i = 0; i < argc; i++) {
-        if (editorLoadFile(&file, argv[i]) == OPEN_FILE) {
-            if (editorAddFileToActiveSplit(&file)) {
-                break;
+    if (!stdin_piped) {
+        for (int i = 0; i < argc; i++) {
+            if (editorLoadFile(&file, argv[i]) == OPEN_FILE) {
+                if (editorAddFileToActiveSplit(&file) == -1) {
+                    break;
+                }
             }
         }
     }

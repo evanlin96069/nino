@@ -15,6 +15,8 @@
 static int sig_rd = -1, sig_wr = -1;
 static volatile sig_atomic_t winch_queued = 0;
 
+static int tty_fd = -1;
+
 static void SIGWINCH_handler(int sig) {
     if (sig != SIGWINCH)
         return;
@@ -44,8 +46,16 @@ void osInit(void) {
 
 static struct termios orig_termios;
 
+bool isStdinTty(void) {
+    return isatty(STDIN_FILENO);
+}
+
 void enableRawMode(void) {
-    if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+    tty_fd = open("/dev/tty", O_RDWR);
+    if (tty_fd == -1)
+        PANIC("Failed to open /dev/tty");
+
+    if (tcgetattr(tty_fd, &orig_termios) == -1)
         PANIC("Unable to read terminal attributes");
 
     struct termios raw = orig_termios;
@@ -57,17 +67,17 @@ void enableRawMode(void) {
     raw.c_cc[VMIN] = 0;
     raw.c_cc[VTIME] = 1;
 
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+    if (tcsetattr(tty_fd, TCSAFLUSH, &raw) == -1)
         PANIC("Unable to enable raw terminal mode");
 }
 
 void disableRawMode(void) {
-    UNUSED(tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios));
+    UNUSED(tcsetattr(tty_fd, TCSAFLUSH, &orig_termios));
 }
 
 static bool readConsoleByte(uint8_t* out, int timeout_ms) {
     struct pollfd fds[2] = {
-        {.fd = STDIN_FILENO, .events = POLLIN},
+        {.fd = tty_fd, .events = POLLIN},
         {.fd = sig_rd, .events = POLLIN},
     };
 
@@ -77,7 +87,7 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
             return false;
 
         if (fds[0].revents & POLLIN)
-            return read(STDIN_FILENO, out, 1) == 1;
+            return read(tty_fd, out, 1) == 1;
 
         if (fds[1].revents & POLLIN) {
             uint8_t buf[64];
@@ -131,12 +141,12 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
 }
 
 int writeConsole(const void* buf, size_t count) {
-    return write(STDOUT_FILENO, buf, count);
+    return write(tty_fd, buf, count);
 }
 
 int getWindowSize(int* rows, int* cols) {
     struct winsize ws;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1 && ws.ws_col != 0) {
+    if (ioctl(tty_fd, TIOCGWINSZ, &ws) != -1 && ws.ws_col != 0) {
         *cols = ws.ws_col;
         *rows = ws.ws_row;
         return 0;
@@ -215,9 +225,10 @@ bool pathExists(const char* path) {
 }
 
 bool canWriteFile(const char* path) {
-    int fd = open(path, O_WRONLY | O_CREAT | O_APPEND);
+    int fd = open(path, O_WRONLY);
     if (fd == -1) {
-        return false;
+        // File doesn't exist yet, treat as writable
+        return errno == ENOENT;
     }
     close(fd);
     return true;
