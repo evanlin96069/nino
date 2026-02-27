@@ -413,7 +413,7 @@ CON_COMMAND(
     }
 }
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 
 CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
     int crash_type = 0;
@@ -752,7 +752,7 @@ void editorRegisterCommands(void) {
     INIT_CONCOMMAND(find);
     INIT_CONCOMMAND(version);
 
-#ifdef _DEBUG
+#ifndef NDEBUG
     INIT_CONCOMMAND(crash);
 #endif
 }
