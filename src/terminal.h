@@ -115,9 +115,10 @@ void editorFreeInput(EditorInput* input);
 void enableMouse(void);
 void disableMouse(void);
 
-void setWindowSize(int rows, int cols);
-void resizeWindow(void);
+void setWindowSize(int rows, int cols, bool force_redraw);
+void resizeWindow(bool force_redraw);
 
+void terminalStart(void);
 void terminalExit(void);
 
 #endif

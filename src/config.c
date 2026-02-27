@@ -2,6 +2,7 @@
 
 #include "buildnum.h"
 #include "editor.h"
+#include "os.h"
 #include "prompt.h"
 #include "terminal.h"
 
@@ -413,6 +414,10 @@ CON_COMMAND(
     }
 }
 
+CON_COMMAND(suspend, "Suspend the editor (Not available on Windows).") {
+    osSuspend();
+}
+
 #ifndef NDEBUG
 
 CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
@@ -751,6 +756,8 @@ void editorRegisterCommands(void) {
     INIT_CONCOMMAND(help);
     INIT_CONCOMMAND(find);
     INIT_CONCOMMAND(version);
+
+    INIT_CONCOMMAND(suspend);
 
 #ifndef NDEBUG
     INIT_CONCOMMAND(crash);

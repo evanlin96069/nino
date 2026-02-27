@@ -46,6 +46,7 @@ The command will first search for the file in the current directory, then the co
 | `help` | cmd | Find help about a convar/concommand. |
 | `find` | cmd | Find concommands with the specified string in their name/help text. |
 | `version` | cmd | Print version info string. |
+| `suspend` | cmd | Suspend the editor (Not available on Windows). |
 
 ## Color
 `color <element> [color]`

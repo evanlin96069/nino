@@ -12,19 +12,48 @@
 #include "terminal.h"
 #include "utils.h"
 
+#define SIGWINCH_BYTE 0x01
+#define SIGTSTP_BYTE 0x02
+#define SIGCONT_BYTE 0x03
+
 static int sig_rd = -1, sig_wr = -1;
 static volatile sig_atomic_t winch_queued = 0;
+static volatile sig_atomic_t tstp_queued = 0;
 
 static int tty_fd = -1;
 
 static void SIGWINCH_handler(int sig) {
-    if (sig != SIGWINCH)
-        return;
+    UNUSED(sig);
     if (!winch_queued) {
         winch_queued = 1;
-        const uint8_t b = 0x01;
+        const uint8_t b = SIGWINCH_BYTE;
         UNUSED(write(sig_wr, &b, 1));
     }
+}
+
+static void SIGTSTP_handler(int sig) {
+    UNUSED(sig);
+    if (!tstp_queued) {
+        tstp_queued = 1;
+        const uint8_t b = SIGTSTP_BYTE;
+        UNUSED(write(sig_wr, &b, 1));
+    }
+}
+
+static void SIGCONT_handler(int sig) {
+    UNUSED(sig);
+    if (tstp_queued) {
+        const uint8_t b = SIGCONT_BYTE;
+        UNUSED(write(sig_wr, &b, 1));
+    }
+}
+
+static int installSIGTSTPHandler(void) {
+    struct sigaction tstp_action = {
+        .sa_handler = SIGTSTP_handler,
+    };
+    sigemptyset(&tstp_action.sa_mask);
+    return sigaction(SIGTSTP, &tstp_action, NULL);
 }
 
 void osInit(void) {
@@ -41,6 +70,18 @@ void osInit(void) {
     sigemptyset(&winch_action.sa_mask);
     if (sigaction(SIGWINCH, &winch_action, NULL) == -1) {
         PANIC("Failed to install SIGWINCH handler");
+    }
+
+    if (installSIGTSTPHandler() == -1) {
+        PANIC("Failed to install SIGTSTP handler");
+    }
+
+    struct sigaction cont_action = {
+        .sa_handler = SIGCONT_handler,
+    };
+    sigemptyset(&cont_action.sa_mask);
+    if (sigaction(SIGCONT, &cont_action, NULL) == -1) {
+        PANIC("Failed to install SIGCONT handler");
     }
 }
 
@@ -91,9 +132,33 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
 
         if (fds[1].revents & POLLIN) {
             uint8_t buf[64];
-            UNUSED(read(sig_rd, buf, sizeof(buf)));
-            resizeWindow();
-            winch_queued = 0;
+            ssize_t n = read(sig_rd, buf, sizeof(buf));
+            for (ssize_t i = 0; i < n; i++) {
+                switch (buf[i]) {
+                    case SIGWINCH_BYTE:
+                        resizeWindow(false);
+                        winch_queued = 0;
+                        break;
+                    case SIGTSTP_BYTE: {
+                        struct sigaction sa = {
+                            .sa_handler = SIG_DFL,
+                        };
+                        sigemptyset(&sa.sa_mask);
+                        sigaction(SIGTSTP, &sa, NULL);
+
+                        terminalExit();
+                        raise(SIGTSTP);
+                    } break;
+                    case SIGCONT_BYTE:
+                        installSIGTSTPHandler();
+                        terminalStart();
+                        resizeWindow(true);
+                        tstp_queued = 0;
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     }
 }
@@ -402,6 +467,10 @@ char* getFullPath(const char* path) {
         return NULL;
 
     return resolved_path;
+}
+
+void osSuspend(void) {
+    kill(0, SIGTSTP);
 }
 
 int64_t getTime(void) {

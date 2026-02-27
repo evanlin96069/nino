@@ -125,7 +125,7 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
                     }
                     *out = ch;
                     if (saw_resize)
-                        setWindowSize(last_size.Y, last_size.X);
+                        setWindowSize(last_size.Y, last_size.X, false);
                     return true;
                 }
             } break;
@@ -136,7 +136,7 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     }
 
     if (saw_resize)
-        setWindowSize(last_size.Y, last_size.X);
+        setWindowSize(last_size.Y, last_size.X, false);
     return false;
 }
 
@@ -575,6 +575,10 @@ void argsFree(int argc, char** argv) {
         free(argv[i]);
     }
     free(argv);
+}
+
+void osSuspend(void) {
+    // Not supported on Windows
 }
 
 void formatOsError(OsError err, char* buf, size_t len) {

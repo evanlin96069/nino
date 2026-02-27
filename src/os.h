@@ -68,4 +68,7 @@ void argsFree(int argc, char** argv);
 // Error
 void formatOsError(OsError err, char* buf, size_t len);
 
+// Process
+void osSuspend(void);
+
 #endif

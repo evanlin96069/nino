@@ -397,20 +397,21 @@ void disableMouse(void) {
     writeConsoleStr(MOUSE_DISABLE);
 }
 
-void resizeWindow(void) {
+void resizeWindow(bool force_redraw) {
     int rows = 0;
     int cols = 0;
 
     if (getWindowSize(&rows, &cols) == -1)
         PANIC("Unable to query terminal window size");
-    setWindowSize(rows, cols);
+    setWindowSize(rows, cols, force_redraw);
 }
 
-void setWindowSize(int rows, int cols) {
+void setWindowSize(int rows, int cols, bool force_redraw) {
     rows = rows < 1 ? 1 : rows;
     cols = cols < 1 ? 1 : cols;
 
-    if (gEditor.screen_rows != rows || gEditor.screen_cols != cols) {
+    if (gEditor.screen_rows != rows || gEditor.screen_cols != cols ||
+        force_redraw) {
         if (!gEditor.screen_size_updated) {
             gEditor.old_screen_rows = gEditor.screen_rows;
             gEditor.old_screen_cols = gEditor.screen_cols;
@@ -425,13 +426,8 @@ void setWindowSize(int rows, int cols) {
 }
 
 void editorInitTerminal(void) {
-    enableRawMode();
-    writeConsoleStr(SWAP_ENABLE BRACKETED_PASTE_ENABLE);
-    if (gEditor.mouse_mode) {
-        enableMouse();
-    } else {
-        disableMouse();
-    }
+    terminalStart();
+
     atexit(terminalExit);
 
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
@@ -442,7 +438,17 @@ void editorInitTerminal(void) {
         PANIC("Failed to install SIGABRT handler");
     }
 
-    resizeWindow();
+    resizeWindow(true);
+}
+
+void terminalStart(void) {
+    enableRawMode();
+    writeConsoleStr(SWAP_ENABLE BRACKETED_PASTE_ENABLE);
+    if (gEditor.mouse_mode) {
+        enableMouse();
+    } else {
+        disableMouse();
+    }
 }
 
 void terminalExit(void) {
