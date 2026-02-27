@@ -322,7 +322,9 @@ OsError saveFileReplace(const char* path, const void* buf, size_t len) {
     char tmp_template[PATH_MAX];
     int tmp_len =
         snprintf(tmp_template, sizeof(tmp_template), "%s/.tmpXXXXXX", dir);
-    UNUSED(tmp_len);
+    if (tmp_len < 0 || tmp_len >= (int)sizeof(tmp_template)) {
+        return ENAMETOOLONG;
+    }
 
     int fd = mkstemp(tmp_template);
     if (fd < 0) {
