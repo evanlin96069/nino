@@ -34,8 +34,10 @@ static char* editroRowsToString(EditorFile* file, size_t* len) {
     char* buf = malloc_s(total_len);
     char* p = buf;
     for (int i = 0; i < file->num_rows; i++) {
-        memcpy(p, file->row[i].data, file->row[i].size);
-        p += file->row[i].size;
+        if (file->row[i].size > 0) {
+            memcpy(p, file->row[i].data, file->row[i].size);
+            p += file->row[i].size;
+        }
         if (i != file->num_rows - 1) {
             if (file->newline == NL_DOS) {
                 *p = '\r';

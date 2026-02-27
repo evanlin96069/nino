@@ -79,8 +79,9 @@ void editorDeleteText(EditorFile* file, EditorSelectRange range) {
     if (range.start_y == range.end_y) {
         EditorRow* row = &file->row[range.start_y];
         if (range.start_x < range.end_x) {
-            memmove(&row->data[range.start_x], &row->data[range.end_x],
-                    row->size - range.end_x);
+            if (row->size > range.end_x)
+                memmove(&row->data[range.start_x], &row->data[range.end_x],
+                        row->size - range.end_x);
             row->size -= range.end_x - range.start_x;
             editorUpdateRow(file, row);
         }
@@ -104,8 +105,9 @@ void editorDeleteText(EditorFile* file, EditorSelectRange range) {
     }
 
     int removed_rows = range.end_y - range.start_y;
-    memmove(&file->row[range.start_y + 1], &file->row[range.end_y + 1],
-            sizeof(EditorRow) * (file->num_rows - range.end_y - 1));
+    if (file->num_rows > range.end_y + 1)
+        memmove(&file->row[range.start_y + 1], &file->row[range.end_y + 1],
+                sizeof(EditorRow) * (file->num_rows - range.end_y - 1));
 
     file->num_rows -= removed_rows;
     file->lineno_width = getDigit(file->num_rows) + 2;
@@ -133,27 +135,38 @@ void editorCopyText(EditorFile* file,
     if (range.start_y == range.end_y) {
         size = range.end_x - range.start_x;
         clipboard->lines[0].size = size;
-        clipboard->lines[0].data = malloc_s(size);
-        memcpy(clipboard->lines[0].data,
-               &file->row[range.start_y].data[range.start_x],
-               range.end_x - range.start_x);
+        if (size > 0) {
+            clipboard->lines[0].data = malloc_s(size);
+            memcpy(clipboard->lines[0].data,
+                   &file->row[range.start_y].data[range.start_x], size);
+        } else {
+            clipboard->lines[0].data = NULL;
+        }
         return;
     }
 
     // First line
     size = file->row[range.start_y].size - range.start_x;
     clipboard->lines[0].size = size;
-    clipboard->lines[0].data = malloc_s(size);
-    memcpy(clipboard->lines[0].data,
-           &file->row[range.start_y].data[range.start_x], size);
+    if (size > 0) {
+        clipboard->lines[0].data = malloc_s(size);
+        memcpy(clipboard->lines[0].data,
+               &file->row[range.start_y].data[range.start_x], size);
+    } else {
+        clipboard->lines[0].data = NULL;
+    }
 
     // Middle
     for (int i = range.start_y + 1; i < range.end_y; i++) {
         size = file->row[i].size;
         clipboard->lines[i - range.start_y].size = size;
-        clipboard->lines[i - range.start_y].data = malloc_s(size);
-        memcpy(clipboard->lines[i - range.start_y].data, file->row[i].data,
-               size);
+        if (size > 0) {
+            clipboard->lines[i - range.start_y].data = malloc_s(size);
+            memcpy(clipboard->lines[i - range.start_y].data, file->row[i].data,
+                   size);
+        } else {
+            clipboard->lines[i - range.start_y].data = NULL;
+        }
     }
     // Last line
     size = range.end_x > 0 ? (size_t)range.end_x : 0;
@@ -181,7 +194,8 @@ void editorCopyLine(EditorFile* file, EditorClipboard* clipboard, int row) {
     size_t size = file->row[row].size;
     clipboard->lines[0].size = size;
     clipboard->lines[0].data = malloc_s(size);
-    memcpy(clipboard->lines[0].data, &file->row[row].data[0], size);
+    if (size > 0)
+        memcpy(clipboard->lines[0].data, &file->row[row].data[0], size);
     // Empty line
     clipboard->lines[1].size = 0;
     clipboard->lines[1].data = NULL;

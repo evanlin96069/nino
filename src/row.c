@@ -94,7 +94,8 @@ void editorRowAppendString(EditorFile* file,
                            const char* s,
                            size_t len) {
     editorRowEnsureCapacity(row, row->size + len);
-    memcpy(&row->data[row->size], s, len);
+    if (len > 0)
+        memcpy(&row->data[row->size], s, len);
     row->size += len;
     editorUpdateRow(file, row);
 }
@@ -108,8 +109,10 @@ void editorRowInsertString(EditorFile* file,
         return;
 
     editorRowEnsureCapacity(row, row->size + len);
-    memmove(&row->data[at + len], &row->data[at], row->size - at);
-    memcpy(&row->data[at], s, len);
+    if (row->size - at > 0)
+        memmove(&row->data[at + len], &row->data[at], row->size - at);
+    if (len > 0)
+        memcpy(&row->data[at], s, len);
     row->size += len;
     editorUpdateRow(file, row);
 }
