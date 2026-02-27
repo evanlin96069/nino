@@ -1257,7 +1257,6 @@ void editorProcessKeypress(void) {
             bool undo_applied = editorUndo(tab);
             should_scroll = undo_applied;
             if (undo_applied) {
-                tab->cursor.is_selected = false;
                 tab->bracket_autocomplete = 0;
             }
         } break;
@@ -1267,7 +1266,6 @@ void editorProcessKeypress(void) {
             bool redo_applied = editorRedo(tab);
             should_scroll = redo_applied;
             if (redo_applied) {
-                tab->cursor.is_selected = false;
                 tab->bracket_autocomplete = 0;
             }
         } break;
@@ -1932,16 +1930,6 @@ void editorProcessKeypress(void) {
             break;
     }
 
-    if (tab->cursor.x == tab->cursor.select_x &&
-        tab->cursor.y == tab->cursor.select_y) {
-        tab->cursor.is_selected = false;
-    }
-
-    if (!tab->cursor.is_selected) {
-        tab->cursor.select_x = tab->cursor.x;
-        tab->cursor.select_y = tab->cursor.y;
-    }
-
     if (c != MOUSE_PRESSED && c != MOUSE_RELEASED) {
         mouse_click = 0;
     }
@@ -1970,6 +1958,16 @@ void editorProcessKeypress(void) {
         edit_action->old_cursor = old_cursor;
         edit_action->new_cursor = tab->cursor;
         editorAppendAction(file, action);
+    }
+
+    if (tab->cursor.x == tab->cursor.select_x &&
+        tab->cursor.y == tab->cursor.select_y) {
+        tab->cursor.is_selected = false;
+    }
+
+    if (!tab->cursor.is_selected) {
+        tab->cursor.select_x = tab->cursor.x;
+        tab->cursor.select_y = tab->cursor.y;
     }
 
     if (should_scroll) {

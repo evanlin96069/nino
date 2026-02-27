@@ -156,11 +156,15 @@ void editorCopyText(EditorFile* file,
                size);
     }
     // Last line
-    size = range.end_x;
+    size = range.end_x > 0 ? (size_t)range.end_x : 0;
     clipboard->lines[range.end_y - range.start_y].size = size;
-    clipboard->lines[range.end_y - range.start_y].data = malloc_s(size);
-    memcpy(clipboard->lines[range.end_y - range.start_y].data,
-           file->row[range.end_y].data, size);
+    if (size > 0) {
+        clipboard->lines[range.end_y - range.start_y].data = malloc_s(size);
+        memcpy(clipboard->lines[range.end_y - range.start_y].data,
+               file->row[range.end_y].data, size);
+    } else {
+        clipboard->lines[range.end_y - range.start_y].data = NULL;
+    }
 }
 
 void editorCopyLine(EditorFile* file, EditorClipboard* clipboard, int row) {
