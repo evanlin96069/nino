@@ -323,8 +323,12 @@ void editorNewUntitledFileFromStdin(EditorFile* file) {
     editorInitFile(file);
     file->new_id = findAvailableUntitledId();
     editorLoadRowsFromStream(file, stdin);
-    file->dirty =
-        1;  // Mark dirty since content is from stdin and not saved yet
+
+    bool file_empty = (file->num_rows == 1 && file->row[0].size == 0);
+    if (!file_empty) {
+        // Mark dirty since content is from stdin and not saved yet
+        file->dirty = 1;
+    }
 }
 
 void editorOpenFilePrompt(void) {
