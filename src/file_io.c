@@ -231,6 +231,7 @@ bool editorSave(EditorFile* file, int save_as) {
         free(file->filename);
         file->filename = malloc_s(path_len);
         memcpy(file->filename, full_path, path_len);
+        free(path);
 
         editorSelectSyntaxHighlight(file);
     }
