@@ -945,20 +945,24 @@ static void editorDrawSplitSeparators(void) {
     }
 }
 
+void editorFreeScreen(int screen_rows) {
+    if (gEditor.screen) {
+        for (int i = 0; i < screen_rows; i++) {
+            free(gEditor.screen[i]);
+        }
+        free(gEditor.screen);
+    }
+    if (gEditor.prev_screen) {
+        for (int i = 0; i < screen_rows; i++) {
+            free(gEditor.prev_screen[i]);
+        }
+        free(gEditor.prev_screen);
+    }
+}
+
 void editorRefreshScreen(void) {
     if (gEditor.screen_size_updated) {
-        if (gEditor.screen) {
-            for (int i = 0; i < gEditor.old_screen_rows; i++) {
-                free(gEditor.screen[i]);
-            }
-            free(gEditor.screen);
-        }
-        if (gEditor.prev_screen) {
-            for (int i = 0; i < gEditor.old_screen_rows; i++) {
-                free(gEditor.prev_screen[i]);
-            }
-            free(gEditor.prev_screen);
-        }
+        editorFreeScreen(gEditor.old_screen_rows);
 
         gEditor.screen = malloc_s(gEditor.screen_rows * sizeof(ScreenCell*));
         for (int i = 0; i < gEditor.screen_rows; i++) {

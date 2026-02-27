@@ -36,6 +36,7 @@ void editorFree(void) {
             gEditor.files[i].reference_count = 0;
         }
     }
+    editorFreeScreen(gEditor.screen_rows);
     editorFreeClipboardContent(&gEditor.clipboard);
     editorExplorerFree();
     editorFreeHLDB();

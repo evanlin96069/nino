@@ -411,8 +411,10 @@ void setWindowSize(int rows, int cols) {
     cols = cols < 1 ? 1 : cols;
 
     if (gEditor.screen_rows != rows || gEditor.screen_cols != cols) {
-        gEditor.old_screen_rows = gEditor.screen_rows;
-        gEditor.old_screen_cols = gEditor.screen_cols;
+        if (!gEditor.screen_size_updated) {
+            gEditor.old_screen_rows = gEditor.screen_rows;
+            gEditor.old_screen_cols = gEditor.screen_cols;
+        }
         gEditor.screen_rows = rows;
         gEditor.screen_cols = cols;
         gEditor.screen_size_updated = true;
