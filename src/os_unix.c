@@ -57,6 +57,10 @@ static int installSIGTSTPHandler(void) {
 }
 
 void osInit(void) {
+    tty_fd = open("/dev/tty", O_RDWR);
+    if (tty_fd == -1)
+        PANIC("Failed to open /dev/tty");
+
     int p[2];
     if (pipe(p) == -1) {
         PANIC("Failed to create pipe for signal handling");
@@ -92,10 +96,6 @@ bool isStdinTty(void) {
 }
 
 void enableRawMode(void) {
-    tty_fd = open("/dev/tty", O_RDWR);
-    if (tty_fd == -1)
-        PANIC("Failed to open /dev/tty");
-
     if (tcgetattr(tty_fd, &orig_termios) == -1)
         PANIC("Unable to read terminal attributes");
 
@@ -151,9 +151,12 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
                     } break;
                     case SIGCONT_BYTE:
                         installSIGTSTPHandler();
-                        terminalStart();
-                        resizeWindow(true);
-                        tstp_queued = 0;
+                        // Only restore if we're not in background
+                        if (tcgetpgrp(tty_fd) == getpgrp()) {
+                            terminalStart();
+                            resizeWindow(true);
+                            tstp_queued = 0;
+                        }
                         break;
                     default:
                         break;
