@@ -321,6 +321,68 @@ CON_COMMAND(unlock, "Allow editing a read-only file.") {
     editorMsg("File unlocked. Note: file is still read-only on disk.");
 }
 
+CON_COMMAND(reload, "Reload the current file from disk.") {
+    if (gEditor.file_count == 0) {
+        editorMsg("reload: No file opened");
+        return;
+    }
+
+    EditorTab* curr_tab = editorGetActiveTab();
+    EditorFile* curr_file = editorTabGetFile(curr_tab);
+    int file_index = curr_tab->file_index;
+
+    if (curr_file->dirty) {
+        editorMsg("File has unsaved changes.");
+        return;
+    }
+
+    if (!curr_file->filename) {
+        editorMsg("File is untitled.");
+        return;
+    }
+
+    EditorFile temp_file;
+    OpenStatus result = editorLoadFile(&temp_file, curr_file->filename, true);
+    switch (result) {
+        case OPEN_FILE: {
+            int reference_count = curr_file->reference_count;
+            editorFreeFile(curr_file);
+            *curr_file = temp_file;
+            curr_file->reference_count = reference_count;
+
+            for (int i = 0; i < gEditor.split_count; i++) {
+                EditorSplit* split = &gEditor.splits[i];
+                for (int j = 0; j < split->tab_count; j++) {
+                    EditorTab* tab = &split->tabs[j];
+                    // TODO: Move cursor based on the position in the old file
+                    if (tab->file_index == file_index) {
+                        tab->cursor.x = 0;
+                        tab->cursor.y = 0;
+                        tab->cursor.is_selected = false;
+                        tab->sx = 0;
+                        tab->row_offset = 0;
+                        tab->col_offset = 0;
+                    }
+                }
+            }
+
+            editorMsg("File reloaded from disk.");
+        } break;
+
+        case OPEN_FILE_NEW:
+            editorFreeFile(&temp_file);
+            editorMsg("File does not exist on disk.");
+            break;
+
+        case OPEN_DIR:
+            editorMsg("File is now a directory on disk.");
+            break;
+
+        default:
+            editorMsg("Failed to reload file.");
+    }
+}
+
 int editorGetDefaultNewline(void) {
     int nl = NL_DEFAULT;
     const char* option = CONVAR_GETSTR(newline_default);
@@ -748,6 +810,7 @@ void editorRegisterCommands(void) {
     INIT_CONCOMMAND(hldb_reload_all);
     INIT_CONCOMMAND(newline);
     INIT_CONCOMMAND(unlock);
+    INIT_CONCOMMAND(reload);
 
     INIT_CONVAR(cmd_expand_depth);
     INIT_CONCOMMAND(alias);

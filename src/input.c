@@ -25,8 +25,8 @@ static void editorExplorerNodeClicked(void) {
         node->is_open ^= 1;
         editorExplorerRefresh();
     } else {
-        OpenStatus result = editorLoadFile(&file, node->filename);
-        if (result == OPEN_FILE) {
+        OpenStatus result = editorLoadFile(&file, node->filename, false);
+        if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
             editorAddFileToActiveSplit(&file);
         }
     }

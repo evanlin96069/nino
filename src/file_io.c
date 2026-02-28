@@ -112,7 +112,7 @@ static void editorLoadRowsFromStream(EditorFile* file, FILE* fp) {
     free(line);
 }
 
-OpenStatus editorLoadFile(EditorFile* file, const char* path) {
+OpenStatus editorLoadFile(EditorFile* file, const char* path, bool reload) {
     editorInitFile(file);
 
     if (path[0] == '\0') {
@@ -132,7 +132,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
             file->file_info = file_info;
             int open_index = isFileOpened(file_info);
 
-            if (open_index != -1) {
+            if (open_index != -1 && !reload) {
                 int tab_index = editorFindTabByFileIndex(
                     gEditor.split_active_index, open_index);
                 if (tab_index != -1) {
@@ -205,7 +205,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
 
     if (!fp) {
         editorInsertRow(file, 0, "", 0);
-        return OPEN_FILE;
+        return OPEN_FILE_NEW;
     }
 
     editorLoadRowsFromStream(file, fp);
@@ -354,8 +354,8 @@ void editorOpenFilePrompt(void) {
         return;
 
     EditorFile file;
-    OpenStatus result = editorLoadFile(&file, path);
-    if (result == OPEN_FILE) {
+    OpenStatus result = editorLoadFile(&file, path, false);
+    if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
         if (editorAddFileToActiveSplit(&file) != -1) {
             gEditor.state = EDIT_MODE;
         }

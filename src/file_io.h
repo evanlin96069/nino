@@ -33,11 +33,12 @@ typedef struct EditorFile EditorFile;
 typedef enum OpenStatus {
     OPEN_FAILED = 0,
     OPEN_FILE,
+    OPEN_FILE_NEW,
     OPEN_DIR,
     OPEN_OPENED,
 } OpenStatus;
 
-OpenStatus editorLoadFile(EditorFile* file, const char* filename);
+OpenStatus editorLoadFile(EditorFile* file, const char* filename, bool reload);
 bool editorSave(EditorFile* file, int save_as);
 bool editorIsDangerousSave(const EditorFile* file, bool verbose);
 void editorNewUntitledFile(EditorFile* file);

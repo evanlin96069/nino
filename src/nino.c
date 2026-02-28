@@ -64,7 +64,8 @@ int main(int argc, char* argv[]) {
 
     if (!stdin_piped) {
         for (int i = 0; i < argc; i++) {
-            if (editorLoadFile(&file, argv[i]) == OPEN_FILE) {
+            OpenStatus result = editorLoadFile(&file, argv[i], false);
+            if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
                 if (editorAddFileToActiveSplit(&file) == -1) {
                     break;
                 }
