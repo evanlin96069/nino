@@ -828,6 +828,12 @@ void editorSetConVar(EditorConVar* thisptr,
     }
 }
 
+void editorSetConVarInt(EditorConVar* thisptr, int int_val, bool trigger_cb) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%d", int_val);
+    editorSetConVar(thisptr, buf, trigger_cb);
+}
+
 static inline void registerConCmd(EditorConCmd* thisptr) {
     thisptr->next = gEditor.cvars;
     gEditor.cvars = thisptr;

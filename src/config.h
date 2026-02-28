@@ -28,13 +28,17 @@ extern const ColorElement color_element_map[EDITOR_COLOR_COUNT];
                                  .callback = _name##_callback}; \
     void _name##_callback(void)
 
-#define INIT_CONVAR(name) editorInitConVar(&cvar_##name)
+#define CVAR(name) cvar_##name
+#define CCMD(name) ccmd_##name
+#define INIT_CONVAR(name) editorInitConVar(&CVAR(name))
 #define INIT_CONCOMMAND(name) editorInitConCmd(&ccmd_##name)
 
-#define EXTERN_CONVAR(name) extern EditorConCmd cvar_##name
+#define EXTERN_CONVAR(name) extern EditorConCmd CVAR(name)
 
-#define CONVAR_GETINT(name) cvar_##name.cvar.int_val
-#define CONVAR_GETSTR(name) cvar_##name.cvar.string_val
+#define CONVAR_GETINT(name) CVAR(name).cvar.int_val
+#define CONVAR_GETSTR(name) CVAR(name).cvar.string_val
+#define CONVAR_SETINT(name, val) editorSetConVarInt(&CVAR(name).cvar, val, true)
+#define CONVAR_SETSTR(name, val) editorSetConVar(&CVAR(name).cvar, val, true)
 
 #define COMMAND_MAX_ARGC 64
 #define COMMAND_MAX_LENGTH 512
@@ -109,6 +113,7 @@ void editorOpenConfigPrompt(void);
 void editorSetConVar(EditorConVar* thisptr,
                      const char* string_val,
                      bool trigger_cb);
+void editorSetConVarInt(EditorConVar* thisptr, int int_val, bool trigger_cb);
 void editorInitConCmd(EditorConCmd* thisptr);
 void editorInitConVar(EditorConCmd* thisptr);
 EditorConCmd* editorFindCmd(const char* name);
