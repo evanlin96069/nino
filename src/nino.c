@@ -9,6 +9,18 @@
 #include "row.h"
 #include "terminal.h"
 
+static void usage(void) {
+    fprintf(stderr, "Usage: " EDITOR_NAME " [options] [file...]\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "  -R           Readonly mode\n");
+    fprintf(
+        stderr,
+        "  -c <command> Execute <command> before loading any " EDITOR_RC_FILE
+        " file.\n");
+    fprintf(stderr, "  -v           Print version information and exit\n");
+    fprintf(stderr, "  -h           Print this help message and exit\n");
+}
+
 int main(int argc, char* argv[]) {
     editorInit();
 
@@ -29,9 +41,10 @@ int main(int argc, char* argv[]) {
             printf("Exe build: %s %s (%d)\n", editor_build_time,
                    editor_build_date, editorGetBuildNumber());
             goto DONE;
-        case 'c':
-            editorCmd(OPTARG(argc, argv));
-            break;
+        case '?':
+        case 'h':
+            usage();
+            goto DONE;
     }
 
     EditorFile file;

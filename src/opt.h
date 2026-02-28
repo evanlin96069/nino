@@ -18,16 +18,21 @@
             switch (*_p++)                                                   \
                 if (0)                                                       \
                 default: {                                                   \
-                    fprintf(stderr, "unknown argument: -%c\n", _p[-1]);      \
+                    fprintf(stderr, EDITOR_NAME ": unknown argument: -%c\n", \
+                            _p[-1]);                                         \
+                    fprintf(stderr, "More info with: " EDITOR_NAME " -h\n"); \
                     exit(1);                                                 \
                 }                                                            \
                     else /* { cases/code here } */
 
-#define OPTARG(argc, argv)                                                    \
-    (*_p ? (_p1 = _p, _p = "", _p1)                                           \
-         : (*(--(argc), ++(argv))                                             \
-                ? *(argv)                                                     \
-                : (fprintf(stderr, "argument to '-%c' is missing\n", _p[-1]), \
+#define OPTARG(argc, argv)                                                  \
+    (*_p ? (_p1 = _p, _p = "", _p1)                                         \
+         : (*(--(argc), ++(argv))                                           \
+                ? *(argv)                                                   \
+                : (fprintf(stderr,                                          \
+                           EDITOR_NAME ": argument to '-%c' is missing\n",  \
+                           _p[-1]),                                         \
+                   fprintf(stderr, "More info with: " EDITOR_NAME " -h\n"), \
                    exit(1), (char*)0)))
 
 #endif
