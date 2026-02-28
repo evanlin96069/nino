@@ -230,6 +230,10 @@ bool isFileModified(FileInfo f1, FileInfo f2) {
 }
 
 FileType getFileType(const char* path) {
+    if (path[0] == '\0') {
+        return FT_INVALID;
+    }
+
     wchar_t w_path[EDITOR_PATH_MAX] = {0};
     MultiByteToWideChar(CP_UTF8, 0, path, -1, w_path, EDITOR_PATH_MAX);
 
@@ -242,6 +246,9 @@ FileType getFileType(const char* path) {
         DWORD err = GetLastError();
         if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
             return FT_NOT_EXIST;
+        }
+        if (err == ERROR_ACCESS_DENIED) {
+            return FT_ACCESS_DENIED;
         }
         return FT_INVALID;
     }
@@ -256,11 +263,21 @@ FileType getFileType(const char* path) {
                     NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (h == INVALID_HANDLE_VALUE) {
+        DWORD err = GetLastError();
+        if (err == ERROR_ACCESS_DENIED) {
+            return FT_ACCESS_DENIED;
+        }
         return FT_INVALID;
     }
 
+    DWORD file_type = GetFileType(h);
     CloseHandle(h);
-    return FT_REG;
+
+    if (file_type == FILE_TYPE_DISK) {
+        return FT_REG;
+    }
+
+    return FT_NOT_REG;
 }
 
 DirIter dirFindFirst(const char* path) {

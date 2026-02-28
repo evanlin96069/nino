@@ -235,10 +235,17 @@ bool isFileModified(FileInfo f1, FileInfo f2) {
 }
 
 FileType getFileType(const char* path) {
+    if (path[0] == '\0') {
+        return FT_INVALID;
+    }
+
     struct stat st;
     if (stat(path, &st) == -1) {
         if (errno == ENOENT || errno == ENOTDIR) {
             return FT_NOT_EXIST;
+        }
+        if (errno == EACCES || errno == EPERM) {
+            return FT_ACCESS_DENIED;
         }
         return FT_INVALID;
     }
@@ -250,7 +257,8 @@ FileType getFileType(const char* path) {
     if (S_ISREG(st.st_mode)) {
         return FT_REG;
     }
-    return FT_INVALID;
+
+    return FT_NOT_REG;
 }
 
 DirIter dirFindFirst(const char* path) {

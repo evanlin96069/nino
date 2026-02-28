@@ -39,6 +39,8 @@ typedef enum FileType {
     FT_REG,
     FT_DIR,
     FT_NOT_EXIST,
+    FT_ACCESS_DENIED,
+    FT_NOT_REG,
 } FileType;
 
 FileType getFileType(const char* path);

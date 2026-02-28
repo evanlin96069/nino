@@ -2,8 +2,8 @@
 #define OS_UNIX_H
 
 #include <dirent.h>
-#include <sys/stat.h>
 #include <limits.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define ENV_HOME "HOME"

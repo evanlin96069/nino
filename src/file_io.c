@@ -115,12 +115,17 @@ static void editorLoadRowsFromStream(EditorFile* file, FILE* fp) {
 OpenStatus editorLoadFile(EditorFile* file, const char* path) {
     editorInitFile(file);
 
+    if (path[0] == '\0') {
+        editorMsg("Can't open empty path.");
+        return OPEN_FAILED;
+    }
+
     FileType type = getFileType(path);
     switch (type) {
         case FT_REG: {
             FileInfo file_info = getFileInfo(path);
             if (file_info.error) {
-                editorMsg("Can't load \"%s\"! Failed to get file info.", path);
+                editorMsg("Can't open \"%s\"! Failed to get file info.", path);
                 return OPEN_FAILED;
             }
             file->has_file_info = true;
@@ -152,8 +157,16 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
             gEditor.explorer.selected_index = 0;
             return OPEN_DIR;
 
+        case FT_ACCESS_DENIED:
+            editorMsg("Can't open \"%s\"! Permission denied.", path);
+            return OPEN_FAILED;
+
+        case FT_NOT_REG:
+            editorMsg("Can't open \"%s\"! Not a regular file.", path);
+            return OPEN_FAILED;
+
         case FT_INVALID:
-            editorMsg("Can't load \"%s\"! Not a normal file.", path);
+            editorMsg("Can't open \"%s\"! Invalid path.", path);
             return OPEN_FAILED;
 
         case FT_NOT_EXIST:
@@ -163,7 +176,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
     FILE* fp = openFile(path, "rb");
     if (!fp) {
         if (errno != ENOENT) {
-            editorMsg("Can't load \"%s\"! %s", path, strerror(errno));
+            editorMsg("Can't open \"%s\"! %s", path, strerror(errno));
             return OPEN_FAILED;
         }
 
@@ -173,7 +186,8 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
         getDirName(parent_dir);
 
         if (!pathExists(parent_dir)) {
-            editorMsg("Can't create \"%s\"! Directory does not exist.", path);
+            editorMsg("Can't open \"%s\"! Directory \"%s\" does not exist.",
+                      path, parent_dir);
             return OPEN_FAILED;
         }
     }
