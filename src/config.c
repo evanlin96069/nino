@@ -44,6 +44,7 @@ CONVAR(ttimeoutlen,
        "50",
        NULL);
 CONVAR(lineno, "Show line numbers.", "1", NULL);
+CONVAR(readonly, "Open files in read-only mode.", "0", NULL);
 
 static void reloadSyntax(void) {
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
@@ -739,6 +740,7 @@ void editorRegisterCommands(void) {
     INIT_CONVAR(newline_default);
     INIT_CONVAR(ttimeoutlen);
     INIT_CONVAR(lineno);
+    INIT_CONVAR(readonly);
 
     INIT_CONCOMMAND(color);
     INIT_CONCOMMAND(lang);

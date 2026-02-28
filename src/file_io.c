@@ -201,7 +201,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path) {
     editorSelectSyntaxHighlight(file);
 
     file->dirty = 0;
-    file->read_only = !canWriteFile(file->filename);
+    file->read_only = CONVAR_GETINT(readonly) || !canWriteFile(file->filename);
 
     if (!fp) {
         editorInsertRow(file, 0, "", 0);

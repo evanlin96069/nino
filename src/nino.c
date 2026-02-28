@@ -18,6 +18,12 @@ int main(int argc, char* argv[]) {
     argc = argc_utf8;
     argv = argv_utf8;
     FOR_OPTS(argc, argv) {
+        case 'R':
+            CONVAR_SETINT(readonly, 1);
+            break;
+        case 'c':
+            editorCmd(OPTARG(argc, argv));
+            break;
         case 'v':
             printf("Exe version %s (%s)\n", EDITOR_VERSION, EDITOR_NAME);
             printf("Exe build: %s %s (%d)\n", editor_build_time,
