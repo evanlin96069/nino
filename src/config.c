@@ -181,7 +181,7 @@ CON_COMMAND(exec, "Execute a config file.") {
         // Try config directory
         char config_path[EDITOR_PATH_MAX];
         int len = snprintf(config_path, sizeof(config_path),
-                           PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME),
+                           PATH_CAT("%s", CONF_DIR, "%s"), getEnv(ENV_HOME),
                            filename);
 
         if (len < 0 || !editorLoadConfig(config_path)) {
@@ -239,7 +239,7 @@ CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
         // Try config directory
         char config_path[EDITOR_PATH_MAX];
         int len = snprintf(config_path, sizeof(config_path),
-                           PATH_CAT("%s", CONF_DIR, "%s"), getenv(ENV_HOME),
+                           PATH_CAT("%s", CONF_DIR, "%s"), getEnv(ENV_HOME),
                            filename);
 
         if (len < 0 || !editorLoadHLDB(config_path)) {
@@ -866,7 +866,7 @@ void editorUnregisterCommands(void) {
 }
 
 bool editorLoadConfig(const char* path) {
-    FILE* fp = fopen(path, "r");
+    FILE* fp = openFile(path, "r");
     if (!fp)
         return false;
 
@@ -881,7 +881,7 @@ bool editorLoadConfig(const char* path) {
 
 void editorLoadInitConfig(void) {
     char path[EDITOR_PATH_MAX] = {0};
-    const char* home_dir = getenv(ENV_HOME);
+    const char* home_dir = getEnv(ENV_HOME);
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, EDITOR_RC_FILE),
              home_dir);
     if (!editorLoadConfig(path)) {

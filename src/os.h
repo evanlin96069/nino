@@ -64,6 +64,9 @@ char* getFullPath(const char* path);
 // Time
 int64_t getTime(void);
 
+// Environment
+const char* getEnv(const char* name);
+
 // Command line
 void argsInit(int* argc, char*** argv);
 void argsFree(int argc, char** argv);

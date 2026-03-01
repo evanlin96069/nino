@@ -676,6 +676,23 @@ void osRunShell(const char* shell_hint, const char* cmd) {
     terminalStart();
 }
 
+const char* getEnv(const char* name) {
+    static char result[EDITOR_PATH_MAX * 4];
+
+    wchar_t w_name[256] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, name, -1, w_name,
+                        sizeof(w_name) / sizeof(wchar_t));
+
+    wchar_t w_value[EDITOR_PATH_MAX] = {0};
+    if (GetEnvironmentVariableW(w_name, w_value, EDITOR_PATH_MAX) == 0) {
+        return NULL;
+    }
+
+    WideCharToMultiByte(CP_UTF8, 0, w_value, -1, result, sizeof(result), NULL,
+                        NULL);
+    return result;
+}
+
 void formatOsError(OsError err, char* buf, size_t len) {
     DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
 

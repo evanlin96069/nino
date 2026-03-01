@@ -526,6 +526,10 @@ static void installSignalHandlers(void) {
     sigaction(SIGCONT, &cont_action, NULL);
 }
 
+const char* getEnv(const char* name) {
+    return getenv(name);
+}
+
 void osRunShell(const char* shell_hint, const char* cmd) {
     const char* shell = NULL;
     if (shell_hint && shell_hint[0] && access(shell_hint, X_OK) == 0) {
