@@ -20,18 +20,23 @@ set (SYNTAX_FILES
 )
 
 set (BUNDLER_SOURCE "${RESOURCE_DIR}/bundler.c")
-
-add_executable(bundler ${BUNDLER_SOURCE})
-
-set (BUNDLER_BIN $<TARGET_FILE:bundler>)
 set (BUNDLED_FILE "${RESOURCE_DIR}/bundle.h")
 
-add_custom_command(
-    OUTPUT ${BUNDLED_FILE}
-    COMMAND ${BUNDLER_BIN} ${BUNDLED_FILE} ${SYNTAX_FILES}
-    DEPENDS bundler ${SYNTAX_FILES}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-)
+if(CMAKE_CROSSCOMPILING)
+    # bundle.h must be pre-generated before cross-compiling
+    set_source_files_properties(${BUNDLED_FILE} PROPERTIES GENERATED TRUE)
+else()
+    add_executable(bundler ${BUNDLER_SOURCE})
+
+    set (BUNDLER_BIN $<TARGET_FILE:bundler>)
+
+    add_custom_command(
+        OUTPUT ${BUNDLED_FILE}
+        COMMAND ${BUNDLER_BIN} ${BUNDLED_FILE} ${SYNTAX_FILES}
+        DEPENDS bundler ${SYNTAX_FILES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    )
+endif()
 
 set (CORE_SOURCES
     src/action.c
