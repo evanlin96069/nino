@@ -32,6 +32,7 @@ The command will first search for the file in the current directory, then the co
 | `ttimeoutlen` | 50 | Time in milliseconds to wait for a key code sequence to complete. |
 | `lineno` | 1 | Show line numbers. |
 | `readonly` | 0 | Open files in read-only mode. |
+| `shell` | "" | Shell used by the run command. (full path) |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |
 | `lang` | cmd | Set the syntax highlighting language of the current file. |
@@ -49,6 +50,7 @@ The command will first search for the file in the current directory, then the co
 | `find` | cmd | Find concommands with the specified string in their name/help text. |
 | `version` | cmd | Print version info string. |
 | `suspend` | cmd | Suspend the editor (Not available on Windows). |
+| `run` | cmd | Run a shell command. |
 
 ## Color
 `color <element> [color]`

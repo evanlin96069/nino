@@ -103,6 +103,7 @@ EXTERN_CONVAR(newline_default);
 EXTERN_CONVAR(ttimeoutlen);
 EXTERN_CONVAR(lineno);
 EXTERN_CONVAR(readonly);
+EXTERN_CONVAR(shell);
 
 void editorRegisterCommands(void);
 void editorUnregisterCommands(void);

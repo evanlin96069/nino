@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <termios.h>
 
 #include "os.h"
@@ -482,6 +483,112 @@ char* getFullPath(const char* path) {
 
 void osSuspend(void) {
     kill(0, SIGTSTP);
+}
+
+static void setSignalHandlerDefaults(void) {
+    struct sigaction sa = {
+        .sa_handler = SIG_DFL,
+    };
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(SIGTSTP, &sa, NULL);
+    sigaction(SIGWINCH, &sa, NULL);
+    sigaction(SIGCONT, &sa, NULL);
+}
+
+static void installSignalHandlers(void) {
+    struct sigaction winch_action = {
+        .sa_handler = SIGWINCH_handler,
+    };
+    sigemptyset(&winch_action.sa_mask);
+    sigaction(SIGWINCH, &winch_action, NULL);
+
+    installSIGTSTPHandler();
+
+    struct sigaction cont_action = {
+        .sa_handler = SIGCONT_handler,
+    };
+    sigemptyset(&cont_action.sa_mask);
+    sigaction(SIGCONT, &cont_action, NULL);
+}
+
+void osRunShell(const char* shell_hint, const char* cmd) {
+    const char* shell = NULL;
+    if (shell_hint && shell_hint[0] && access(shell_hint, X_OK) == 0) {
+        shell = shell_hint;
+    }
+    if (!shell) {
+        const char* env_shell = getenv("SHELL");
+        if (env_shell && env_shell[0] && access(env_shell, X_OK) == 0) {
+            shell = env_shell;
+        }
+    }
+    if (!shell) {
+        shell = "/bin/sh";
+    }
+
+    terminalExit();
+    setSignalHandlerDefaults();
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        // Fork failed
+        terminalStart();
+        resizeWindow(true);
+        return;
+    }
+
+    if (pid == 0) {
+        // Child
+        dup2(tty_fd, STDIN_FILENO);
+        dup2(tty_fd, STDOUT_FILENO);
+        dup2(tty_fd, STDERR_FILENO);
+        if (tty_fd > STDERR_FILENO) {
+            close(tty_fd);
+        }
+        close(sig_rd);
+        close(sig_wr);
+        const char* args[] = {shell, "-c", cmd, NULL};
+        execv(shell, (char* const*)args);
+        _exit(127);
+    }
+
+    // Parent
+    int status;
+    while (waitpid(pid, &status, 0) == -1 && errno == EINTR) {
+    }
+
+    const char* press_key_msg = "\r\nPress any key to continue...";
+    write(tty_fd, press_key_msg, strlen(press_key_msg));
+
+    // echo off
+    struct termios cbreak = orig_termios;
+    cbreak.c_lflag &= ~(ECHO | ICANON);
+    cbreak.c_cc[VMIN] = 1;
+    cbreak.c_cc[VTIME] = 0;
+    tcsetattr(tty_fd, TCSAFLUSH, &cbreak);
+
+    uint8_t dummy;
+    UNUSED(read(tty_fd, &dummy, 1));
+    write(tty_fd, "\r\n", 2);
+
+    tcsetattr(tty_fd, TCSAFLUSH, &orig_termios);
+
+    // Drain queued signals
+    struct pollfd pfd = {.fd = sig_rd, .events = POLLIN};
+    while (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN)) {
+        uint8_t buf[64];
+        ssize_t n = read(sig_rd, buf, sizeof(buf));
+        if (n <= 0)
+            break;
+    }
+    winch_queued = 0;
+    tstp_queued = 0;
+    installSignalHandlers();
+
+    // Restore terminal
+    terminalStart();
+    resizeWindow(true);
 }
 
 int64_t getTime(void) {

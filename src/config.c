@@ -28,6 +28,8 @@ CONVAR(ignorecase,
 CONVAR(mouse, "Enable mouse mode.", "1", cvarMouseCallback);
 CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
 
+CONVAR(shell, "Shell used by the run command. (full path)", "", NULL);
+
 CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "1024", NULL);
 
 CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
@@ -481,6 +483,25 @@ CON_COMMAND(suspend, "Suspend the editor (Not available on Windows).") {
     osSuspend();
 }
 
+CON_COMMAND(run, "Run a shell command.") {
+    if (args.argc < 2) {
+        editorMsg("Usage: run <command>");
+        return;
+    }
+
+    abuf cmd = ABUF_INIT;
+    for (int i = 1; i < args.argc; i++) {
+        if (i > 1)
+            abufAppendN(&cmd, " ", 1);
+        abufAppendN(&cmd, args.argv[i], strlen(args.argv[i]));
+    }
+    abufAppendN(&cmd, "\0", 1);
+
+    osRunShell(CONVAR_GETSTR(shell), cmd.buf);
+
+    abufFree(&cmd);
+}
+
 #ifndef NDEBUG
 
 CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
@@ -822,6 +843,8 @@ void editorRegisterCommands(void) {
     INIT_CONCOMMAND(find);
     INIT_CONCOMMAND(version);
 
+    INIT_CONVAR(shell);
+    INIT_CONCOMMAND(run);
     INIT_CONCOMMAND(suspend);
 
 #ifndef NDEBUG

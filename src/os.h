@@ -72,5 +72,6 @@ void formatOsError(OsError err, char* buf, size_t len);
 
 // Process
 void osSuspend(void);
+void osRunShell(const char* shell_hint, const char* cmd);
 
 #endif

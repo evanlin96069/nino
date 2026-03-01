@@ -598,6 +598,75 @@ void osSuspend(void) {
     // Not supported on Windows
 }
 
+void osRunShell(const char* shell_hint, const char* cmd) {
+    wchar_t w_shell_buf[EDITOR_PATH_MAX] = {0};
+    const wchar_t* shell = NULL;
+    if (shell_hint && shell_hint[0]) {
+        MultiByteToWideChar(CP_UTF8, 0, shell_hint, -1, w_shell_buf,
+                            EDITOR_PATH_MAX);
+        if (GetFileAttributesW(w_shell_buf) != INVALID_FILE_ATTRIBUTES) {
+            shell = w_shell_buf;
+        }
+    }
+    wchar_t w_comspec[EDITOR_PATH_MAX] = {0};
+    if (!shell) {
+        if (GetEnvironmentVariableW(L"COMSPEC", w_comspec, EDITOR_PATH_MAX) >
+            0) {
+            if (GetFileAttributesW(w_comspec) != INVALID_FILE_ATTRIBUTES) {
+                shell = w_comspec;
+            }
+        }
+    }
+    if (!shell) {
+        shell = L"cmd.exe";
+    }
+
+    wchar_t w_cmd[4096] = {0};
+    MultiByteToWideChar(CP_UTF8, 0, cmd, -1, w_cmd,
+                        sizeof(w_cmd) / sizeof(wchar_t));
+
+    terminalExit();
+
+    wchar_t full_cmd[EDITOR_PATH_MAX + 4096 + 8];
+    swprintf(full_cmd, sizeof(full_cmd) / sizeof(wchar_t), L"\"%ls\" /C %ls",
+             shell, w_cmd);
+
+    STARTUPINFOW si;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&pi, sizeof(pi));
+
+    BOOL ok = CreateProcessW(NULL, full_cmd, NULL, NULL, TRUE, 0, NULL, NULL,
+                             &si, &pi);
+    if (ok) {
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+
+    const char* msg = "\r\nPress any key to continue...";
+    DWORD written;
+    WriteFile(hConOut, msg, (DWORD)strlen(msg), &written, NULL);
+
+    // echo off
+    DWORD old_in_mode;
+    GetConsoleMode(hConIn, &old_in_mode);
+    SetConsoleMode(hConIn,
+                   old_in_mode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT));
+
+    WCHAR ch;
+    DWORD nread;
+    ReadConsoleW(hConIn, &ch, 1, &nread, NULL);
+    WriteFile(hConOut, "\r\n", 2, &written, NULL);
+
+    SetConsoleMode(hConIn, old_in_mode);
+
+    // Restore terminal
+    terminalStart();
+    resizeWindow(true);
+}
+
 void formatOsError(OsError err, char* buf, size_t len) {
     DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
 
