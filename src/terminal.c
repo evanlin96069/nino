@@ -428,8 +428,6 @@ void setWindowSize(int rows, int cols, bool force_redraw) {
 void editorInitTerminal(void) {
     terminalStart();
 
-    atexit(terminalExit);
-
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
         PANIC("Failed to install SIGSEGV handler");
     }
@@ -437,11 +435,12 @@ void editorInitTerminal(void) {
     if (signal(SIGABRT, SIGABRT_handler) == SIG_ERR) {
         PANIC("Failed to install SIGABRT handler");
     }
-
-    resizeWindow(true);
 }
 
+static bool terminal_active = false;
+
 void terminalStart(void) {
+    terminal_active = true;
     enableRawMode();
     writeConsoleStr(SWAP_ENABLE BRACKETED_PASTE_ENABLE);
     if (gEditor.mouse_mode) {
@@ -449,9 +448,14 @@ void terminalStart(void) {
     } else {
         disableMouse();
     }
+
+    resizeWindow(true);
 }
 
 void terminalExit(void) {
+    if (!terminal_active)
+        return;
+    terminal_active = false;
     writeConsoleStr(MOUSE_DISABLE BRACKETED_PASTE_DISABLE SWAP_DISABLE
                         ANSI_CLEAR ANSI_CURSOR_SHOW);
     disableRawMode();

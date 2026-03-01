@@ -15,6 +15,17 @@ static UINT orig_cp_out;
 static DWORD orig_in_mode;
 static DWORD orig_out_mode;
 
+void osDeinit(void) {
+    if (hConIn != INVALID_HANDLE_VALUE) {
+        CloseHandle(hConIn);
+        hConIn = INVALID_HANDLE_VALUE;
+    }
+    if (hConOut != INVALID_HANDLE_VALUE) {
+        CloseHandle(hConOut);
+        hConOut = INVALID_HANDLE_VALUE;
+    }
+}
+
 void osInit(void) {
     hStdin = GetStdHandle(STD_INPUT_HANDLE);
     if (hStdin == INVALID_HANDLE_VALUE)
@@ -662,9 +673,7 @@ void osRunShell(const char* shell_hint, const char* cmd) {
 
     SetConsoleMode(hConIn, old_in_mode);
 
-    // Restore terminal
     terminalStart();
-    resizeWindow(true);
 }
 
 void formatOsError(OsError err, char* buf, size_t len) {

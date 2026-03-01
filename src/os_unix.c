@@ -57,6 +57,21 @@ static int installSIGTSTPHandler(void) {
     return sigaction(SIGTSTP, &tstp_action, NULL);
 }
 
+void osDeinit(void) {
+    if (tty_fd != -1) {
+        close(tty_fd);
+        tty_fd = -1;
+    }
+    if (sig_rd != -1) {
+        close(sig_rd);
+        sig_rd = -1;
+    }
+    if (sig_wr != -1) {
+        close(sig_wr);
+        sig_wr = -1;
+    }
+}
+
 void osInit(void) {
     tty_fd = open("/dev/tty", O_RDWR);
     if (tty_fd == -1)
@@ -155,7 +170,6 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
                         // Only restore if we're not in background
                         if (tcgetpgrp(tty_fd) == getpgrp()) {
                             terminalStart();
-                            resizeWindow(true);
                             tstp_queued = 0;
                         }
                         break;
@@ -534,7 +548,6 @@ void osRunShell(const char* shell_hint, const char* cmd) {
     if (pid < 0) {
         // Fork failed
         terminalStart();
-        resizeWindow(true);
         return;
     }
 
@@ -586,9 +599,7 @@ void osRunShell(const char* shell_hint, const char* cmd) {
     tstp_queued = 0;
     installSignalHandlers();
 
-    // Restore terminal
     terminalStart();
-    resizeWindow(true);
 }
 
 int64_t getTime(void) {

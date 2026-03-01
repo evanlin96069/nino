@@ -384,7 +384,7 @@ static void editorDrawTopStatusBar(void) {
     int rlen = strlen(right_buf);
 
     int x = gEditor.explorer.width;
-    if (gEditor.state == LOADING_MODE) {
+    if (gEditor.state == STATE_LOADING) {
         const char* loading_text = "Loading...";
         x += screenPutAscii(row, gEditor.screen_cols, x, loading_text,
                             default_style);
@@ -488,9 +488,10 @@ static void editorDrawTopStatusBar(void) {
 
 static inline bool editorShouldDrawPrompt(void) {
     switch (gEditor.state) {
-        case LOADING_MODE:
-        case EDIT_MODE:
-        case EXPLORER_MODE:
+        case STATE_EXIT:
+        case STATE_LOADING:
+        case STATE_EDIT:
+        case STATE_EXPLORER:
             return false;
         default:
             return (gEditor.screen_rows > 2);
@@ -569,19 +570,29 @@ static void editorDrawStatusBar(void) {
                      default_style);
 
     const char* help_str = "";
-    const char* help_info[] = {
-        [LOADING_MODE] = "",
-        [EDIT_MODE] =
-            " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: Goto",
-        [EXPLORER_MODE] = " ^Q: Quit  ^O: Open  ^P: Prompt",
-        [FIND_MODE] = " ^Q: Cancel  Up: Back  Down: Next",
-        [GOTO_LINE_MODE] = " ^Q: Cancel",
-        [OPEN_FILE_MODE] = " ^Q: Cancel",
-        [CONFIG_MODE] = " ^Q: Cancel",
-        [SAVE_AS_MODE] = " ^Q: Cancel",
-    };
-    if (CONVAR_GETINT(helpinfo))
-        help_str = help_info[gEditor.state];
+    if (CONVAR_GETINT(helpinfo)) {
+        switch (gEditor.state) {
+            case STATE_EDIT:
+                help_str =
+                    " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: "
+                    "Goto";
+                break;
+            case STATE_EXPLORER:
+                help_str = " ^Q: Quit  ^O: Open  ^P: Prompt";
+                break;
+            case STATE_FIND_PROMPT:
+                help_str = " ^Q: Cancel  Up: Back  Down: Next";
+                break;
+            case STATE_GOTO_PROMPT:
+            case STATE_OPEN_PROMPT:
+            case STATE_CONFIG_PROMPT:
+            case STATE_SAVE_AS_PROMPT:
+                help_str = " ^Q: Cancel";
+                break;
+            default:
+                break;
+        }
+    }
 
     char lang[16];
     char pos[64];
@@ -863,8 +874,8 @@ static void editorDrawFileExplorer(void) {
     ScreenCell* header_row = gEditor.screen[0];
     ScreenStyle header_style = {
         .fg = gEditor.color_cfg.explorer[3],
-        .bg = (gEditor.state == EXPLORER_MODE) ? gEditor.color_cfg.explorer[4]
-                                               : gEditor.color_cfg.explorer[0],
+        .bg = (gEditor.state == STATE_EXPLORER) ? gEditor.color_cfg.explorer[4]
+                                                : gEditor.color_cfg.explorer[0],
     };
 
     screenClearCells(header_row, gEditor.screen_cols, 0, explorer_width,
@@ -1017,7 +1028,7 @@ void editorRefreshScreen(void) {
     // Crosshair
     bool should_show_cursor = false;
     switch (gEditor.state) {
-        case EDIT_MODE: {
+        case STATE_EDIT: {
             int split_start, split_end;
             editorGetSplitScreenCols(gEditor.split_active_index, &split_start,
                                      &split_end);
@@ -1037,8 +1048,8 @@ void editorRefreshScreen(void) {
             }
         } break;
 
-        case LOADING_MODE:
-        case EXPLORER_MODE:
+        case STATE_LOADING:
+        case STATE_EXPLORER:
             should_show_cursor = false;
             break;
 

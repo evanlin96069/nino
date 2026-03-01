@@ -183,7 +183,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
         case MOUSE_PRESSED:
             if (editorGetMousePosField(input.data.cursor.x, input.data.cursor.y,
                                        NULL) != FIELD_EXPLORER) {
-                gEditor.state = EDIT_MODE;
+                gEditor.state = STATE_EDIT;
                 return false;
             }
 
@@ -192,7 +192,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
             }
 
             if (input.data.cursor.y == 0) {
-                gEditor.state = EXPLORER_MODE;
+                gEditor.state = STATE_EXPLORER;
                 break;
             }
 
@@ -206,10 +206,8 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
 
         case CTRL_KEY('q'):
             if (gEditor.file_count == 0) {
-#ifndef NDEBUG
-                editorFree();
-#endif
-                exit(EXIT_SUCCESS);
+                gEditor.state = STATE_EXIT;
+                return true;
             }
             return false;
 
@@ -225,7 +223,7 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
 
         case CTRL_KEY('e'):
             if (gEditor.split_count != 0) {
-                gEditor.state = EDIT_MODE;
+                gEditor.state = STATE_EDIT;
             }
             break;
     }
@@ -279,8 +277,8 @@ int editorGetMousePosField(int x, int y, int* split_index) {
     if (y == gEditor.screen_rows - 1)
         return FIELD_STATUS;
 
-    if (y == gEditor.screen_rows - 2 && gEditor.state != EDIT_MODE &&
-        gEditor.state != EXPLORER_MODE && gEditor.state != LOADING_MODE)
+    if (y == gEditor.screen_rows - 2 && gEditor.state != STATE_EDIT &&
+        gEditor.state != STATE_EXPLORER && gEditor.state != STATE_LOADING)
         return FIELD_PROMPT;
 
     if (x < gEditor.explorer.width)
@@ -528,7 +526,7 @@ static void editorSelectAll(EditorTab* tab) {
 }
 
 static int editorHandleTabClick(int split_index, int x) {
-    if (gEditor.state == LOADING_MODE)
+    if (gEditor.state == STATE_LOADING)
         return -1;
 
     if (x < gEditor.explorer.width)
@@ -628,8 +626,12 @@ static void editorCloseTab(int split_index, int tab_index) {
     int old_split_active_index = gEditor.split_active_index;
     editorRemoveTab(split_index, tab_index);
     if (gEditor.split_count == 0) {
-        gEditor.state = EXPLORER_MODE;
-        editorExplorerShow();
+        if (!gEditor.explorer.node) {
+            gEditor.state = STATE_EXIT;
+        } else {
+            gEditor.state = STATE_EXPLORER;
+            editorExplorerShow();
+        }
         return;
     }
 
@@ -681,7 +683,7 @@ void editorProcessKeypress(void) {
             EditorFile new_file;
             editorNewUntitledFile(&new_file);
             if (editorAddFileToActiveSplit(&new_file) != -1) {
-                gEditor.state = EDIT_MODE;
+                gEditor.state = STATE_EDIT;
             }
             return;
         }
@@ -692,14 +694,14 @@ void editorProcessKeypress(void) {
         editorMsgClear();
     }
 
-    if (gEditor.state == EXPLORER_MODE &&
+    if (gEditor.state == STATE_EXPLORER &&
         editorExplorerProcessKeypress(input)) {
         editorFreeInput(&input);
         return;
     }
 
     if (gEditor.split_count == 0) {
-        gEditor.state = EXPLORER_MODE;
+        gEditor.state = STATE_EXPLORER;
         editorFreeInput(&input);
         return;
     }
@@ -828,11 +830,9 @@ void editorProcessKeypress(void) {
                     break;
                 }
             }
-#ifndef NDEBUG
-            editorFree();
-#endif
-            exit(EXIT_SUCCESS);
-        }
+
+            gEditor.state = STATE_EXIT;
+        } break;
 
         // Close current file
         case CTRL_KEY('w'): {
@@ -850,8 +850,12 @@ void editorProcessKeypress(void) {
                     break;
                 }
             }
-            editorCloseTab(gEditor.split_active_index, split->tab_active_index);
             editorMsgClear();
+            editorCloseTab(gEditor.split_active_index, split->tab_active_index);
+            if (gEditor.state == STATE_EXIT)
+                return;
+            tab = editorGetActiveTab();
+            file = editorTabGetFile(tab);
             break;
         }
 
@@ -926,14 +930,14 @@ void editorProcessKeypress(void) {
                 editorExplorerShow();
             } else {
                 gEditor.explorer.width = 0;
-                gEditor.state = EDIT_MODE;
+                gEditor.state = STATE_EDIT;
             }
             break;
 
         // Focus explorer
         case CTRL_KEY('e'):
             should_scroll = false;
-            gEditor.state = EXPLORER_MODE;
+            gEditor.state = STATE_EXPLORER;
             editorExplorerShow();
             break;
 
@@ -1622,6 +1626,8 @@ void editorProcessKeypress(void) {
                     mouse_click = 0;
                     editorChangeToFile(split_index,
                                        editorHandleTabClick(split_index, in_x));
+                    tab = editorSplitGetTab(split_index);
+                    file = editorTabGetFile(tab);
                 } break;
 
                 case FIELD_LINENO: {
@@ -1650,7 +1656,7 @@ void editorProcessKeypress(void) {
                         mouse_pressed_field = FIELD_EXPLORER;
                         break;
                     }
-                    gEditor.state = EXPLORER_MODE;
+                    gEditor.state = STATE_EXPLORER;
                     editorExplorerProcessKeypress(input);
                 } break;
 
@@ -1683,7 +1689,7 @@ void editorProcessKeypress(void) {
             if (mouse_pressed_field == FIELD_EXPLORER) {
                 gEditor.explorer.width = gEditor.explorer.prefered_width = in_x;
                 if (in_x == 0)
-                    gEditor.state = EDIT_MODE;
+                    gEditor.state = STATE_EDIT;
             } else if (mouse_pressed_field == FIELD_SPLIT_SEPARATOR) {
                 int si = mouse_pressed_split_index;
                 if (si >= 0 && si + 1 < gEditor.split_count) {
@@ -1828,14 +1834,23 @@ void editorProcessKeypress(void) {
                             editorHandleTabClick(split_index,
                                                  next_input.data.cursor.x) ==
                                 tab_index) {
-                            editorCloseTab(split_index, tab_index);
                             editorMsgClear();
+                            editorCloseTab(split_index, tab_index);
+                            if (gEditor.state == STATE_EXIT)
+                                return;
+                            tab = editorGetActiveTab();
+                            file = editorTabGetFile(tab);
                             break;
                         }
                     }
                     gEditor.pending_input = next_input;
                 } else {
+                    editorMsgClear();
                     editorCloseTab(split_index, tab_index);
+                    if (gEditor.state == STATE_EXIT)
+                        return;
+                    tab = editorGetActiveTab();
+                    file = editorTabGetFile(tab);
                 }
             }
         } break;

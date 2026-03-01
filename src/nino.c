@@ -73,10 +73,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    gEditor.state = EDIT_MODE;
+    gEditor.state = STATE_EDIT;
     if (gEditor.file_count == 0) {
         if (gEditor.explorer.node) {
-            gEditor.state = EXPLORER_MODE;
+            gEditor.state = STATE_EXPLORER;
         } else {
             editorNewUntitledFile(&file);
             editorAddFileToActiveSplit(&file);
@@ -90,13 +90,16 @@ int main(int argc, char* argv[]) {
         gEditor.explorer.width = gEditor.explorer.prefered_width;
     }
 
-    while (gEditor.file_count || gEditor.explorer.node) {
+    while (gEditor.state != STATE_EXIT) {
         editorRefreshScreen();
         editorProcessKeypress();
     }
 
 DONE:
+    terminalExit();
+#ifndef NDEBUG
     argsFree(argc_utf8, argv_utf8);
     editorFree();
+#endif
     return 0;
 }

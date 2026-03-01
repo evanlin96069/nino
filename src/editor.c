@@ -13,7 +13,7 @@ Editor gEditor;
 
 void editorInit(void) {
     memset(&gEditor, 0, sizeof(Editor));
-    gEditor.state = LOADING_MODE;
+    gEditor.state = STATE_LOADING;
     gEditor.mouse_mode = true;
     gEditor.color_cfg = color_default;
     gEditor.con_front = -1;
@@ -41,6 +41,7 @@ void editorFree(void) {
     editorExplorerFree();
     editorFreeHLDB();
     editorUnregisterCommands();
+    osDeinit();
 }
 
 void editorInitFile(EditorFile* file) {
@@ -147,7 +148,7 @@ int editorAddTab(int split_index, int file_index) {
     split->tab_count++;
 
     int index = split->tab_count - 1;
-    if (gEditor.state != LOADING_MODE) {
+    if (gEditor.state != STATE_LOADING) {
         // hack: refresh screen to update tab_displayed
         editorRefreshScreen();
         editorChangeToFile(split_index, index);
@@ -244,6 +245,12 @@ void editorRemoveSplit(int split_index) {
     EditorSplit* split = &gEditor.splits[split_index];
     for (int i = 0; i < split->tab_count; i++) {
         editorRemoveFile(split->tabs[i].file_index);
+    }
+
+    if (gEditor.split_count == 1) {
+        gEditor.split_count = 0;
+        gEditor.split_active_index = 0;
+        return;
     }
 
     memmove(&gEditor.splits[split_index], &gEditor.splits[split_index + 1],

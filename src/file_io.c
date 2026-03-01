@@ -226,7 +226,7 @@ bool editorSave(EditorFile* file, int save_as) {
             prompt = prompt_buf;
         }
 
-        char* path = editorPrompt(prompt, SAVE_AS_MODE, NULL);
+        char* path = editorPrompt(prompt, STATE_SAVE_AS_PROMPT, NULL);
         if (!path) {
             editorMsg("Save canceled.");
             return false;
@@ -349,7 +349,7 @@ void editorNewUntitledFileFromStdin(EditorFile* file) {
 }
 
 void editorOpenFilePrompt(void) {
-    char* path = editorPrompt("Open: %s", OPEN_FILE_MODE, NULL);
+    char* path = editorPrompt("Open: %s", STATE_OPEN_PROMPT, NULL);
     if (!path)
         return;
 
@@ -357,12 +357,12 @@ void editorOpenFilePrompt(void) {
     OpenStatus result = editorLoadFile(&file, path, false);
     if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
         if (editorAddFileToActiveSplit(&file) != -1) {
-            gEditor.state = EDIT_MODE;
+            gEditor.state = STATE_EDIT;
         }
     } else if (result == OPEN_OPENED) {
-        gEditor.state = EDIT_MODE;
+        gEditor.state = STATE_EDIT;
     } else if (result == OPEN_DIR) {
-        gEditor.state = EXPLORER_MODE;
+        gEditor.state = STATE_EXPLORER;
         editorExplorerShow();
     }
 
@@ -471,4 +471,8 @@ void editorExplorerRefresh(void) {
 void editorExplorerFree(void) {
     editorExplorerFreeNode(gEditor.explorer.node);
     free(gEditor.explorer.flatten.data);
+    gEditor.explorer.node = NULL;
+    gEditor.explorer.flatten.data = NULL;
+    gEditor.explorer.flatten.size = 0;
+    gEditor.explorer.flatten.capacity = 0;
 }

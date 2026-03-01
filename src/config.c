@@ -81,7 +81,7 @@ static void cvarMouseCallback(void) {
     bool mode = CONVAR_GETINT(mouse);
     if (gEditor.mouse_mode != mode) {
         gEditor.mouse_mode = mode;
-        if (gEditor.state != LOADING_MODE) {
+        if (gEditor.state != STATE_LOADING) {
             if (mode) {
                 enableMouse();
             } else {
@@ -896,7 +896,7 @@ void editorCmd(const char* command) {
 }
 
 void editorOpenConfigPrompt(void) {
-    char* query = editorPrompt("Prompt: %s", CONFIG_MODE, NULL);
+    char* query = editorPrompt("Prompt: %s", STATE_CONFIG_PROMPT, NULL);
     if (query == NULL)
         return;
 

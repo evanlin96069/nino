@@ -277,7 +277,7 @@ static void editorGotoCallback(char* query, int key) {
 
 void editorGotoLine(void) {
     char* query =
-        editorPrompt("Goto line: %s", GOTO_LINE_MODE, editorGotoCallback);
+        editorPrompt("Goto line: %s", STATE_GOTO_PROMPT, editorGotoCallback);
     if (query) {
         free(query);
     }
@@ -460,7 +460,8 @@ static void editorFindCallback(char* query, int key) {
 }
 
 void editorFind(void) {
-    char* query = editorPrompt("Find: %s", FIND_MODE, editorFindCallback);
+    char* query =
+        editorPrompt("Find: %s", STATE_FIND_PROMPT, editorFindCallback);
     if (query) {
         free(query);
     }

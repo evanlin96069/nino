@@ -18,6 +18,7 @@
 #endif
 
 void osInit(void);
+void osDeinit(void);
 
 // Terminal
 void enableRawMode(void);
