@@ -3,13 +3,13 @@ name: Build
 on:
   push:
     paths-ignore:
-        - '.gitignore'
-        - 'docs/*'
-        - 'scripts/*'
-        - 'resources/themes/*'
-        - 'resources/README.md'
-        - 'README.md'
-        - 'LICENSE'
+      - '.gitignore'
+      - 'docs/*'
+      - 'scripts/*'
+      - 'resources/themes/*'
+      - 'resources/README.md'
+      - 'README.md'
+      - 'LICENSE'
 
 jobs:
   build-linux:
@@ -21,7 +21,7 @@ jobs:
       - name: Create Build Directory
         run: mkdir build && cd build
       - name: Configure CMake
-        run: cmake ..
+        run: cmake -DCMAKE_BUILD_TYPE=Debug ..
         working-directory: ./build
       - name: Build
         run: cmake --build .
@@ -36,18 +36,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' && choco install mingw
       - name: Create Build Directory
-        run: mkdir build && cd build
+        run: mkdir build
       - name: Configure CMake
-        run: cmake -G "MinGW Makefiles" ..
+        run: cmake ..
         working-directory: ./build
       - name: Build
-        run: cmake --build .
+        run: cmake --build . --config Debug
         working-directory: ./build
       - name: Upload Windows Binary
         uses: actions/upload-artifact@v4
         with:
           name: nino-windows
-          path: build/nino.exe
+          path: build/Debug/nino.exe
