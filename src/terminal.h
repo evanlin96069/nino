@@ -98,6 +98,7 @@ enum EditorKey {
 
 typedef struct EditorInput {
     int type;
+    int64_t timestamp_ms;
     union {
         uint32_t unicode;
         struct {

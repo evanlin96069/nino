@@ -1544,11 +1544,10 @@ void editorProcessKeypress(void) {
                     tab = editorSplitGetTab(split_index);
                     file = editorTabGetFile(tab);
 
-                    int64_t click_time = getTime();
+                    int64_t click_time = input.timestamp_ms;
                     int64_t time_diff = click_time - prev_click_time;
 
-                    if (in_x == prev_x && in_y == prev_y &&
-                        time_diff / 1000 < 500) {
+                    if (in_x == prev_x && in_y == prev_y && time_diff < 500) {
                         mouse_click++;
                     } else {
                         mouse_click = 1;

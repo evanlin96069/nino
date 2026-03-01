@@ -62,7 +62,7 @@ bool changeDir(const char* path);
 char* getFullPath(const char* path);
 
 // Time
-int64_t getTime(void);
+int64_t getTimeMs(void);
 
 // Environment
 const char* getEnv(const char* name);

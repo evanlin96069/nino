@@ -155,6 +155,7 @@ EditorInput editorReadKey(void) {
     }
 
     int timeout = ttimeoutlen.int_value;
+    result.timestamp_ms = getTimeMs();
 
     if (c == ESC) {
         char seq[16] = {0};

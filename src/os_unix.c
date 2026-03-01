@@ -5,9 +5,9 @@
 #include <poll.h>
 #include <signal.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <sys/wait.h>
 #include <termios.h>
+#include <time.h>
 
 #include "os.h"
 #include "terminal.h"
@@ -606,10 +606,10 @@ void osRunShell(const char* shell_hint, const char* cmd) {
     terminalStart();
 }
 
-int64_t getTime(void) {
-    struct timeval time_val;
-    gettimeofday(&time_val, NULL);
-    return time_val.tv_sec * 1000000 + time_val.tv_usec;
+int64_t getTimeMs(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 
 void argsInit(int* argc, char*** argv) {

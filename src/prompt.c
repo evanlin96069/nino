@@ -332,7 +332,7 @@ char* editorPrompt(const char* prefix,
                 // Click on prompt
                 mouse_pressed = true;
 
-                int64_t click_time = getTime();
+                int64_t click_time = input.timestamp_ms;
                 int64_t time_diff = click_time - prev_click_time;
 
                 if (in_x == prev_click_x && time_diff / 1000 < 500) {
