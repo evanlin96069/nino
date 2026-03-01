@@ -567,20 +567,8 @@ char* getFullPath(const char* path) {
     return resolved_path;
 }
 
-int64_t getTime(void) {
-    static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
-
-    SYSTEMTIME system_time;
-    FILETIME file_time;
-    uint64_t time;
-
-    GetSystemTime(&system_time);
-    SystemTimeToFileTime(&system_time, &file_time);
-    time = ((uint64_t)file_time.dwLowDateTime);
-    time += ((uint64_t)file_time.dwHighDateTime) << 32;
-    int64_t sec = ((time - EPOCH) / 10000000);
-    int64_t usec = (system_time.wMilliseconds * 1000);
-    return sec * 1000000 + usec;
+int64_t getTimeMs(void) {
+    return GetTickCount64();
 }
 
 void argsInit(int* argc, char*** argv) {
