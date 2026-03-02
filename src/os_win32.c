@@ -86,6 +86,9 @@ void disableRawMode(void) {
     SetConsoleOutputCP(orig_cp_out);
 }
 
+static bool has_pending_resize = false;
+static ConsoleSize pending_resize = {0, 0};
+
 static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     static DWORD repeat_left = 0;
     static WCHAR repeat_char = 0;
@@ -135,8 +138,11 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
                         repeat_char = ch;
                     }
                     *out = ch;
-                    if (saw_resize)
-                        setWindowSize(last_size.Y, last_size.X, false);
+                    if (saw_resize) {
+                        has_pending_resize = true;
+                        pending_resize.rows = last_size.Y;
+                        pending_resize.cols = last_size.X;
+                    }
                     return true;
                 }
             } break;
@@ -146,8 +152,11 @@ static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
         }
     }
 
-    if (saw_resize)
-        setWindowSize(last_size.Y, last_size.X, false);
+    if (saw_resize) {
+        has_pending_resize = true;
+        pending_resize.rows = last_size.Y;
+        pending_resize.cols = last_size.X;
+    }
     return false;
 }
 
@@ -167,14 +176,31 @@ static inline bool isLowSurrogate(WCHAR u) {
     return u >= 0xDC00 && u <= 0xDFFF;
 }
 
-bool readConsole(uint32_t* unicode_out, int timeout_ms) {
+ConsoleEvent readConsoleEvent(int timeout_ms) {
+    ConsoleEvent ev = {.type = CONSOLE_EVENT_NONE};
+
+    if (has_pending_resize) {
+        has_pending_resize = false;
+        ev.type = CONSOLE_EVENT_RESIZE;
+        ev.data.resize = pending_resize;
+        return ev;
+    }
+
     WCHAR b0;
-    if (!readConsoleWChar(&b0, timeout_ms))
-        return false;
+    if (!readConsoleWChar(&b0, timeout_ms)) {
+        if (has_pending_resize) {
+            has_pending_resize = false;
+            ev.type = CONSOLE_EVENT_RESIZE;
+            ev.data.resize = pending_resize;
+        }
+        return ev;
+    }
+
+    ev.type = CONSOLE_EVENT_KEY;
 
     if (b0 < 0xD800 || b0 > 0xDFFF) {
-        *unicode_out = b0;
-        return true;
+        ev.data.unicode = b0;
+        return ev;
     }
 
     if (isHighSurrogate(b0)) {
@@ -182,14 +208,14 @@ bool readConsole(uint32_t* unicode_out, int timeout_ms) {
         if (readConsoleWChar(&b1, READ_GRACE_MS) && isLowSurrogate(b1)) {
             uint32_t hs = (uint32_t)b0 - 0xD800;
             uint32_t ls = (uint32_t)b1 - 0xDC00;
-            *unicode_out = 0x10000 + ((hs << 10) | ls);
-            return true;
+            ev.data.unicode = 0x10000 + ((hs << 10) | ls);
+            return ev;
         }
     }
 
-    // Invaild
-    *unicode_out = 0xFFFD;
-    return true;
+    // Invalid
+    ev.data.unicode = 0xFFFD;
+    return ev;
 }
 
 int getWindowSize(int* rows, int* cols) {

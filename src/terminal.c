@@ -145,13 +145,52 @@ static bool parseMouseSGR(const char* seq,
     return true;
 }
 
-EditorInput editorReadKey(void) {
+static bool has_pending_resize = false;
+static ConsoleSize pending_resize = {0, 0};
+
+// Reads a raw key. Skips resize events.
+static bool readConsoleKey(uint32_t* out, int timeout_ms) {
+    while (true) {
+        ConsoleEvent ev = readConsoleEvent(timeout_ms);
+        switch (ev.type) {
+            case CONSOLE_EVENT_KEY:
+                *out = ev.data.unicode;
+                return true;
+            case CONSOLE_EVENT_RESIZE:
+                has_pending_resize = true;
+                pending_resize = ev.data.resize;
+                break;
+            default:
+                return false;
+        }
+    }
+}
+
+// ANSII escape sequences parsing.
+EditorInput editorReadEvent(void) {
     static bool scroll_pressed = false;
 
     uint32_t c;
     EditorInput result = {.type = UNKNOWN};
+    ConsoleEvent ev;
+    while (true) {
+        if (has_pending_resize) {
+            has_pending_resize = false;
+            ev.type = CONSOLE_EVENT_RESIZE;
+            ev.data.resize = pending_resize;
+        } else {
+            ev = readConsoleEvent(READ_WAIT_INFINITE);
+        }
 
-    while (!readConsole(&c, READ_WAIT_INFINITE)) {
+        if (ev.type == CONSOLE_EVENT_KEY) {
+            c = ev.data.unicode;
+            break;
+        } else if (ev.type == CONSOLE_EVENT_RESIZE) {
+            result.type = RESIZE_EVENT;
+            result.data.resize = ev.data.resize;
+            result.timestamp_ms = getTimeMs();
+            return result;
+        }
     }
 
     int timeout = ttimeoutlen.int_value;
@@ -160,7 +199,7 @@ EditorInput editorReadKey(void) {
     if (c == ESC) {
         char seq[16] = {0};
         bool success = false;
-        if (!readConsole(&c, timeout)) {
+        if (!readConsoleKey(&c, timeout)) {
             result.type = ESC;
             return result;
         }
@@ -172,7 +211,7 @@ EditorInput editorReadKey(void) {
         }
 
         for (size_t i = 1; i < sizeof(seq) - 1; i++) {
-            if (!readConsole(&c, timeout)) {
+            if (!readConsoleKey(&c, timeout)) {
                 return result;
             }
             seq[i] = (char)c;
@@ -193,7 +232,7 @@ EditorInput editorReadKey(void) {
 
             bool last_was_cr = false;
             while (true) {
-                if (!readConsole(&c, timeout)) {
+                if (!readConsoleKey(&c, timeout)) {
                     free(content.data);
                     abufFree(&line);
                     return result;
@@ -208,7 +247,7 @@ EditorInput editorReadKey(void) {
                     for (index = 0;
                          index < sizeof(end_seq) / sizeof(end_seq[0]);
                          index++) {
-                        if (!readConsole(&end_seq[index], timeout)) {
+                        if (!readConsoleKey(&end_seq[index], timeout)) {
                             free(content.data);
                             abufFree(&line);
                             return result;
@@ -357,6 +396,19 @@ EditorInput editorReadKey(void) {
     result.data.unicode = c;
 
     return result;
+}
+
+// Read a key. Skips resize events.
+EditorInput editorReadKey(void) {
+    while (true) {
+        EditorInput input = editorReadEvent();
+        if (input.type == RESIZE_EVENT) {
+            setWindowSize(input.data.resize.rows, input.data.resize.cols,
+                          false);
+            continue;
+        }
+        return input;
+    }
 }
 
 void editorFreeInput(EditorInput* input) {
