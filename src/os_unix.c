@@ -132,6 +132,8 @@ void disableRawMode(void) {
     UNUSED(tcsetattr(tty_fd, TCSAFLUSH, &orig_termios));
 }
 
+static bool has_pending_resize = false;
+
 static bool readConsoleByte(uint8_t* out, int timeout_ms) {
     struct pollfd fds[2] = {
         {.fd = tty_fd, .events = POLLIN},
@@ -152,7 +154,7 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
             for (ssize_t i = 0; i < n; i++) {
                 switch (buf[i]) {
                     case SIGWINCH_BYTE:
-                        resizeWindow(false);
+                        has_pending_resize = true;
                         winch_queued = 0;
                         break;
                     case SIGTSTP_BYTE: {
@@ -177,50 +179,81 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
                         break;
                 }
             }
+            if (has_pending_resize)
+                return false;
         }
     }
 }
 
-bool readConsole(uint32_t* unicode_out, int timeout_ms) {
+ConsoleEvent readConsoleEvent(int timeout_ms) {
+    ConsoleEvent ev = {.type = CONSOLE_EVENT_NONE};
+
+    if (has_pending_resize) {
+        has_pending_resize = false;
+        int rows, cols;
+        if (getWindowSize(&rows, &cols) == 0) {
+            ev.type = CONSOLE_EVENT_RESIZE;
+            ev.data.resize.rows = rows;
+            ev.data.resize.cols = cols;
+        }
+        return ev;
+    }
+
     uint8_t first_byte;
     if (!readConsoleByte(&first_byte, timeout_ms)) {
-        return false;
+        if (has_pending_resize) {
+            has_pending_resize = false;
+            int rows, cols;
+            if (getWindowSize(&rows, &cols) == 0) {
+                ev.type = CONSOLE_EVENT_RESIZE;
+                ev.data.resize.rows = rows;
+                ev.data.resize.cols = cols;
+            }
+        }
+        return ev;
     }
+
+    ev.type = CONSOLE_EVENT_KEY;
 
     // ASCII fast-path
     if ((first_byte & 0x80) == 0x00) {
-        *unicode_out = (uint32_t)first_byte;
-        return true;
+        ev.data.unicode = (uint32_t)first_byte;
+        return ev;
     }
 
     // Decode UTF-8
     int bytes;
     if ((first_byte & 0xE0) == 0xC0) {
-        *unicode_out = (first_byte & 0x1F) << 6;
+        ev.data.unicode = (first_byte & 0x1F) << 6;
         bytes = 1;
     } else if ((first_byte & 0xF0) == 0xE0) {
-        *unicode_out = (first_byte & 0x0F) << 12;
+        ev.data.unicode = (first_byte & 0x0F) << 12;
         bytes = 2;
     } else if ((first_byte & 0xF8) == 0xF0) {
-        *unicode_out = (first_byte & 0x07) << 18;
+        ev.data.unicode = (first_byte & 0x07) << 18;
         bytes = 3;
     } else {
-        return false;
+        ev.type = CONSOLE_EVENT_NONE;
+        return ev;
     }
 
     int shift = (bytes - 1) * 6;
     for (int i = 0; i < bytes; i++) {
         uint8_t byte;
-        if (!readConsoleByte(&byte, READ_GRACE_MS))
-            return false;
-        if ((byte & 0xC0) != 0x80)
-            return false;
+        if (!readConsoleByte(&byte, READ_GRACE_MS)) {
+            ev.type = CONSOLE_EVENT_NONE;
+            return ev;
+        }
+        if ((byte & 0xC0) != 0x80) {
+            ev.type = CONSOLE_EVENT_NONE;
+            return ev;
+        }
 
-        *unicode_out |= (byte & 0x3F) << shift;
+        ev.data.unicode |= (byte & 0x3F) << shift;
         shift -= 6;
     }
 
-    return true;
+    return ev;
 }
 
 int writeConsole(const void* buf, size_t count) {

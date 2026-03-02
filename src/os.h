@@ -25,7 +25,26 @@ void enableRawMode(void);
 void disableRawMode(void);
 bool isStdinTty(void);
 
-bool readConsole(uint32_t* unicode_out, int timeout_ms);
+typedef enum {
+    CONSOLE_EVENT_NONE,
+    CONSOLE_EVENT_KEY,
+    CONSOLE_EVENT_RESIZE,
+} ConsoleEventType;
+
+typedef struct {
+    int rows;
+    int cols;
+} ConsoleSize;
+
+typedef struct {
+    ConsoleEventType type;
+    union {
+        uint32_t unicode;
+        ConsoleSize resize;
+    } data;
+} ConsoleEvent;
+
+ConsoleEvent readConsoleEvent(int timeout_ms);
 int writeConsole(const void* buf, size_t count);
 int getWindowSize(int* rows, int* cols);
 

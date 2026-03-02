@@ -1,6 +1,7 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
+#include "os.h"
 #include "select.h"
 
 // ANSI escape sequences
@@ -21,12 +22,13 @@
 #define CTRL_KEY(k) ((k) & 0x1F)
 #define ALT_KEY(k) ((k) | 0x1B00)
 
-enum EditorKey {
+enum EditorEventType {
     UNKNOWN = -1,
     ESC = 27,
     BACKSPACE = 127,
     CHAR_INPUT = 1000,
     PASTE_INPUT,
+    RESIZE_EVENT,
 
     ARROW_UP,
     ARROW_DOWN,
@@ -105,12 +107,14 @@ typedef struct EditorInput {
             int x;
             int y;
         } cursor;
+        ConsoleSize resize;
         EditorClipboard paste;
     } data;
 } EditorInput;
 
 void editorInitTerminal(void);
-EditorInput editorReadKey(void);
+EditorInput editorReadEvent(void);
+EditorInput editorReadKey(void);  // Won't return resize events
 void editorFreeInput(EditorInput* input);
 
 void enableMouse(void);
