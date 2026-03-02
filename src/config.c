@@ -900,7 +900,9 @@ void editorOpenConfigPrompt(void) {
     if (query == NULL)
         return;
 
+    editorMsg("] %s", query);
     editorCmd(query);
+
     free(query);
 }
 
