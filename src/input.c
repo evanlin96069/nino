@@ -427,24 +427,6 @@ static void editorMoveCursor(EditorTab* tab, int key) {
     }
 }
 
-static int findNextCharIndex(const EditorRow* row,
-                             int index,
-                             IsCharFunc is_char) {
-    while (index < row->size && !is_char(row->data[index])) {
-        index++;
-    }
-    return index;
-}
-
-static int findPrevCharIndex(const EditorRow* row,
-                             int index,
-                             IsCharFunc is_char) {
-    while (index > 0 && !is_char(row->data[index - 1])) {
-        index--;
-    }
-    return index;
-}
-
 static void editorMoveCursorWordLeft(EditorTab* tab) {
     const EditorFile* file = editorTabGetFile(tab);
 
@@ -455,8 +437,7 @@ static void editorMoveCursorWordLeft(EditorTab* tab) {
     }
 
     const EditorRow* row = &file->row[tab->cursor.y];
-    tab->cursor.x = findPrevCharIndex(row, tab->cursor.x, isIdentifierChar);
-    tab->cursor.x = findPrevCharIndex(row, tab->cursor.x, isNonIdentifierChar);
+    tab->cursor.x = editorRowWordLeft(row, tab->cursor.x);
     editorUpdateSx(tab);
 }
 
@@ -471,8 +452,7 @@ static void editorMoveCursorWordRight(EditorTab* tab) {
     }
 
     const EditorRow* row = &file->row[tab->cursor.y];
-    tab->cursor.x = findNextCharIndex(row, tab->cursor.x, isIdentifierChar);
-    tab->cursor.x = findNextCharIndex(row, tab->cursor.x, isNonIdentifierChar);
+    tab->cursor.x = editorRowWordRight(row, tab->cursor.x);
     editorUpdateSx(tab);
 }
 
@@ -480,8 +460,11 @@ static void editorSelectWord(EditorTab* tab,
                              const EditorRow* row,
                              int cx,
                              IsCharFunc is_char) {
-    tab->cursor.select_x = findPrevCharIndex(row, cx, is_char);
-    tab->cursor.x = findNextCharIndex(row, cx, is_char);
+    int select_start, select_end;
+    editorRowSelectWord(row, cx, is_char, &select_start, &select_end);
+    tab->cursor.select_x = select_start;
+    tab->cursor.x = select_end;
+    tab->cursor.select_y = tab->cursor.y;
     tab->cursor.is_selected = true;
     editorUpdateSx(tab);
 }
@@ -943,8 +926,8 @@ void editorProcessKeypress(void) {
 
         case HOME_KEY:
         case SHIFT_HOME: {
-            int start_x =
-                findNextCharIndex(&file->row[tab->cursor.y], 0, isNonSpace);
+            int start_x = editorRowNextCharIndex(&file->row[tab->cursor.y], 0,
+                                                 isNonSpace);
             if (start_x == tab->cursor.x)
                 start_x = 0;
             tab->cursor.x = start_x;

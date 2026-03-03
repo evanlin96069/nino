@@ -7,8 +7,10 @@
 #include "input.h"
 #include "output.h"
 #include "prompt.h"
+#include "row.h"
 #include "terminal.h"
 #include "unicode.h"
+#include "utils.h"
 
 void editorMsg(const char* fmt, ...) {
     va_list ap;
@@ -47,8 +49,18 @@ static void editorSetRightPrompt(const char* fmt, ...) {
     va_end(ap);
 }
 
-#define PROMPT_BUF_INIT_SIZE 64
-#define PROMPT_BUF_GROWTH_RATE 2.0f
+static void promptRowNull(EditorRow* row) {
+    editorRowEnsureCapacity(row, row->size + 1);
+    row->data[row->size] = '\0';
+}
+
+// Returns start of the deleted range
+static int promptDeleteSelect(EditorRow* row, int cx, int select_x) {
+    int from = cx < select_x ? cx : select_x;
+    int to = cx < select_x ? select_x : cx;
+    editorRowDeleteRange(NULL, row, from, to);
+    return from;
+}
 
 char* editorPrompt(const char* prompt,
                    int state,
@@ -56,41 +68,70 @@ char* editorPrompt(const char* prompt,
     int old_state = gEditor.state;
     gEditor.state = state;
 
-    size_t bufsize = PROMPT_BUF_INIT_SIZE;
-    char* buf = malloc_s(bufsize);
+    EditorRow row = {0};
 
-    size_t buflen = 0;
-    buf[0] = '\0';
-
-    int start = 0;
-    while (prompt[start] != '\0' && prompt[start] != '%') {
-        start++;
+    int prefix_len = 0;
+    while (prompt[prefix_len] != '\0' && prompt[prefix_len] != '%') {
+        prefix_len++;
     }
-    gEditor.px = start;
+    // Assume prefix is ASCII
+    int prefix_rx = prefix_len;
+
+    int cx = 0;
+    bool is_selected = false;
+    int select_x = 0;
+
     while (true) {
-        editorSetPrompt(prompt, buf);
+        promptRowNull(&row);
+        editorSetPrompt(prompt, row.data);
+        gEditor.px = prefix_rx + editorRowCxToRx(&row, cx);
+
+        if (is_selected && cx != select_x) {
+            int from = cx < select_x ? cx : select_x;
+            int to = cx < select_x ? select_x : cx;
+            gEditor.prompt_select_start_rx =
+                prefix_rx + editorRowCxToRx(&row, from);
+            gEditor.prompt_select_end_rx =
+                prefix_rx + editorRowCxToRx(&row, to);
+        } else {
+            gEditor.prompt_select_start_rx = -1;
+            gEditor.prompt_select_end_rx = -1;
+        }
+
         editorRefreshScreen();
 
         EditorInput input = editorReadKey();
         int in_x = input.data.cursor.x;
         int in_y = input.data.cursor.y;
 
-        size_t idx = gEditor.px - start;
         switch (input.type) {
             case DEL_KEY:
-                if (idx != buflen)
-                    idx++;
-                else
-                    break;
-                // fall through
+                if (is_selected) {
+                    cx = promptDeleteSelect(&row, cx, select_x);
+                    is_selected = false;
+                } else if (cx < row.size) {
+                    int next = editorRowNextUTF8(&row, cx);
+                    editorRowDeleteRange(NULL, &row, cx, next);
+                }
+                if (callback) {
+                    promptRowNull(&row);
+                    callback(row.data, input.type);
+                }
+                break;
+
             case CTRL_KEY('h'):
             case BACKSPACE:
-                if (idx != 0) {
-                    memmove(&buf[idx - 1], &buf[idx], buflen - idx + 1);
-                    buflen--;
-                    idx--;
-                    if (callback)
-                        callback(buf, input.type);
+                if (is_selected) {
+                    cx = promptDeleteSelect(&row, cx, select_x);
+                    is_selected = false;
+                } else if (cx > 0) {
+                    int prev = editorRowPreviousUTF8(&row, cx);
+                    editorRowDeleteRange(NULL, &row, prev, cx);
+                    cx = prev;
+                }
+                if (callback) {
+                    promptRowNull(&row);
+                    callback(row.data, input.type);
                 }
                 break;
 
@@ -107,40 +148,149 @@ char* editorPrompt(const char* prompt,
                 if (paste_len == 0)
                     break;
 
-                if (buflen + paste_len >= bufsize) {
-                    bufsize = buflen + paste_len + 1;
-                    bufsize *= PROMPT_BUF_GROWTH_RATE;
-                    buf = realloc_s(buf, bufsize);
+                if (is_selected) {
+                    cx = promptDeleteSelect(&row, cx, select_x);
+                    is_selected = false;
                 }
-                memmove(&buf[idx + paste_len], &buf[idx], buflen - idx + 1);
-                memcpy(&buf[idx], paste_buf, paste_len);
-                buflen += paste_len;
-                idx += paste_len;
+                editorRowInsertString(NULL, &row, cx, paste_buf, paste_len);
+                cx += (int)paste_len;
 
                 if (callback) {
+                    promptRowNull(&row);
                     // send ctrl-v in case callback didn't handle PASTE_INPUT
-                    callback(buf, CTRL_KEY('v'));
+                    callback(row.data, CTRL_KEY('v'));
                 }
-
                 break;
             }
 
+            case SHIFT_HOME:
+                if (!is_selected) {
+                    is_selected = true;
+                    select_x = cx;
+                }
+                cx = 0;
+                break;
+
             case HOME_KEY:
-                idx = 0;
+                cx = 0;
+                is_selected = false;
+                break;
+
+            case SHIFT_END:
+                if (!is_selected) {
+                    is_selected = true;
+                    select_x = cx;
+                }
+                cx = row.size;
                 break;
 
             case END_KEY:
-                idx = buflen;
+                cx = row.size;
+                is_selected = false;
+                break;
+
+            case SHIFT_LEFT:
+                if (!is_selected) {
+                    is_selected = true;
+                    select_x = cx;
+                }
+                cx = editorRowPreviousUTF8(&row, cx);
                 break;
 
             case ARROW_LEFT:
-                if (idx != 0)
-                    idx--;
+                if (is_selected) {
+                    cx = cx < select_x ? cx : select_x;
+                    is_selected = false;
+                } else {
+                    cx = editorRowPreviousUTF8(&row, cx);
+                }
+                break;
+
+            case SHIFT_RIGHT:
+                if (!is_selected) {
+                    is_selected = true;
+                    select_x = cx;
+                }
+                cx = editorRowNextUTF8(&row, cx);
                 break;
 
             case ARROW_RIGHT:
-                if (idx < buflen)
-                    idx++;
+                if (is_selected) {
+                    cx = cx > select_x ? cx : select_x;
+                    is_selected = false;
+                } else {
+                    cx = editorRowNextUTF8(&row, cx);
+                }
+                break;
+
+            case SHIFT_CTRL_LEFT:
+                if (!is_selected) {
+                    is_selected = true;
+                    select_x = cx;
+                }
+                cx = editorRowWordLeft(&row, cx);
+                break;
+
+            case CTRL_LEFT:
+                cx = editorRowWordLeft(&row, cx);
+                is_selected = false;
+                break;
+
+            case SHIFT_CTRL_RIGHT:
+                if (!is_selected) {
+                    is_selected = true;
+                    select_x = cx;
+                }
+                cx = editorRowWordRight(&row, cx);
+                break;
+
+            case CTRL_RIGHT:
+                cx = editorRowWordRight(&row, cx);
+                is_selected = false;
+                break;
+
+            case CTRL_KEY('a'):
+                if (row.size > 0) {
+                    is_selected = true;
+                    select_x = 0;
+                    cx = row.size;
+                }
+                break;
+
+            case CTRL_KEY('c'):
+            case CTRL_KEY('x'): {
+                if (!is_selected)
+                    break;
+                int from = cx < select_x ? cx : select_x;
+                int to = cx < select_x ? select_x : cx;
+                if (from == to)
+                    break;
+
+                editorFreeClipboardContent(&gEditor.clipboard);
+                gEditor.clipboard.size = 1;
+                gEditor.clipboard.lines = calloc_s(1, sizeof(Str));
+                gEditor.clipboard.lines[0].data = malloc_s(to - from);
+                memcpy(gEditor.clipboard.lines[0].data, &row.data[from],
+                       to - from);
+                gEditor.clipboard.lines[0].size = to - from;
+                gEditor.copy_line = false;
+
+                if (input.type == CTRL_KEY('x')) {
+                    cx = promptDeleteSelect(&row, cx, select_x);
+                    is_selected = false;
+                    if (callback) {
+                        promptRowNull(&row);
+                        callback(row.data, input.type);
+                    }
+                }
+            } break;
+
+            case CTRL_KEY('d'):
+                if (cx < row.size && !isIdentifierChar(row.data[cx]))
+                    break;
+                is_selected = true;
+                editorRowSelectWord(&row, cx, isNonIdentifierChar, &select_x,
+                                    &cx);
                 break;
 
             case WHEEL_UP:
@@ -172,73 +322,80 @@ char* editorPrompt(const char* prompt,
                     editorSetPrompt("");
                     gEditor.state = old_state;
                     if (callback) {
+                        promptRowNull(&row);
                         // Send ESC so callback know we're quitting
-                        callback(buf, ESC);
+                        callback(row.data, ESC);
                     }
-                    free(buf);
+                    editorFreeRow(&row);
 
                     gEditor.pending_input = input;
                     editorProcessKeypress();
                     return NULL;
                 }
 
-                if (in_x >= start) {
-                    size_t cx = in_x - start;
-                    if (cx < buflen) {
-                        idx = cx;
-                    } else {
-                        idx = buflen;
-                    }
+                // Click on prompt
+                if (in_x >= prefix_rx) {
+                    int rx = in_x - prefix_rx;
+                    cx = editorRowRxToCx(&row, rx);
                 }
+                is_selected = false;
             } break;
 
             case CTRL_KEY('q'):
             case ESC:
                 editorSetPrompt("");
                 gEditor.state = old_state;
-                if (callback)
-                    callback(buf, input.type);
-                free(buf);
+                if (callback) {
+                    promptRowNull(&row);
+                    callback(row.data, input.type);
+                }
+                editorFreeRow(&row);
                 return NULL;
 
             case '\r':
-                if (buflen != 0) {
+                if (row.size != 0) {
                     editorSetPrompt("");
                     gEditor.state = old_state;
+                    promptRowNull(&row);
                     if (callback)
-                        callback(buf, input.type);
-                    return buf;
+                        callback(row.data, input.type);
+                    // Copy result
+                    char* result = malloc_s(row.size + 1);
+                    memcpy(result, row.data, row.size);
+                    result[row.size] = '\0';
+                    editorFreeRow(&row);
+                    return result;
                 }
                 break;
 
             case CHAR_INPUT: {
-                char output[4];
-                int len = encodeUTF8(input.data.unicode, output);
-                if (len == -1)
-                    return buf;
+                if (input.data.unicode != '\t') {
+                    char output[4];
+                    int len = encodeUTF8(input.data.unicode, output);
+                    if (len == -1)
+                        break;
 
-                if (buflen + len >= bufsize) {
-                    bufsize += len;
-                    bufsize *= PROMPT_BUF_GROWTH_RATE;
-                    buf = realloc_s(buf, bufsize);
+                    if (is_selected) {
+                        cx = promptDeleteSelect(&row, cx, select_x);
+                        is_selected = false;
+                    }
+                    editorRowInsertString(NULL, &row, cx, output, len);
+                    cx += len;
                 }
-                memmove(&buf[idx + len], &buf[idx], buflen - idx + 1);
-                memcpy(&buf[idx], output, len);
-                buflen += len;
-                idx += len;
 
-                // TODO: Support Unicode characters in prompt
-
-                if (callback)
-                    callback(buf, input.data.unicode);
+                if (callback) {
+                    promptRowNull(&row);
+                    callback(row.data, input.data.unicode);
+                }
             } break;
 
             default:
-                if (callback)
-                    callback(buf, input.type);
+                if (callback) {
+                    promptRowNull(&row);
+                    callback(row.data, input.type);
+                }
         }
         editorFreeInput(&input);
-        gEditor.px = start + idx;
     }
 }
 

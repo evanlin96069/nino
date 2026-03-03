@@ -145,6 +145,8 @@ typedef struct Editor {
     // Prompt
     char prompt[EDITOR_PROMPT_LENGTH];
     char prompt_right[EDITOR_RIGHT_PROMPT_LENGTH];
+    int prompt_select_start_rx;  // -1 if not selected
+    int prompt_select_end_rx;
 
     // Input
     EditorInput pending_input;

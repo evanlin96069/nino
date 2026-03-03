@@ -553,6 +553,24 @@ static void editorDrawPrompt(void) {
     }
 
     int x = screenPutUtf8(row, gEditor.screen_cols, 0, left, style);
+
+    // Selection highlight
+    if (gEditor.prompt_select_start_rx >= 0 &&
+        gEditor.prompt_select_end_rx > gEditor.prompt_select_start_rx) {
+        ScreenStyle select_style = {
+            .fg = style.fg,
+            .bg = gEditor.color_cfg.highlightBg[HL_BG_SELECT],
+        };
+        int select_start = gEditor.prompt_select_start_rx;
+        int select_end = gEditor.prompt_select_end_rx;
+        if (select_end > gEditor.screen_cols)
+            select_end = gEditor.screen_cols;
+        for (int i = select_start; i < select_end; i++) {
+            if (!row[i].continuation)
+                row[i].style.bg = select_style.bg;
+        }
+    }
+
     if (x < gEditor.screen_cols - rlen) {
         screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
                        right, style);

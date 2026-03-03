@@ -22,7 +22,7 @@ static inline bool ensureCapacity(size_t capacity,
     return true;
 }
 
-static void editorRowEnsureCapacity(EditorRow* row, size_t size) {
+void editorRowEnsureCapacity(EditorRow* row, size_t size) {
     size_t new_capacity;
     if (!ensureCapacity(row->capacity, size, &new_capacity))
         return;
@@ -34,7 +34,10 @@ static void editorRowEnsureCapacity(EditorRow* row, size_t size) {
 
 void editorUpdateRow(EditorFile* file, EditorRow* row) {
     row->rsize = editorRowCxToRx(row, row->size);
-    editorUpdateSyntax(file, row);
+    if (file) {
+        // When doing prompt editing, file can be NULL.
+        editorUpdateSyntax(file, row);
+    }
 }
 
 void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
@@ -86,6 +89,19 @@ void editorRowDelChar(EditorFile* file, EditorRow* row, int at) {
         return;
     memmove(&row->data[at], &row->data[at + 1], row->size - at - 1);
     row->size--;
+    editorUpdateRow(file, row);
+}
+
+void editorRowDeleteRange(EditorFile* file, EditorRow* row, int from, int to) {
+    if (from < 0)
+        from = 0;
+    if (to > row->size)
+        to = row->size;
+    if (from >= to)
+        return;
+    int len = to - from;
+    memmove(&row->data[from], &row->data[to], row->size - to);
+    row->size -= len;
     editorUpdateRow(file, row);
 }
 
@@ -193,4 +209,43 @@ int editorRowRxToCx(const EditorRow* row, int rx) {
         cx += byte_size;
     }
     return cx;
+}
+
+int editorRowNextCharIndex(const EditorRow* row,
+                           int index,
+                           IsCharFunc is_char) {
+    while (index < row->size && !is_char(row->data[index])) {
+        index++;
+    }
+    return index;
+}
+
+int editorRowPrevCharIndex(const EditorRow* row,
+                           int index,
+                           IsCharFunc is_char) {
+    while (index > 0 && !is_char(row->data[index - 1])) {
+        index--;
+    }
+    return index;
+}
+
+int editorRowWordRight(const EditorRow* row, int cx) {
+    cx = editorRowNextCharIndex(row, cx, isIdentifierChar);
+    cx = editorRowNextCharIndex(row, cx, isNonIdentifierChar);
+    return cx;
+}
+
+int editorRowWordLeft(const EditorRow* row, int cx) {
+    cx = editorRowPrevCharIndex(row, cx, isIdentifierChar);
+    cx = editorRowPrevCharIndex(row, cx, isNonIdentifierChar);
+    return cx;
+}
+
+void editorRowSelectWord(const EditorRow* row,
+                         int cx,
+                         IsCharFunc is_char,
+                         int* select_start,
+                         int* select_end) {
+    *select_start = editorRowPrevCharIndex(row, cx, is_char);
+    *select_end = editorRowNextCharIndex(row, cx, is_char);
 }
