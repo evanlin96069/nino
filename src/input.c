@@ -767,8 +767,8 @@ void editorProcessKeypress(void) {
 
                     // TODO: language specific auto indent
                     bool should_inc = false;
-                    if (row->size > 0) {
-                        char prev = row->data[row->size - 1];
+                    if (tab->cursor.x > 0) {
+                        char prev = row->data[tab->cursor.x - 1];
                         if (prev == ':') {
                             // Python
                             should_inc = true;
