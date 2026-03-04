@@ -81,6 +81,12 @@ char* editorPrompt(const char* prompt,
     bool is_selected = false;
     int select_x = 0;
 
+    // Mouse state
+    int64_t prev_click_time = 0;
+    int mouse_click = 0;
+    int prev_click_x = -1;
+    bool mouse_pressed = false;
+
     while (true) {
         promptRowNull(&row);
         editorSetPrompt(prompt, row.data);
@@ -315,7 +321,6 @@ char* editorPrompt(const char* prompt,
                 }
             } break;
 
-            case SCROLL_RELEASED:
             case MOUSE_PRESSED: {
                 int field = editorGetMousePosField(in_x, in_y, NULL);
                 if (field != FIELD_PROMPT) {
@@ -334,11 +339,76 @@ char* editorPrompt(const char* prompt,
                 }
 
                 // Click on prompt
-                if (in_x >= prefix_rx) {
-                    int rx = in_x - prefix_rx;
-                    cx = editorRowRxToCx(&row, rx);
+                mouse_pressed = true;
+
+                int64_t click_time = getTime();
+                int64_t time_diff = click_time - prev_click_time;
+
+                if (in_x == prev_click_x && time_diff / 1000 < 500) {
+                    mouse_click++;
+                } else {
+                    mouse_click = 1;
                 }
-                is_selected = false;
+                prev_click_time = click_time;
+                prev_click_x = in_x;
+
+                int click_cx = 0;
+                if (in_x >= prefix_rx) {
+                    click_cx = editorRowRxToCx(&row, in_x - prefix_rx);
+                }
+
+                switch (mouse_click % 3) {
+                    case 1:
+                        // Mouse to pos
+                        cx = click_cx;
+                        is_selected = false;
+                        break;
+                    case 2: {
+                        // Select word
+                        if (row.size == 0)
+                            break;
+                        int wcx = click_cx;
+                        if (wcx >= row.size)
+                            wcx = row.size > 0 ? row.size - 1 : 0;
+
+                        IsCharFunc is_char;
+                        if (isSpace(row.data[wcx])) {
+                            is_char = isNonSpace;
+                        } else if (isIdentifierChar(row.data[wcx])) {
+                            is_char = isNonIdentifierChar;
+                        } else {
+                            is_char = isNonSeparator;
+                        }
+                        is_selected = true;
+                        editorRowSelectWord(&row, wcx, is_char, &select_x, &cx);
+                    } break;
+                    case 0:
+                        // Select all
+                        if (row.size > 0) {
+                            is_selected = true;
+                            select_x = 0;
+                            cx = row.size;
+                        }
+                        break;
+                }
+            } break;
+
+            case MOUSE_RELEASED:
+                mouse_pressed = false;
+                break;
+
+            case MOUSE_MOVE: {
+                if (!mouse_pressed)
+                    break;
+                int move_cx = 0;
+                if (in_x >= prefix_rx) {
+                    move_cx = editorRowRxToCx(&row, in_x - prefix_rx);
+                }
+                if (!is_selected) {
+                    is_selected = true;
+                    select_x = cx;
+                }
+                cx = move_cx;
             } break;
 
             case CTRL_KEY('q'):
