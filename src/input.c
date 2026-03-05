@@ -938,13 +938,10 @@ void editorProcessKeypress(void) {
 
         case END_KEY:
         case SHIFT_END:
-            if (tab->cursor.y < file->num_rows &&
-                tab->cursor.x != file->row[tab->cursor.y].size) {
-                tab->cursor.x = file->row[tab->cursor.y].size;
-                editorUpdateSx(tab);
-                tab->cursor.is_selected = (c == SHIFT_END);
-                tab->bracket_autocomplete = 0;
-            }
+            tab->cursor.x = file->row[tab->cursor.y].size;
+            editorUpdateSx(tab);
+            tab->cursor.is_selected = (c == SHIFT_END);
+            tab->bracket_autocomplete = 0;
             break;
 
         case CTRL_LEFT:
