@@ -488,13 +488,15 @@ static void editorDrawTopStatusBar(void) {
 
 static inline bool editorShouldDrawPrompt(void) {
     switch (gEditor.state) {
-        case STATE_EXIT:
-        case STATE_LOADING:
-        case STATE_EDIT:
-        case STATE_EXPLORER:
-            return false;
-        default:
+        case STATE_FIND_PROMPT:
+        case STATE_GOTO_PROMPT:
+        case STATE_OPEN_PROMPT:
+        case STATE_CONFIG_PROMPT:
+        case STATE_SAVE_AS_PROMPT:
             return (gEditor.screen_rows > 2);
+
+        default:
+            return false;
     }
 }
 
@@ -543,7 +545,7 @@ static void editorDrawPrompt(void) {
 
     screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols, style);
 
-    const char* left = gEditor.prompt;
+    const char* prefix = gEditor.prompt_prefix;
     const char* right = gEditor.prompt_right;
 
     // Right prompt is currently only used by find mode, assume it's ASCII
@@ -552,7 +554,77 @@ static void editorDrawPrompt(void) {
         rlen = 0;
     }
 
-    int x = screenPutUtf8(row, gEditor.screen_cols, 0, left, style);
+    // Draw prefix (ASCII-only)
+    int x = screenPutAscii(row, gEditor.screen_cols, 0, prefix, style);
+
+    // Draw prompt
+    const EditorRow* prompt_row = &gEditor.prompt_row;
+    if (prompt_row->data && prompt_row->size > 0) {
+        const char* p = prompt_row->data;
+        int remaining = prompt_row->size;
+        int rx = 0;  // relative to prompt row start (for tabs)
+
+        while (remaining > 0 && x < gEditor.screen_cols) {
+            if (*p == '\t') {
+                int tab_size = CONVAR_GETINT(tabsize);
+                int spaces = tab_size - (rx % tab_size);
+                for (int i = 0; i < spaces && x < gEditor.screen_cols; i++) {
+                    x +=
+                        screenPutChar(row, gEditor.screen_cols, x, ' ', &style);
+                    rx++;
+                }
+                p++;
+                remaining--;
+            } else {
+                size_t byte_size;
+                uint32_t code_point = decodeUTF8(p, remaining, &byte_size);
+
+                if (byte_size == 0)
+                    break;
+
+                int width = unicodeWidth(code_point);
+                if (width <= 0) {
+                    // Skip zero-width or invalid characters
+                    p += byte_size;
+                    remaining -= byte_size;
+                    continue;
+                }
+
+                if (x + width > gEditor.screen_cols)
+                    break;
+
+                // Build grapheme cluster
+                Grapheme grapheme = {0};
+                grapheme.cluster[0] = code_point;
+                grapheme.size = 1;
+                grapheme.width = width;
+
+                p += byte_size;
+                remaining -= byte_size;
+
+                // Gather trailing zero-width characters
+                while (grapheme.size < MAX_CLUSTER_SIZE && remaining > 0) {
+                    size_t comb_byte_size;
+                    uint32_t comb_code_point =
+                        decodeUTF8(p, remaining, &comb_byte_size);
+
+                    int comb_width = unicodeWidth(comb_code_point);
+                    if (comb_width != 0)
+                        break;
+
+                    grapheme.cluster[grapheme.size] = comb_code_point;
+                    grapheme.size++;
+
+                    p += comb_byte_size;
+                    remaining -= comb_byte_size;
+                }
+
+                x += screenPutGrapheme(row, gEditor.screen_cols, x, &grapheme,
+                                       &style);
+                rx += width;
+            }
+        }
+    }
 
     // Selection highlight
     if (gEditor.prompt_select_start_rx >= 0 &&

@@ -896,7 +896,7 @@ void editorCmd(const char* command) {
 }
 
 void editorOpenConfigPrompt(void) {
-    char* query = editorPrompt("Prompt: %s", STATE_CONFIG_PROMPT, NULL);
+    char* query = editorPrompt("Prompt: ", STATE_CONFIG_PROMPT, NULL);
     if (query == NULL)
         return;
 

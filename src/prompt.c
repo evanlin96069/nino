@@ -35,13 +35,6 @@ void editorMsgClear(void) {
     gEditor.con_size = 0;
 }
 
-static void editorSetPrompt(const char* fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(gEditor.prompt, sizeof(gEditor.prompt), fmt, ap);
-    va_end(ap);
-}
-
 static void editorSetRightPrompt(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -49,33 +42,34 @@ static void editorSetRightPrompt(const char* fmt, ...) {
     va_end(ap);
 }
 
-static void promptRowNull(EditorRow* row) {
+static void promptRowNull(void) {
+    EditorRow* row = &gEditor.prompt_row;
     editorRowEnsureCapacity(row, row->size + 1);
     row->data[row->size] = '\0';
 }
 
 // Returns start of the deleted range
-static int promptDeleteSelect(EditorRow* row, int cx, int select_x) {
+static int promptDeleteSelect(int cx, int select_x) {
+    EditorRow* row = &gEditor.prompt_row;
     int from = cx < select_x ? cx : select_x;
     int to = cx < select_x ? select_x : cx;
     editorRowDeleteRange(NULL, row, from, to);
     return from;
 }
 
-char* editorPrompt(const char* prompt,
+char* editorPrompt(const char* prefix,
                    int state,
                    void (*callback)(char*, int)) {
     int old_state = gEditor.state;
     gEditor.state = state;
 
-    EditorRow row = {0};
+    EditorRow* row = &gEditor.prompt_row;
+    row->size = 0;
 
-    int prefix_len = 0;
-    while (prompt[prefix_len] != '\0' && prompt[prefix_len] != '%') {
-        prefix_len++;
-    }
-    // Assume prefix is ASCII
-    int prefix_rx = prefix_len;
+    // Store prefix; assume prefix is ASCII
+    snprintf(gEditor.prompt_prefix, sizeof(gEditor.prompt_prefix), "%s",
+             prefix);
+    int prefix_rx = (int)strlen(gEditor.prompt_prefix);
 
     int cx = 0;
     bool is_selected = false;
@@ -88,17 +82,15 @@ char* editorPrompt(const char* prompt,
     bool mouse_pressed = false;
 
     while (true) {
-        promptRowNull(&row);
-        editorSetPrompt(prompt, row.data);
-        gEditor.px = prefix_rx + editorRowCxToRx(&row, cx);
+        promptRowNull();
+        gEditor.px = prefix_rx + editorRowCxToRx(row, cx);
 
         if (is_selected && cx != select_x) {
             int from = cx < select_x ? cx : select_x;
             int to = cx < select_x ? select_x : cx;
             gEditor.prompt_select_start_rx =
-                prefix_rx + editorRowCxToRx(&row, from);
-            gEditor.prompt_select_end_rx =
-                prefix_rx + editorRowCxToRx(&row, to);
+                prefix_rx + editorRowCxToRx(row, from);
+            gEditor.prompt_select_end_rx = prefix_rx + editorRowCxToRx(row, to);
         } else {
             gEditor.prompt_select_start_rx = -1;
             gEditor.prompt_select_end_rx = -1;
@@ -113,31 +105,31 @@ char* editorPrompt(const char* prompt,
         switch (input.type) {
             case DEL_KEY:
                 if (is_selected) {
-                    cx = promptDeleteSelect(&row, cx, select_x);
+                    cx = promptDeleteSelect(cx, select_x);
                     is_selected = false;
-                } else if (cx < row.size) {
-                    int next = editorRowNextUTF8(&row, cx);
-                    editorRowDeleteRange(NULL, &row, cx, next);
+                } else if (cx < row->size) {
+                    int next = editorRowNextUTF8(row, cx);
+                    editorRowDeleteRange(NULL, row, cx, next);
                 }
                 if (callback) {
-                    promptRowNull(&row);
-                    callback(row.data, input.type);
+                    promptRowNull();
+                    callback(row->data, input.type);
                 }
                 break;
 
             case CTRL_KEY('h'):
             case BACKSPACE:
                 if (is_selected) {
-                    cx = promptDeleteSelect(&row, cx, select_x);
+                    cx = promptDeleteSelect(cx, select_x);
                     is_selected = false;
                 } else if (cx > 0) {
-                    int prev = editorRowPreviousUTF8(&row, cx);
-                    editorRowDeleteRange(NULL, &row, prev, cx);
+                    int prev = editorRowPreviousUTF8(row, cx);
+                    editorRowDeleteRange(NULL, row, prev, cx);
                     cx = prev;
                 }
                 if (callback) {
-                    promptRowNull(&row);
-                    callback(row.data, input.type);
+                    promptRowNull();
+                    callback(row->data, input.type);
                 }
                 break;
 
@@ -155,16 +147,16 @@ char* editorPrompt(const char* prompt,
                     break;
 
                 if (is_selected) {
-                    cx = promptDeleteSelect(&row, cx, select_x);
+                    cx = promptDeleteSelect(cx, select_x);
                     is_selected = false;
                 }
-                editorRowInsertString(NULL, &row, cx, paste_buf, paste_len);
+                editorRowInsertString(NULL, row, cx, paste_buf, paste_len);
                 cx += (int)paste_len;
 
                 if (callback) {
-                    promptRowNull(&row);
+                    promptRowNull();
                     // send ctrl-v in case callback didn't handle PASTE_INPUT
-                    callback(row.data, CTRL_KEY('v'));
+                    callback(row->data, CTRL_KEY('v'));
                 }
                 break;
             }
@@ -187,11 +179,11 @@ char* editorPrompt(const char* prompt,
                     is_selected = true;
                     select_x = cx;
                 }
-                cx = row.size;
+                cx = row->size;
                 break;
 
             case END_KEY:
-                cx = row.size;
+                cx = row->size;
                 is_selected = false;
                 break;
 
@@ -200,7 +192,7 @@ char* editorPrompt(const char* prompt,
                     is_selected = true;
                     select_x = cx;
                 }
-                cx = editorRowPreviousUTF8(&row, cx);
+                cx = editorRowPreviousUTF8(row, cx);
                 break;
 
             case ARROW_LEFT:
@@ -208,7 +200,7 @@ char* editorPrompt(const char* prompt,
                     cx = cx < select_x ? cx : select_x;
                     is_selected = false;
                 } else {
-                    cx = editorRowPreviousUTF8(&row, cx);
+                    cx = editorRowPreviousUTF8(row, cx);
                 }
                 break;
 
@@ -217,7 +209,7 @@ char* editorPrompt(const char* prompt,
                     is_selected = true;
                     select_x = cx;
                 }
-                cx = editorRowNextUTF8(&row, cx);
+                cx = editorRowNextUTF8(row, cx);
                 break;
 
             case ARROW_RIGHT:
@@ -225,7 +217,7 @@ char* editorPrompt(const char* prompt,
                     cx = cx > select_x ? cx : select_x;
                     is_selected = false;
                 } else {
-                    cx = editorRowNextUTF8(&row, cx);
+                    cx = editorRowNextUTF8(row, cx);
                 }
                 break;
 
@@ -234,11 +226,11 @@ char* editorPrompt(const char* prompt,
                     is_selected = true;
                     select_x = cx;
                 }
-                cx = editorRowWordLeft(&row, cx);
+                cx = editorRowWordLeft(row, cx);
                 break;
 
             case CTRL_LEFT:
-                cx = editorRowWordLeft(&row, cx);
+                cx = editorRowWordLeft(row, cx);
                 is_selected = false;
                 break;
 
@@ -247,19 +239,19 @@ char* editorPrompt(const char* prompt,
                     is_selected = true;
                     select_x = cx;
                 }
-                cx = editorRowWordRight(&row, cx);
+                cx = editorRowWordRight(row, cx);
                 break;
 
             case CTRL_RIGHT:
-                cx = editorRowWordRight(&row, cx);
+                cx = editorRowWordRight(row, cx);
                 is_selected = false;
                 break;
 
             case CTRL_KEY('a'):
-                if (row.size > 0) {
+                if (row->size > 0) {
                     is_selected = true;
                     select_x = 0;
-                    cx = row.size;
+                    cx = row->size;
                 }
                 break;
 
@@ -276,26 +268,26 @@ char* editorPrompt(const char* prompt,
                 gEditor.clipboard.size = 1;
                 gEditor.clipboard.lines = calloc_s(1, sizeof(Str));
                 gEditor.clipboard.lines[0].data = malloc_s(to - from);
-                memcpy(gEditor.clipboard.lines[0].data, &row.data[from],
+                memcpy(gEditor.clipboard.lines[0].data, &row->data[from],
                        to - from);
                 gEditor.clipboard.lines[0].size = to - from;
                 gEditor.copy_line = false;
 
                 if (input.type == CTRL_KEY('x')) {
-                    cx = promptDeleteSelect(&row, cx, select_x);
+                    cx = promptDeleteSelect(cx, select_x);
                     is_selected = false;
                     if (callback) {
-                        promptRowNull(&row);
-                        callback(row.data, input.type);
+                        promptRowNull();
+                        callback(row->data, input.type);
                     }
                 }
             } break;
 
             case CTRL_KEY('d'):
-                if (cx < row.size && !isIdentifierChar(row.data[cx]))
+                if (cx < row->size && !isIdentifierChar(row->data[cx]))
                     break;
                 is_selected = true;
-                editorRowSelectWord(&row, cx, isNonIdentifierChar, &select_x,
+                editorRowSelectWord(row, cx, isNonIdentifierChar, &select_x,
                                     &cx);
                 break;
 
@@ -324,14 +316,13 @@ char* editorPrompt(const char* prompt,
             case MOUSE_PRESSED: {
                 int field = editorGetMousePosField(in_x, in_y, NULL);
                 if (field != FIELD_PROMPT) {
-                    editorSetPrompt("");
                     gEditor.state = old_state;
                     if (callback) {
-                        promptRowNull(&row);
+                        promptRowNull();
                         // Send ESC so callback know we're quitting
-                        callback(row.data, ESC);
+                        callback(row->data, ESC);
                     }
-                    editorFreeRow(&row);
+                    row->size = 0;
 
                     gEditor.pending_input = input;
                     editorProcessKeypress();
@@ -354,7 +345,7 @@ char* editorPrompt(const char* prompt,
 
                 int click_cx = 0;
                 if (in_x >= prefix_rx) {
-                    click_cx = editorRowRxToCx(&row, in_x - prefix_rx);
+                    click_cx = editorRowRxToCx(row, in_x - prefix_rx);
                 }
 
                 switch (mouse_click % 3) {
@@ -365,29 +356,29 @@ char* editorPrompt(const char* prompt,
                         break;
                     case 2: {
                         // Select word
-                        if (row.size == 0)
+                        if (row->size == 0)
                             break;
                         int wcx = click_cx;
-                        if (wcx >= row.size)
-                            wcx = row.size > 0 ? row.size - 1 : 0;
+                        if (wcx >= row->size)
+                            wcx = row->size > 0 ? row->size - 1 : 0;
 
                         IsCharFunc is_char;
-                        if (isSpace(row.data[wcx])) {
+                        if (isSpace(row->data[wcx])) {
                             is_char = isNonSpace;
-                        } else if (isIdentifierChar(row.data[wcx])) {
+                        } else if (isIdentifierChar(row->data[wcx])) {
                             is_char = isNonIdentifierChar;
                         } else {
                             is_char = isNonSeparator;
                         }
                         is_selected = true;
-                        editorRowSelectWord(&row, wcx, is_char, &select_x, &cx);
+                        editorRowSelectWord(row, wcx, is_char, &select_x, &cx);
                     } break;
                     case 0:
                         // Select all
-                        if (row.size > 0) {
+                        if (row->size > 0) {
                             is_selected = true;
                             select_x = 0;
-                            cx = row.size;
+                            cx = row->size;
                         }
                         break;
                 }
@@ -402,7 +393,7 @@ char* editorPrompt(const char* prompt,
                     break;
                 int move_cx = 0;
                 if (in_x >= prefix_rx) {
-                    move_cx = editorRowRxToCx(&row, in_x - prefix_rx);
+                    move_cx = editorRowRxToCx(row, in_x - prefix_rx);
                 }
                 if (!is_selected) {
                     is_selected = true;
@@ -413,27 +404,25 @@ char* editorPrompt(const char* prompt,
 
             case CTRL_KEY('q'):
             case ESC:
-                editorSetPrompt("");
                 gEditor.state = old_state;
                 if (callback) {
-                    promptRowNull(&row);
-                    callback(row.data, input.type);
+                    promptRowNull();
+                    callback(row->data, input.type);
                 }
-                editorFreeRow(&row);
+                row->size = 0;
                 return NULL;
 
             case '\r':
-                if (row.size != 0) {
-                    editorSetPrompt("");
+                if (row->size != 0) {
                     gEditor.state = old_state;
-                    promptRowNull(&row);
+                    promptRowNull();
                     if (callback)
-                        callback(row.data, input.type);
+                        callback(row->data, input.type);
                     // Copy result
-                    char* result = malloc_s(row.size + 1);
-                    memcpy(result, row.data, row.size);
-                    result[row.size] = '\0';
-                    editorFreeRow(&row);
+                    char* result = malloc_s(row->size + 1);
+                    memcpy(result, row->data, row->size);
+                    result[row->size] = '\0';
+                    row->size = 0;
                     return result;
                 }
                 break;
@@ -446,23 +435,23 @@ char* editorPrompt(const char* prompt,
                         break;
 
                     if (is_selected) {
-                        cx = promptDeleteSelect(&row, cx, select_x);
+                        cx = promptDeleteSelect(cx, select_x);
                         is_selected = false;
                     }
-                    editorRowInsertString(NULL, &row, cx, output, len);
+                    editorRowInsertString(NULL, row, cx, output, len);
                     cx += len;
                 }
 
                 if (callback) {
-                    promptRowNull(&row);
-                    callback(row.data, input.data.unicode);
+                    promptRowNull();
+                    callback(row->data, input.data.unicode);
                 }
             } break;
 
             default:
                 if (callback) {
-                    promptRowNull(&row);
-                    callback(row.data, input.type);
+                    promptRowNull();
+                    callback(row->data, input.type);
                 }
         }
         editorFreeInput(&input);
@@ -504,7 +493,7 @@ static void editorGotoCallback(char* query, int key) {
 
 void editorGotoLine(void) {
     char* query =
-        editorPrompt("Goto line: %s", STATE_GOTO_PROMPT, editorGotoCallback);
+        editorPrompt("Goto line: ", STATE_GOTO_PROMPT, editorGotoCallback);
     if (query) {
         free(query);
     }
@@ -687,8 +676,7 @@ static void editorFindCallback(char* query, int key) {
 }
 
 void editorFind(void) {
-    char* query =
-        editorPrompt("Find: %s", STATE_FIND_PROMPT, editorFindCallback);
+    char* query = editorPrompt("Find: ", STATE_FIND_PROMPT, editorFindCallback);
     if (query) {
         free(query);
     }

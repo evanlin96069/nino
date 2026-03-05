@@ -38,6 +38,7 @@ void editorFree(void) {
     }
     editorFreeScreen(gEditor.screen_rows);
     editorFreeClipboardContent(&gEditor.clipboard);
+    editorFreeRow(&gEditor.prompt_row);
     editorExplorerFree();
     editorFreeHLDB();
     editorUnregisterCommands();

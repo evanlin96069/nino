@@ -219,10 +219,10 @@ bool editorSave(EditorFile* file, int save_as) {
         char prompt_buf[64];
         const char* prompt;
         if (file->filename) {
-            prompt = "Save as: %s";
+            prompt = "Save as: ";
         } else {
-            snprintf(prompt_buf, sizeof(prompt_buf), "Save Untitled-%d as: %%s",
-                     file->new_id + 1);
+            snprintf(prompt_buf, sizeof(prompt_buf),
+                     "Save Untitled-%d as: ", file->new_id + 1);
             prompt = prompt_buf;
         }
 
@@ -349,7 +349,7 @@ void editorNewUntitledFileFromStdin(EditorFile* file) {
 }
 
 void editorOpenFilePrompt(void) {
-    char* path = editorPrompt("Open: %s", STATE_OPEN_PROMPT, NULL);
+    char* path = editorPrompt("Open: ", STATE_OPEN_PROMPT, NULL);
     if (!path)
         return;
 

@@ -143,8 +143,9 @@ typedef struct Editor {
     char con_msg[EDITOR_CON_COUNT][EDITOR_CON_LENGTH];
 
     // Prompt
-    char prompt[EDITOR_PROMPT_LENGTH];
+    char prompt_prefix[EDITOR_PROMPT_LENGTH];
     char prompt_right[EDITOR_RIGHT_PROMPT_LENGTH];
+    EditorRow prompt_row;
     int prompt_select_start_rx;  // -1 if not selected
     int prompt_select_end_rx;
 
