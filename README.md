@@ -2,9 +2,9 @@
 
 [![Build](https://github.com/evanlin96069/nino/actions/workflows/build.yml/badge.svg)](https://github.com/evanlin96069/nino/actions?query=branch%3Amaster)
 
-![screenshot](docs/img/nino_v0.0.3.png)
+![screenshot](docs/img/nino_v0.1.0.png)
 
-A small terminal-based text editor written in C.
+My personal text editor.
 
 Inspired by [kilo](https://github.com/antirez/kilo)
 and [snaptoken's Build Your Own Text Editor tutorial](https://viewsourcecode.org/snaptoken/kilo/).
@@ -22,6 +22,7 @@ I'm not used to [Vim](https://www.vim.org/) and I don't like [nano](https://nano
 - Multiple undo/redo
 - Search with smart case sensitivity
 - File explorer
+- Split screen
 
 ## Build
 
@@ -57,13 +58,24 @@ To build the project, run:
 cmake --build .
 ```
 
-### Optional: Installing the Project
+## Building Without CMake
 
-If installation is necessary, you can install the project using:
+For Unix-like systems, the project can also be built without CMake using the provided build script.
+
+### Prerequisites
+
+- A C compiler (such as GCC or Clang)
+- A POSIX-compatible shell
+
+### Building
+
+Run the provided build script:
 
 ```bash
-cmake --install .
+./scripts/build.sh
 ```
+
+This method is not supported on Windows.
 
 ## Documentation
 - [Configurations](docs/configs.md)
