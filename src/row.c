@@ -52,10 +52,11 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
     memmove(&file->row[at + 1], &file->row[at],
             sizeof(EditorRow) * (file->num_rows - at));
     memset(&file->row[at], 0, sizeof(EditorRow));
-    editorRowAppendString(file, &file->row[at], s, len);
 
     file->num_rows++;
     file->lineno_width = getDigit(file->num_rows) + 2;
+
+    editorRowAppendString(file, &file->row[at], s, len);
 }
 
 void editorFreeRow(EditorRow* row) {
@@ -72,6 +73,10 @@ void editorDelRow(EditorFile* file, int at) {
 
     file->num_rows--;
     file->lineno_width = getDigit(file->num_rows) + 2;
+
+    if (at < file->num_rows) {
+        editorUpdateRow(file, &file->row[at]);
+    }
 }
 
 void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c) {

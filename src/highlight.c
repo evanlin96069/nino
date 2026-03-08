@@ -11,111 +11,134 @@
 #define JSON_MALLOC malloc_s
 #include "json.h"
 
-void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
-    if (row->hl) {
-        // realloc might returns NULL when row->size == 0
-        memset(row->hl, HL_NORMAL, row->size);
-    }
+void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
+    const EditorSyntax* s = file->syntax;
 
-    EditorSyntax* s = file->syntax;
+    const char* scs = s ? s->singleline_comment_start : NULL;
+    const char* mcs = s ? s->multiline_comment_start : NULL;
+    const char* mce = s ? s->multiline_comment_end : NULL;
 
-    if (!CONVAR_GETINT(syntax) || !s)
-        goto update_trailing;
+    const int scs_len = scs ? strlen(scs) : 0;
+    const int mcs_len = mcs ? strlen(mcs) : 0;
+    const int mce_len = mce ? strlen(mce) : 0;
 
-    const char* scs = s->singleline_comment_start;
-    const char* mcs = s->multiline_comment_start;
-    const char* mce = s->multiline_comment_end;
+    bool do_highlight = CONVAR_GETINT(syntax) && s;
 
-    int scs_len = scs ? strlen(scs) : 0;
-    int mcs_len = mcs ? strlen(mcs) : 0;
-    int mce_len = mce ? strlen(mce) : 0;
+    int row_index = (int)(r - file->row);
 
-    int prev_sep = 1;
-    int in_string = 0;
-    int row_index = (int)(row - file->row);
-    int in_comment =
-        (row_index > 0 && file->row[row_index - 1].hl_open_comment);
+    bool do_next_row = true;
+    while (do_next_row && row_index < file->num_rows) {
+        EditorRow* row = &file->row[row_index];
 
-    int i = 0;
-    while (i < row->size) {
-        char c = row->data[i];
-
-        if (scs_len && !in_string && !in_comment) {
-            if (i + scs_len <= row->size &&
-                strncmp(&row->data[i], scs, scs_len) == 0) {
-                memset(&row->hl[i], HL_COMMENT, row->size - i);
-                break;
-            }
+        if (row->hl) {
+            // realloc might returns NULL when row->size == 0
+            memset(row->hl, HL_NORMAL, row->size);
         }
 
-        if (mcs_len && mce_len && !in_string) {
-            if (in_comment) {
-                row->hl[i] = HL_COMMENT;
-                if (i + mce_len <= row->size &&
-                    strncmp(&row->data[i], mce, mce_len) == 0) {
-                    memset(&row->hl[i], HL_COMMENT, mce_len);
-                    i += mce_len;
-                    in_comment = 0;
-                    prev_sep = 1;
+        do_next_row = false;
+
+        if (!do_highlight)
+            goto update_trailing;
+
+        int prev_sep = 1;
+        int in_string = 0;
+        int in_comment =
+            (row_index > 0 && file->row[row_index - 1].hl_open_comment);
+
+        int i = 0;
+        while (i < row->size) {
+            char c = row->data[i];
+
+            if (scs_len && !in_string && !in_comment) {
+                if (i + scs_len <= row->size &&
+                    strncmp(&row->data[i], scs, scs_len) == 0) {
+                    memset(&row->hl[i], HL_COMMENT, row->size - i);
+                    break;
                 }
-                i++;
-                continue;
-            } else if (i + mcs_len <= row->size &&
-                       strncmp(&row->data[i], mcs, mcs_len) == 0) {
-                memset(&row->hl[i], HL_COMMENT, mcs_len);
-                i += mcs_len;
-                in_comment = 1;
-                continue;
             }
-        }
 
-        if (s->flags & HL_HIGHLIGHT_STRINGS) {
-            if (in_string) {
-                row->hl[i] = HL_STRING;
-                if (c == '\\' && i + 1 < row->size) {
-                    row->hl[i + 1] = HL_STRING;
-                    i += 2;
+            if (mcs_len && mce_len && !in_string) {
+                if (in_comment) {
+                    row->hl[i] = HL_COMMENT;
+                    if (i + mce_len <= row->size &&
+                        strncmp(&row->data[i], mce, mce_len) == 0) {
+                        memset(&row->hl[i], HL_COMMENT, mce_len);
+                        i += mce_len;
+                        in_comment = 0;
+                        prev_sep = 1;
+                    }
+                    i++;
+                    continue;
+                } else if (i + mcs_len <= row->size &&
+                           strncmp(&row->data[i], mcs, mcs_len) == 0) {
+                    memset(&row->hl[i], HL_COMMENT, mcs_len);
+                    i += mcs_len;
+                    in_comment = 1;
                     continue;
                 }
-                if (c == in_string)
-                    in_string = 0;
-                i++;
-                prev_sep = 1;
-                continue;
-            } else if (c == '"' || c == '\'') {
-                in_string = c;
-                row->hl[i] = HL_STRING;
-                i++;
-                continue;
             }
-        }
 
-        if (s->flags & HL_HIGHLIGHT_NUMBERS) {
-            if ((isdigit((uint8_t)c) || c == '.') && prev_sep) {
-                int start = i;
-                i++;
-                if (c == '0') {
-                    if (i < row->size) {
-                        if (row->data[i] == 'x' || row->data[i] == 'X') {
-                            // hex
-                            i++;
-                            while (
-                                i < row->size &&
-                                (isdigit((uint8_t)row->data[i]) ||
-                                 (row->data[i] >= 'a' && row->data[i] <= 'f') ||
-                                 (row->data[i] >= 'A' &&
-                                  row->data[i] <= 'F'))) {
+            if (s->flags & HL_HIGHLIGHT_STRINGS) {
+                if (in_string) {
+                    row->hl[i] = HL_STRING;
+                    if (c == '\\' && i + 1 < row->size) {
+                        row->hl[i + 1] = HL_STRING;
+                        i += 2;
+                        continue;
+                    }
+                    if (c == in_string)
+                        in_string = 0;
+                    i++;
+                    prev_sep = 1;
+                    continue;
+                } else if (c == '"' || c == '\'') {
+                    in_string = c;
+                    row->hl[i] = HL_STRING;
+                    i++;
+                    continue;
+                }
+            }
+
+            if (s->flags & HL_HIGHLIGHT_NUMBERS) {
+                if ((isdigit((uint8_t)c) || c == '.') && prev_sep) {
+                    int start = i;
+                    i++;
+                    if (c == '0') {
+                        if (i < row->size) {
+                            if (row->data[i] == 'x' || row->data[i] == 'X') {
+                                // hex
                                 i++;
-                            }
-                        } else if (row->data[i] >= '0' && row->data[i] <= '7') {
-                            // oct
-                            i++;
-                            while (i < row->size && row->data[i] >= '0' &&
-                                   row->data[i] <= '7') {
+                                while (i < row->size &&
+                                       (isdigit((uint8_t)row->data[i]) ||
+                                        (row->data[i] >= 'a' &&
+                                         row->data[i] <= 'f') ||
+                                        (row->data[i] >= 'A' &&
+                                         row->data[i] <= 'F'))) {
+                                    i++;
+                                }
+                            } else if (row->data[i] >= '0' &&
+                                       row->data[i] <= '7') {
+                                // oct
                                 i++;
+                                while (i < row->size && row->data[i] >= '0' &&
+                                       row->data[i] <= '7') {
+                                    i++;
+                                }
+                            } else if (row->data[i] == '.') {
+                                // float
+                                i++;
+                                while (i < row->size &&
+                                       isdigit((uint8_t)row->data[i])) {
+                                    i++;
+                                }
                             }
-                        } else if (row->data[i] == '.') {
-                            // float
+                        }
+                    } else {
+                        while (i < row->size &&
+                               isdigit((uint8_t)row->data[i])) {
+                            i++;
+                        }
+                        if (c != '.' && i < row->size && row->data[i] == '.') {
                             i++;
                             while (i < row->size &&
                                    isdigit((uint8_t)row->data[i])) {
@@ -123,73 +146,63 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* row) {
                             }
                         }
                     }
-                } else {
-                    while (i < row->size && isdigit((uint8_t)row->data[i])) {
+                    if (c == '.' && i - start == 1)
+                        continue;
+
+                    if (i < row->size &&
+                        (row->data[i] == 'f' || row->data[i] == 'F'))
                         i++;
-                    }
-                    if (c != '.' && i < row->size && row->data[i] == '.') {
-                        i++;
-                        while (i < row->size &&
-                               isdigit((uint8_t)row->data[i])) {
-                            i++;
+                    if (i == row->size || isSeparator(row->data[i]) ||
+                        isSpace(row->data[i]))
+                        memset(&row->hl[start], HL_NUMBER, i - start);
+                    prev_sep = 0;
+                    continue;
+                }
+            }
+
+            if (prev_sep) {
+                bool found_keyword = false;
+                for (int kw = 0; kw < 3; kw++) {
+                    for (size_t j = 0; j < s->keywords[kw].size; j++) {
+                        int klen = strlen(s->keywords[kw].data[j]);
+                        int keyword_type = HL_KEYWORD1 + kw;
+                        if (klen <= row->size - i &&
+                            strncmp(&row->data[i], s->keywords[kw].data[j],
+                                    klen) == 0 &&
+                            (i + klen == row->size ||
+                             isNonIdentifierChar(row->data[i + klen]))) {
+                            found_keyword = true;
+                            memset(&row->hl[i], keyword_type, klen);
+                            i += klen;
+                            break;
                         }
                     }
-                }
-                if (c == '.' && i - start == 1)
-                    continue;
-
-                if (i < row->size &&
-                    (row->data[i] == 'f' || row->data[i] == 'F'))
-                    i++;
-                if (i == row->size || isSeparator(row->data[i]) ||
-                    isSpace(row->data[i]))
-                    memset(&row->hl[start], HL_NUMBER, i - start);
-                prev_sep = 0;
-                continue;
-            }
-        }
-
-        if (prev_sep) {
-            bool found_keyword = false;
-            for (int kw = 0; kw < 3; kw++) {
-                for (size_t j = 0; j < s->keywords[kw].size; j++) {
-                    int klen = strlen(s->keywords[kw].data[j]);
-                    int keyword_type = HL_KEYWORD1 + kw;
-                    if (klen <= row->size - i &&
-                        strncmp(&row->data[i], s->keywords[kw].data[j], klen) ==
-                            0 &&
-                        (i + klen == row->size ||
-                         isNonIdentifierChar(row->data[i + klen]))) {
-                        found_keyword = true;
-                        memset(&row->hl[i], keyword_type, klen);
-                        i += klen;
+                    if (found_keyword) {
                         break;
                     }
                 }
+
                 if (found_keyword) {
-                    break;
+                    prev_sep = 0;
+                    continue;
                 }
             }
-
-            if (found_keyword) {
-                prev_sep = 0;
-                continue;
-            }
+            prev_sep = isNonIdentifierChar(c);
+            i++;
         }
-        prev_sep = isNonIdentifierChar(c);
-        i++;
-    }
-    int changed = (row->hl_open_comment != in_comment);
-    row->hl_open_comment = in_comment;
-    if (changed && row_index + 1 < file->num_rows)
-        editorUpdateSyntax(file, &file->row[row_index + 1]);
+        int changed = (row->hl_open_comment != in_comment);
+        row->hl_open_comment = in_comment;
 
-update_trailing:
-    for (i = row->size - 1; i >= 0; i--) {
-        if (row->data[i] == ' ' || row->data[i] == '\t') {
-            row->hl[i] = HL_BG_TRAILING << HL_FG_BITS;
-        } else {
-            break;
+        do_next_row = changed;
+        row_index++;
+
+    update_trailing:
+        for (i = row->size - 1; i >= 0; i--) {
+            if (row->data[i] == ' ' || row->data[i] == '\t') {
+                row->hl[i] = HL_BG_TRAILING << HL_FG_BITS;
+            } else {
+                break;
+            }
         }
     }
 }
