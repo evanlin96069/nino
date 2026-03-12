@@ -23,6 +23,8 @@ The command will first search for the file in the current directory, then the co
 | `drawspace` | 1 | Render whitespace and tab. |
 | `syntax` | 1 | Enable syntax highlight. |
 | `helpinfo` | 1 | Show the help information. |
+| `intro` | 1 | Show the introductory message when no files are open. |
+| `start_new_file` | 0 | Create an untitled file when starting with no files and no directory. |
 | `ignorecase` | 2 | Use case insensitive search. Set to 2 to use smart case. |
 | `mouse` | 1 | Enable mouse mode. |
 | `ex_default_width` | 40 | File explorer default width. |

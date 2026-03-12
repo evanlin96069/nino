@@ -21,6 +21,14 @@ CONVAR(trailing, "Highlight trailing spaces.", "1", NULL);
 CONVAR(drawspace, "Render whitespace and tab.", "0", NULL);
 CONVAR(syntax, "Enable syntax highlight.", "1", cvarSyntaxCallback);
 CONVAR(helpinfo, "Show the help information.", "1", NULL);
+CONVAR(intro,
+       "Show the introductory message when no files are open.",
+       "1",
+       NULL);
+CONVAR(start_new_file,
+       "Create an untitled file when starting with no files and no directory.",
+       "0",
+       NULL);
 CONVAR(ignorecase,
        "Use case insensitive search. Set to 2 to use smart case.",
        "2",
@@ -815,6 +823,8 @@ void editorRegisterCommands(void) {
     INIT_CONVAR(drawspace);
     INIT_CONVAR(syntax);
     INIT_CONVAR(helpinfo);
+    INIT_CONVAR(intro);
+    INIT_CONVAR(start_new_file);
     INIT_CONVAR(ignorecase);
     INIT_CONVAR(mouse);
     INIT_CONVAR(osc52_copy);

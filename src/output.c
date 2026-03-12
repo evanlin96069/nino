@@ -748,6 +748,82 @@ static void editorDrawBackground(void) {
     }
 }
 
+static void editorDrawIntroMessages(void) {
+    static int max_width = -1;
+
+    const char* lines[] = {
+        (EDITOR_NAME " v" EDITOR_VERSION),
+        "",
+        "by Evan Lin (evanline96069)",
+        "https://github.com/evanlin96069/nino",
+        "",
+        "Save poor takos in the void!",
+        "",
+        "Ctrl+N  New Tab    Ctrl+O  Open",
+        "Ctrl+P  Prompt     Ctrl+Q  Quit",
+    };
+    static int widths[sizeof(lines) / sizeof(lines[0])] = {0};
+
+    int line_count = (int)(sizeof(lines) / sizeof(lines[0]));
+    int hint_count = 2;
+
+    if (max_width == -1) {
+        max_width = 0;
+        for (int i = 0; i < line_count; i++) {
+            int width = strUTF8Width(lines[i]);
+            widths[i] = width;
+            if (width > max_width) {
+                max_width = width;
+            }
+        }
+    }
+
+    int left = gEditor.explorer.width;
+    if (left < 0)
+        left = 0;
+    if (left >= gEditor.screen_cols)
+        return;
+
+    int top = 1;
+    int rows = gEditor.display_rows;
+    int cols = gEditor.screen_cols - left;
+
+    if (rows < line_count)
+        return;
+
+    if (cols < max_width)
+        return;
+
+    ScreenStyle text_style = {
+        .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
+        .bg = gEditor.color_cfg.bg,
+    };
+    ScreenStyle hint_style = {
+        .fg = gEditor.color_cfg.highlightFg[HL_COMMENT],
+        .bg = gEditor.color_cfg.bg,
+    };
+
+    int start_row = top + (rows - line_count) / 2;
+    if (start_row + line_count > rows)
+        return;
+
+    for (int i = 0; i < line_count; i++) {
+        const char* line = lines[i];
+        int width = widths[i];
+        int start_col = left + (cols - width) / 2;
+
+        ScreenStyle style;
+        if (i < line_count - hint_count) {
+            style = text_style;
+        } else {
+            style = hint_style;
+        }
+
+        screenPutUtf8(gEditor.screen[start_row + i], gEditor.screen_cols,
+                      start_col, line, style);
+    }
+}
+
 static void editorDrawSplit(int split_index) {
     if (gEditor.explorer.width >= gEditor.screen_cols) {
         return;
@@ -1090,6 +1166,9 @@ void editorRefreshScreen(void) {
 
     if (gEditor.split_count == 0) {
         editorDrawBackground();
+        if (CONVAR_GETINT(intro)) {
+            editorDrawIntroMessages();
+        }
     } else {
         for (int i = 0; i < gEditor.split_count; i++) {
             editorDrawSplit(i);

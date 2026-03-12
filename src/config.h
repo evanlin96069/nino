@@ -94,6 +94,8 @@ EXTERN_CONVAR(trailing);
 EXTERN_CONVAR(drawspace);
 EXTERN_CONVAR(syntax);
 EXTERN_CONVAR(helpinfo);
+EXTERN_CONVAR(intro);
+EXTERN_CONVAR(start_new_file);
 EXTERN_CONVAR(ignorecase);
 EXTERN_CONVAR(mouse);
 EXTERN_CONVAR(osc52_copy);

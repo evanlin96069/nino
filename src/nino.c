@@ -73,14 +73,15 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    gEditor.state = STATE_EDIT;
     if (gEditor.file_count == 0) {
-        if (gEditor.explorer.node) {
-            gEditor.state = STATE_EXPLORER;
-        } else {
+        gEditor.state = STATE_EXPLORER;
+        if (CONVAR_GETINT(start_new_file) && !gEditor.explorer.node) {
             editorNewUntitledFile(&file);
             editorAddFileToActiveSplit(&file);
+            gEditor.state = STATE_EDIT;
         }
+    } else {
+        gEditor.state = STATE_EDIT;
     }
 
     gEditor.explorer.prefered_width = CONVAR_GETINT(ex_default_width);
