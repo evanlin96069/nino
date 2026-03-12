@@ -18,13 +18,13 @@ static char* copyArg(const char* arg) {
 }
 
 static void usage(void) {
-    fprintf(stderr, "Usage: " EDITOR_NAME " [options] [file...]\n");
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr, "  -c <cmd>     Execute <cmd> after config\n");
-    fprintf(stderr, "  -u <file>    Use this config file\n");
-    fprintf(stderr, "  -R           Readonly mode\n");
-    fprintf(stderr, "  -v           Print version information and exit\n");
-    fprintf(stderr, "  -h           Print this help message and exit\n");
+    printf("Usage: " EDITOR_NAME " [options] [file...]\n");
+    printf("Options:\n");
+    printf("  -c <cmd>     Execute <cmd> after config\n");
+    printf("  -u <file>    Use this config file\n");
+    printf("  -R           Readonly mode\n");
+    printf("  -v           Print version information and exit\n");
+    printf("  -h           Print this help message and exit\n");
 }
 
 int main(int argc, char* argv[]) {
