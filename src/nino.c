@@ -6,17 +6,23 @@
 #include "opt.h"
 #include "os.h"
 #include "output.h"
+#include "prompt.h"
 #include "row.h"
 #include "terminal.h"
+
+static char* copyArg(const char* arg) {
+    size_t len = strlen(arg) + 1;
+    char* copy = malloc_s(len);
+    memcpy(copy, arg, len);
+    return copy;
+}
 
 static void usage(void) {
     fprintf(stderr, "Usage: " EDITOR_NAME " [options] [file...]\n");
     fprintf(stderr, "Options:\n");
+    fprintf(stderr, "  -c <cmd>     Execute <cmd> after config\n");
+    fprintf(stderr, "  -u <file>    Use this config file\n");
     fprintf(stderr, "  -R           Readonly mode\n");
-    fprintf(
-        stderr,
-        "  -c <command> Execute <command> before loading any " EDITOR_RC_FILE
-        " file.\n");
     fprintf(stderr, "  -v           Print version information and exit\n");
     fprintf(stderr, "  -h           Print this help message and exit\n");
 }
@@ -24,27 +30,62 @@ static void usage(void) {
 int main(int argc, char* argv[]) {
     editorInit();
 
+    bool readonly_mode = false;
+    char* config_path = NULL;
+    size_t startup_cmd_count = 0;
+    char** startup_cmds = NULL;
+
     int argc_utf8 = argc;
     char** argv_utf8 = argv;
     argsInit(&argc_utf8, &argv_utf8);
     argc = argc_utf8;
     argv = argv_utf8;
     FOR_OPTS(argc, argv) {
+        case 'c': {
+            const char* command = OPTARG(argc, argv);
+            startup_cmds = realloc_s(startup_cmds,
+                                     sizeof(char*) * (startup_cmd_count + 1));
+            startup_cmds[startup_cmd_count++] = copyArg(command);
+        } break;
+
+        case 'u':
+            free(config_path);
+            config_path = copyArg(OPTARG(argc, argv));
+            break;
+
         case 'R':
-            CONVAR_SETINT(readonly, 1);
+            readonly_mode = true;
             break;
-        case 'c':
-            editorCmd(OPTARG(argc, argv));
-            break;
+
         case 'v':
             printf("Exe version %s (%s)\n", EDITOR_VERSION, EDITOR_NAME);
             printf("Exe build: %s %s (%d)\n", editor_build_time,
                    editor_build_date, editorGetBuildNumber());
             goto DONE;
+
         case '?':
         case 'h':
             usage();
             goto DONE;
+    }
+
+    if (!config_path) {
+        editorLoadInitConfig();
+    } else if (strcmp(config_path, "NONE") != 0) {
+        if (!editorLoadConfig(config_path)) {
+            editorMsg("Failed to load config: %s", config_path);
+        }
+    }
+    free(config_path);
+
+    for (size_t i = 0; i < startup_cmd_count; i++) {
+        editorCmd(startup_cmds[i]);
+        free(startup_cmds[i]);
+    }
+    free(startup_cmds);
+
+    if (readonly_mode) {
+        CONVAR_SETINT(readonly, 1);
     }
 
     EditorFile file;
@@ -73,6 +114,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    argsFree(argc_utf8, argv_utf8);
+
     if (gEditor.file_count == 0) {
         gEditor.state = STATE_EXPLORER;
         if (CONVAR_GETINT(start_new_file) && !gEditor.explorer.node) {
@@ -99,7 +142,6 @@ int main(int argc, char* argv[]) {
 DONE:
     terminalExit();
 #ifndef NDEBUG
-    argsFree(argc_utf8, argv_utf8);
     editorFree();
 #endif
     return 0;

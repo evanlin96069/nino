@@ -24,8 +24,6 @@ void editorInit(void) {
     editorRegisterCommands();
     editorInitHLDB();
 
-    editorLoadInitConfig();
-
     memset(&gEditor.files[0], 0, sizeof(EditorFile));
 }
 
