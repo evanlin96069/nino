@@ -1166,7 +1166,7 @@ void editorRefreshScreen(void) {
 
     if (gEditor.split_count == 0) {
         editorDrawBackground();
-        if (CONVAR_GETINT(intro)) {
+        if (gEditor.state != STATE_LOADING && CONVAR_GETINT(intro)) {
             editorDrawIntroMessages();
         }
     } else {
