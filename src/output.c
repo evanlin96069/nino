@@ -566,7 +566,7 @@ static void editorDrawPrompt(void) {
 
         while (remaining > 0 && x < gEditor.screen_cols) {
             if (*p == '\t') {
-                int tab_size = CONVAR_GETINT(tabsize);
+                int tab_size = tabsize.int_value;
                 int spaces = tab_size - (rx % tab_size);
                 for (int i = 0; i < spaces && x < gEditor.screen_cols; i++) {
                     x +=
@@ -660,7 +660,7 @@ static void editorDrawStatusBar(void) {
                      default_style);
 
     const char* help_str = "";
-    if (CONVAR_GETINT(helpinfo)) {
+    if (helpinfo.int_value) {
         switch (gEditor.state) {
             case STATE_EDIT:
                 help_str =
@@ -862,7 +862,7 @@ static void editorDrawSplit(int split_index) {
             int x = start;
 
             // Draw line number
-            if (CONVAR_GETINT(lineno)) {
+            if (lineno.int_value) {
                 ScreenStyle lineno_style;
                 lineno_style.fg = (i == tab->cursor.y)
                                       ? gEditor.color_cfg.line_number[1]
@@ -930,11 +930,10 @@ static void editorDrawSplit(int split_index) {
                     rx++;
                     j++;
                 } else {
-                    if (CONVAR_GETINT(drawspace) &&
-                        (c[j] == ' ' || c[j] == '\t')) {
+                    if (drawspace.int_value && (c[j] == ' ' || c[j] == '\t')) {
                         fg = HL_SPACE;
                     }
-                    if (bg == HL_BG_TRAILING && !CONVAR_GETINT(trailing)) {
+                    if (bg == HL_BG_TRAILING && !trailing.int_value) {
                         bg = HL_BG_NORMAL;
                     }
 
@@ -946,11 +945,11 @@ static void editorDrawSplit(int split_index) {
                     }
 
                     if (c[j] == '\t') {
-                        char tab_char = CONVAR_GETINT(drawspace) ? '|' : ' ';
+                        char tab_char = drawspace.int_value ? '|' : ' ';
                         screen_x += screenPutChar(row, gEditor.screen_cols,
                                                   screen_x, tab_char, &style);
                         rx++;
-                        while (rx % CONVAR_GETINT(tabsize) != 0 && rx < rlen &&
+                        while (rx % tabsize.int_value != 0 && rx < rlen &&
                                screen_x < end) {
                             screen_x += screenPutChar(row, gEditor.screen_cols,
                                                       screen_x, ' ', &style);
@@ -959,7 +958,7 @@ static void editorDrawSplit(int split_index) {
                         curr_grapheme = NULL;
                         j++;
                     } else if (c[j] == ' ') {
-                        char space_char = CONVAR_GETINT(drawspace) ? '.' : ' ';
+                        char space_char = drawspace.int_value ? '.' : ' ';
                         screen_x += screenPutChar(row, gEditor.screen_cols,
                                                   screen_x, space_char, &style);
                         curr_grapheme = NULL;
@@ -1166,7 +1165,7 @@ void editorRefreshScreen(void) {
 
     if (gEditor.split_count == 0) {
         editorDrawBackground();
-        if (gEditor.state != STATE_LOADING && CONVAR_GETINT(intro)) {
+        if (gEditor.state != STATE_LOADING && intro.int_value) {
             editorDrawIntroMessages();
         }
     } else {

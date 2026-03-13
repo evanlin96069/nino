@@ -177,8 +177,8 @@ int editorRowCxToRx(const EditorRow* row, int cx) {
             break;
 
         if (unicode == '\t') {
-            rx += (CONVAR_GETINT(tabsize) - 1) - (rx % CONVAR_GETINT(tabsize)) +
-                  1;
+            int tab_size = tabsize.int_value;
+            rx += (tab_size - 1) - (rx % tab_size) + 1;
         } else {
             int width = unicodeWidth(unicode);
             if (width < 0)
@@ -201,8 +201,8 @@ int editorRowRxToCx(const EditorRow* row, int rx) {
             break;
 
         if (unicode == '\t') {
-            cur_rx += (CONVAR_GETINT(tabsize) - 1) -
-                      (cur_rx % CONVAR_GETINT(tabsize)) + 1;
+            int tab_size = tabsize.int_value;
+            cur_rx += (tab_size - 1) - (cur_rx % tab_size) + 1;
         } else {
             int width = unicodeWidth(unicode);
             if (width < 0)

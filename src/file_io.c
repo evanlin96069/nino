@@ -201,7 +201,7 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path, bool reload) {
     editorSelectSyntaxHighlight(file);
 
     file->dirty = 0;
-    file->read_only = CONVAR_GETINT(readonly) || !canWriteFile(file->filename);
+    file->read_only = readonly.int_value || !canWriteFile(file->filename);
 
     if (!fp) {
         editorInsertRow(file, 0, "", 0);
@@ -416,7 +416,7 @@ void editorExplorerLoadNode(EditorExplorerNode* node) {
 
     do {
         const char* filename = dirGetName(&iter);
-        if (CONVAR_GETINT(ex_show_hidden) == 0 && filename[0] == '.')
+        if (ex_show_hidden.int_value == 0 && filename[0] == '.')
             continue;
         if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0)
             continue;

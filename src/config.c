@@ -6,55 +6,68 @@
 #include "prompt.h"
 #include "terminal.h"
 
-EditorConCmdArgs args;
+CCommand args;
 
 static void cvarSyntaxCallback(void);
 static void cvarExplorerCallback(void);
 static void cvarMouseCallback(void);
 
-CONVAR(tabsize, "Tab size.", "4", cvarSyntaxCallback);
-CONVAR(whitespace, "Use whitespace instead of tab.", "1", NULL);
-CONVAR(autoindent, "Enable auto indent.", "0", NULL);
-CONVAR(backspace, "Use hungry backspace.", "1", NULL);
-CONVAR(bracket, "Use auto bracket completion.", "0", NULL);
-CONVAR(trailing, "Highlight trailing spaces.", "1", NULL);
-CONVAR(drawspace, "Render whitespace and tab.", "0", NULL);
-CONVAR(syntax, "Enable syntax highlight.", "1", cvarSyntaxCallback);
-CONVAR(helpinfo, "Show the help information.", "1", NULL);
-CONVAR(intro,
-       "Show the introductory message when no files are open.",
-       "1",
-       NULL);
+CONVAR(tabsize, "4", "Tab size.", true, 1, true, 16, cvarSyntaxCallback);
+CONVAR(whitespace, "1", "Use whitespace instead of tab.");
+CONVAR(autoindent, "0", "Enable auto indent.");
+CONVAR(backspace, "1", "Use hungry backspace.");
+CONVAR(bracket, "0", "Use auto bracket completion.");
+CONVAR(trailing, "1", "Highlight trailing spaces.");
+CONVAR(drawspace, "0", "Render whitespace and tab.");
+CONVAR(syntax, "1", "Enable syntax highlight.");
+CONVAR(helpinfo, "1", "Show the help information.");
+CONVAR(intro, "1", "Show the introductory message when no files are open.");
 CONVAR(start_new_file,
-       "Create an untitled file when starting with no files and no directory.",
        "0",
-       NULL);
+       "Create an untitled file when starting with no files and no directory.");
 CONVAR(ignorecase,
-       "Use case insensitive search. Set to 2 to use smart case.",
        "2",
-       NULL);
-CONVAR(mouse, "Enable mouse mode.", "1", cvarMouseCallback);
-CONVAR(osc52_copy, "Copy to system clipboard using OSC52.", "1", NULL);
+       "Use case insensitive search. Set to 2 to use smart case.",
+       true,
+       0,
+       true,
+       2);
+CONVAR(mouse, "1", "Enable mouse mode.", cvarMouseCallback);
+CONVAR(osc52_copy, "1", "Copy to system clipboard using OSC52.");
 
-CONVAR(shell, "Shell used by the run command. (full path)", "", NULL);
+CONVAR(shell, "", "Shell used by the run command. (full path)");
 
-CONVAR(cmd_expand_depth, "Max depth for alias expansion.", "1024", NULL);
+CONVAR(cmd_expand_depth,
+       "1024",
+       "Max depth for alias expansion.",
+       true,
+       0,
+       false,
+       0);
 
-CONVAR(ex_default_width, "File explorer default width.", "40", NULL);
+CONVAR(ex_default_width,
+       "40",
+       "File explorer default width.",
+       true,
+       0,
+       false,
+       0);
 CONVAR(ex_show_hidden,
-       "Show hidden files in the file explorer.",
        "1",
+       "Show hidden files in the file explorer.",
        cvarExplorerCallback);
 CONVAR(newline_default,
-       "Set the default EOL sequence (LF/CRLF). 0 is OS default.",
        "0",
-       NULL);
+       "Set the default EOL sequence (LF/CRLF). 0 is OS default.");
 CONVAR(ttimeoutlen,
-       "Time in milliseconds to wait for a key code sequence to complete.",
        "50",
-       NULL);
-CONVAR(lineno, "Show line numbers.", "1", NULL);
-CONVAR(readonly, "Open files in read-only mode.", "0", NULL);
+       "Time in milliseconds to wait for a key code sequence to complete.",
+       true,
+       0,
+       false,
+       0);
+CONVAR(lineno, "1", "Show line numbers.");
+CONVAR(readonly, "0", "Open files in read-only mode.");
 
 static void reloadSyntax(void) {
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
@@ -86,7 +99,7 @@ static void cvarExplorerCallback(void) {
 }
 
 static void cvarMouseCallback(void) {
-    bool mode = CONVAR_GETINT(mouse);
+    bool mode = !!mouse.int_value;
     if (gEditor.mouse_mode != mode) {
         gEditor.mouse_mode = mode;
         if (gEditor.state != STATE_LOADING) {
@@ -395,7 +408,7 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
 
 int editorGetDefaultNewline(void) {
     int nl = NL_DEFAULT;
-    const char* option = CONVAR_GETSTR(newline_default);
+    const char* option = newline_default.string_value;
     if (strCaseCmp(option, "lf") == 0) {
         nl = NL_UNIX;
     } else if (strCaseCmp(option, "crlf") == 0) {
@@ -441,16 +454,22 @@ CON_COMMAND(version, "Print version info string.") {
               editorGetBuildNumber());
 }
 
-static void showCmdHelp(const EditorConCmd* cmd) {
-    if (cmd->has_callback) {
+static void showCmdHelp(const ConCommandBase* cmd) {
+    if (cmd->is_command) {
         editorMsg("\"%s\"", cmd->name);
     } else {
-        if (strcmp(cmd->cvar.default_string, cmd->cvar.string_val) == 0) {
-            editorMsg("\"%s\" = \"%s\"", cmd->name, cmd->cvar.string_val);
+        const ConVar* cvar = (ConVar*)cmd;
+        if (strcmp(cvar->default_string, cvar->string_value) == 0) {
+            editorMsg("\"%s\" = \"%s\"", cvar->name, cvar->string_value);
         } else {
-            editorMsg("\"%s\" = \"%s\" (def. \"%s\" )", cmd->name,
-                      cmd->cvar.string_val, cmd->cvar.default_string);
+            editorMsg("\"%s\" = \"%s\" (def. \"%s\" )", cvar->name,
+                      cvar->string_value, cvar->default_string);
         }
+
+        if (cvar->has_min)
+            editorMsg(" min: %d", cvar->min_value);
+        if (cvar->has_max)
+            editorMsg(" max: %d", cvar->max_value);
     }
     editorMsg(" - %s", cmd->help_string);
 }
@@ -460,7 +479,7 @@ CON_COMMAND(help, "Find help about a convar/concommand.") {
         editorMsg("Usage: help <command>");
         return;
     }
-    EditorConCmd* cmd = editorFindCmd(args.argv[1]);
+    ConCommandBase* cmd = editorFindCmd(args.argv[1]);
     if (!cmd) {
         editorMsg("help: No cvar or command named \"%s\".", args.argv[1]);
         return;
@@ -478,7 +497,7 @@ CON_COMMAND(
 
     const char* s = args.argv[1];
 
-    EditorConCmd* curr = gEditor.cvars;
+    ConCommandBase* curr = gEditor.cvars;
     while (curr) {
         if (strCaseStr(curr->name, s) || strCaseStr(curr->help_string, s)) {
             showCmdHelp(curr);
@@ -505,7 +524,7 @@ CON_COMMAND(run, "Run a shell command.") {
     }
     abufAppendN(&cmd, "\0", 1);
 
-    osRunShell(CONVAR_GETSTR(shell), cmd.buf);
+    osRunShell(shell.string_value, cmd.buf);
 
     abufFree(&cmd);
 }
@@ -515,7 +534,7 @@ CON_COMMAND(run, "Run a shell command.") {
 CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
     int crash_type = 0;
     if (args.argc > 1) {
-        crash_type = strToInt(args.argv[1]);
+        strToInt(args.argv[1], &crash_type);
     }
 
     switch (crash_type) {
@@ -711,12 +730,12 @@ CON_COMMAND(unalias, "Remove an alias.") {
 
 static void parseLine(const char* cmd, int depth);
 
-static void cvarCmdCallback(EditorConCmd* cmd) {
+static void cvarCmdCallback(ConVar* cvar) {
     if (args.argc < 2) {
-        showCmdHelp(cmd);
+        showCmdHelp((ConCommandBase*)cvar);
         return;
     }
-    editorSetConVar(&cmd->cvar, args.argv[1], true);
+    editorSetConVar(cvar, args.argv[1], true);
 }
 
 static void executeCommand(int depth) {
@@ -734,16 +753,16 @@ static void executeCommand(int depth) {
         return;
     }
 
-    EditorConCmd* cmd = editorFindCmd(args.argv[0]);
+    ConCommandBase* cmd = editorFindCmd(args.argv[0]);
     if (!cmd) {
         editorMsg("Unknown command \"%s\".", args.argv[0]);
         return;
     }
 
-    if (cmd->has_callback) {
-        cmd->callback();
+    if (cmd->is_command) {
+        ((ConCommand*)cmd)->callback();
     } else {
-        cvarCmdCallback(cmd);
+        cvarCmdCallback((ConVar*)cmd);
     }
 }
 
@@ -755,7 +774,7 @@ static void resetArgs(void) {
 }
 
 static void parseLine(const char* cmd, int depth) {
-    if (depth > CONVAR_GETINT(cmd_expand_depth)) {
+    if (depth > cmd_expand_depth.int_value) {
         editorMsg("Reached max alias expansion depth.");
         return;
     }
@@ -813,52 +832,51 @@ static void parseLine(const char* cmd, int depth) {
 }
 
 void editorRegisterCommands(void) {
-    // Init commands
-    INIT_CONVAR(tabsize);
-    INIT_CONVAR(whitespace);
-    INIT_CONVAR(autoindent);
-    INIT_CONVAR(backspace);
-    INIT_CONVAR(bracket);
-    INIT_CONVAR(trailing);
-    INIT_CONVAR(drawspace);
-    INIT_CONVAR(syntax);
-    INIT_CONVAR(helpinfo);
-    INIT_CONVAR(intro);
-    INIT_CONVAR(start_new_file);
-    INIT_CONVAR(ignorecase);
-    INIT_CONVAR(mouse);
-    INIT_CONVAR(osc52_copy);
-    INIT_CONVAR(ex_default_width);
-    INIT_CONVAR(ex_show_hidden);
-    INIT_CONVAR(newline_default);
-    INIT_CONVAR(ttimeoutlen);
-    INIT_CONVAR(lineno);
-    INIT_CONVAR(readonly);
+    editorInitConVar(&tabsize);
+    editorInitConVar(&whitespace);
+    editorInitConVar(&autoindent);
+    editorInitConVar(&backspace);
+    editorInitConVar(&bracket);
+    editorInitConVar(&trailing);
+    editorInitConVar(&drawspace);
+    editorInitConVar(&syntax);
+    editorInitConVar(&helpinfo);
+    editorInitConVar(&intro);
+    editorInitConVar(&start_new_file);
+    editorInitConVar(&ignorecase);
+    editorInitConVar(&mouse);
+    editorInitConVar(&osc52_copy);
+    editorInitConVar(&ex_default_width);
+    editorInitConVar(&ex_show_hidden);
+    editorInitConVar(&newline_default);
+    editorInitConVar(&ttimeoutlen);
+    editorInitConVar(&lineno);
+    editorInitConVar(&readonly);
 
-    INIT_CONCOMMAND(color);
-    INIT_CONCOMMAND(lang);
-    INIT_CONCOMMAND(hldb_load);
-    INIT_CONCOMMAND(hldb_reload_all);
-    INIT_CONCOMMAND(newline);
-    INIT_CONCOMMAND(unlock);
-    INIT_CONCOMMAND(reload);
+    editorInitConCommand(&color);
+    editorInitConCommand(&lang);
+    editorInitConCommand(&hldb_load);
+    editorInitConCommand(&hldb_reload_all);
+    editorInitConCommand(&newline);
+    editorInitConCommand(&unlock);
+    editorInitConCommand(&reload);
 
-    INIT_CONVAR(cmd_expand_depth);
-    INIT_CONCOMMAND(alias);
-    INIT_CONCOMMAND(unalias);
-    INIT_CONCOMMAND(exec);
-    INIT_CONCOMMAND(echo);
-    INIT_CONCOMMAND(clear);
-    INIT_CONCOMMAND(help);
-    INIT_CONCOMMAND(find);
-    INIT_CONCOMMAND(version);
+    editorInitConVar(&cmd_expand_depth);
+    editorInitConCommand(&alias);
+    editorInitConCommand(&unalias);
+    editorInitConCommand(&exec);
+    editorInitConCommand(&echo);
+    editorInitConCommand(&clear);
+    editorInitConCommand(&help);
+    editorInitConCommand(&find);
+    editorInitConCommand(&version);
 
-    INIT_CONVAR(shell);
-    INIT_CONCOMMAND(run);
-    INIT_CONCOMMAND(suspend);
+    editorInitConVar(&shell);
+    editorInitConCommand(&run);
+    editorInitConCommand(&suspend);
 
 #ifndef NDEBUG
-    INIT_CONCOMMAND(crash);
+    editorInitConCommand(&crash);
 #endif
 }
 
@@ -916,47 +934,57 @@ void editorOpenConfigPrompt(void) {
     free(query);
 }
 
-void editorSetConVar(EditorConVar* thisptr,
-                     const char* string_val,
-                     bool trigger_cb) {
-    strncpy(thisptr->string_val, string_val, COMMAND_MAX_LENGTH - 1);
-    thisptr->string_val[COMMAND_MAX_LENGTH - 1] = '\0';
-    thisptr->int_val = strToInt(string_val);
+void editorSetConVar(ConVar* thisptr, const char* s, bool trigger_cb) {
+    int n = 0;
+    if (strToInt(s, &n) || thisptr->has_min || thisptr->has_max) {
+        editorSetConVarInt(thisptr, n, trigger_cb);
+        return;
+    }
 
-    if (trigger_cb && thisptr->callback) {
-        thisptr->callback();
+    strncpy(thisptr->string_value, s, COMMAND_MAX_LENGTH - 1);
+    thisptr->string_value[COMMAND_MAX_LENGTH - 1] = '\0';
+    thisptr->int_value = 0;
+
+    if (trigger_cb && thisptr->change_callback) {
+        thisptr->change_callback();
     }
 }
 
-void editorSetConVarInt(EditorConVar* thisptr, int int_val, bool trigger_cb) {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%d", int_val);
-    editorSetConVar(thisptr, buf, trigger_cb);
+void editorSetConVarInt(ConVar* thisptr, int n, bool trigger_cb) {
+    if (thisptr->has_min && n < thisptr->min_value)
+        n = thisptr->min_value;
+    if (thisptr->has_max && n > thisptr->max_value)
+        n = thisptr->max_value;
+
+    snprintf(thisptr->string_value, sizeof(thisptr->string_value), "%d", n);
+    thisptr->int_value = n;
+
+    if (trigger_cb && thisptr->change_callback) {
+        thisptr->change_callback();
+    }
 }
 
-static inline void registerConCmd(EditorConCmd* thisptr) {
+static inline void registerConCommandBase(ConCommandBase* thisptr) {
     thisptr->next = gEditor.cvars;
     gEditor.cvars = thisptr;
 }
 
-void editorInitConCmd(EditorConCmd* thisptr) {
-    thisptr->next = NULL;
-    thisptr->has_callback = true;
-    registerConCmd(thisptr);
+void editorInitConCommand(ConCommand* thisptr) {
+    thisptr->is_command = true;
+    registerConCommandBase((ConCommandBase*)thisptr);
 }
 
-void editorInitConVar(EditorConCmd* thisptr) {
-    thisptr->next = NULL;
-    thisptr->has_callback = false;
-    if (!thisptr->cvar.default_string)
-        thisptr->cvar.default_string = "";
-    editorSetConVar(&thisptr->cvar, thisptr->cvar.default_string, false);
-    registerConCmd(thisptr);
+void editorInitConVar(ConVar* thisptr) {
+    thisptr->is_command = false;
+    if (!thisptr->default_string)
+        thisptr->default_string = "";
+    editorSetConVar(thisptr, thisptr->default_string, false);
+    registerConCommandBase((ConCommandBase*)thisptr);
 }
 
-EditorConCmd* editorFindCmd(const char* name) {
-    EditorConCmd* result = NULL;
-    EditorConCmd* curr = gEditor.cvars;
+ConCommandBase* editorFindCmd(const char* name) {
+    ConCommandBase* result = NULL;
+    ConCommandBase* curr = gEditor.cvars;
     while (curr) {
         if (strCaseCmp(name, curr->name) == 0) {
             result = curr;
@@ -968,5 +996,5 @@ EditorConCmd* editorFindCmd(const char* name) {
 }
 
 int editorGetLinenoWidth(const EditorFile* file) {
-    return (CONVAR_GETINT(lineno) ? file->lineno_width : 0);
+    return (lineno.int_value ? file->lineno_width : 0);
 }

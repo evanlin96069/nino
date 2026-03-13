@@ -113,7 +113,7 @@ int findSubstring(const char* haystack,
                   size_t needle_len,
                   size_t start,
                   bool ignore_case);
-int strToInt(const char* str);
+bool strToInt(const char* str, int* out);
 
 // Base64
 static inline int base64EncodeLen(int len) {

@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
     free(startup_cmds);
 
     if (readonly_mode) {
-        CONVAR_SETINT(readonly, 1);
+        readonly.setInt(1);
     }
 
     EditorFile file;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
 
     if (gEditor.file_count == 0) {
         gEditor.state = STATE_EXPLORER;
-        if (CONVAR_GETINT(start_new_file) && !gEditor.explorer.node) {
+        if (start_new_file.int_value && !gEditor.explorer.node) {
             editorNewUntitledFile(&file);
             editorAddFileToActiveSplit(&file);
             gEditor.state = STATE_EDIT;
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
         gEditor.state = STATE_EDIT;
     }
 
-    gEditor.explorer.prefered_width = CONVAR_GETINT(ex_default_width);
+    gEditor.explorer.prefered_width = ex_default_width.int_value;
     if (gEditor.explorer.node == NULL) {
         gEditor.explorer.width = 0;
     } else {

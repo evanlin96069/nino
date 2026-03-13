@@ -245,7 +245,7 @@ void editorFreeClipboardContent(EditorClipboard* clipboard) {
 }
 
 void editorCopyToSysClipboard(EditorClipboard* clipboard, uint8_t newline) {
-    if (!CONVAR_GETINT(osc52_copy))
+    if (!osc52_copy.int_value)
         return;
 
     if (!clipboard || !clipboard->size)

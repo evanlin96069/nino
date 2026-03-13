@@ -22,7 +22,7 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
     const int mcs_len = mcs ? strlen(mcs) : 0;
     const int mce_len = mce ? strlen(mce) : 0;
 
-    bool do_highlight = CONVAR_GETINT(syntax) && s;
+    bool do_highlight = syntax.int_value && s;
 
     int row_index = (int)(r - file->row);
 
@@ -207,8 +207,8 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
     }
 }
 
-void editorSetSyntaxHighlight(EditorFile* file, EditorSyntax* syntax) {
-    file->syntax = syntax;
+void editorSetSyntaxHighlight(EditorFile* file, EditorSyntax* syntax_def) {
+    file->syntax = syntax_def;
     for (int i = 0; i < file->num_rows; i++) {
         editorUpdateSyntax(file, &file->row[i]);
     }
@@ -276,33 +276,33 @@ void editorInitHLDB(void) {
 
 // Built-in syntax highlighting for config file
 static void loadEditorConfigHLDB(void) {
-    EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
+    EditorSyntax* syntax_def = calloc_s(1, sizeof(EditorSyntax));
 
-    syntax->file_type = EDITOR_NAME;
-    vector_push(syntax->file_exts, EDITOR_RC_FILE);
-    vector_push(syntax->file_exts, EDITOR_CONFIG_EXT);
-    syntax->singleline_comment_start = "#";
-    syntax->multiline_comment_start = NULL;
-    syntax->multiline_comment_end = NULL;
+    syntax_def->file_type = EDITOR_NAME;
+    vector_push(syntax_def->file_exts, EDITOR_RC_FILE);
+    vector_push(syntax_def->file_exts, EDITOR_CONFIG_EXT);
+    syntax_def->singleline_comment_start = "#";
+    syntax_def->multiline_comment_start = NULL;
+    syntax_def->multiline_comment_end = NULL;
 
-    EditorConCmd* curr = gEditor.cvars;
+    ConCommandBase* curr = gEditor.cvars;
     while (curr) {
-        vector_push(syntax->keywords[curr->has_callback ? 0 : 1], curr->name);
+        vector_push(syntax_def->keywords[curr->is_command ? 0 : 1], curr->name);
         curr = curr->next;
     }
 
     for (int i = 0; i < EDITOR_COLOR_COUNT; i++) {
-        vector_push(syntax->keywords[2], color_element_map[i].label);
+        vector_push(syntax_def->keywords[2], color_element_map[i].label);
     }
 
-    syntax->flags = HL_HIGHLIGHT_STRINGS;
+    syntax_def->flags = HL_HIGHLIGHT_STRINGS;
 
     // Add to HLDB
-    syntax->next = gEditor.HLDB;
-    gEditor.HLDB = syntax;
+    syntax_def->next = gEditor.HLDB;
+    gEditor.HLDB = syntax_def;
 }
 
-static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax) {
+static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax_def) {
     // Parse json
     JsonValue* value = json_parse(json, &hldb_arena);
     if (value->type != JSON_OBJECT) {
@@ -320,23 +320,23 @@ static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax) {
 
     JsonValue* name = json_object_find(object, "name");
     CHECK(name && name->type == JSON_STRING);
-    syntax->file_type = name->string;
+    syntax_def->file_type = name->string;
 
     JsonValue* extensions = json_object_find(object, "extensions");
     CHECK(extensions && extensions->type == JSON_ARRAY);
     for (size_t i = 0; i < extensions->array->size; i++) {
         JsonValue* item = extensions->array->data[i];
         CHECK(item->type == JSON_STRING);
-        vector_push(syntax->file_exts, item->string);
+        vector_push(syntax_def->file_exts, item->string);
     }
-    vector_shrink(syntax->file_exts);
+    vector_shrink(syntax_def->file_exts);
 
     JsonValue* comment = json_object_find(object, "comment");
     if (comment && comment->type != JSON_NULL) {
         CHECK(comment->type == JSON_STRING);
-        syntax->singleline_comment_start = comment->string;
+        syntax_def->singleline_comment_start = comment->string;
     } else {
-        syntax->singleline_comment_start = NULL;
+        syntax_def->singleline_comment_start = NULL;
     }
 
     JsonValue* multi_comment = json_object_find(object, "multiline-comment");
@@ -345,13 +345,13 @@ static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax) {
         CHECK(multi_comment->array->size == 2);
         JsonValue* mcs = multi_comment->array->data[0];
         CHECK(mcs && mcs->type == JSON_STRING);
-        syntax->multiline_comment_start = mcs->string;
+        syntax_def->multiline_comment_start = mcs->string;
         JsonValue* mce = multi_comment->array->data[1];
         CHECK(mce && mce->type == JSON_STRING);
-        syntax->multiline_comment_end = mce->string;
+        syntax_def->multiline_comment_end = mce->string;
     } else {
-        syntax->multiline_comment_start = NULL;
-        syntax->multiline_comment_end = NULL;
+        syntax_def->multiline_comment_start = NULL;
+        syntax_def->multiline_comment_end = NULL;
     }
     const char* kw_fields[] = {"keywords1", "keywords2", "keywords3"};
 
@@ -362,27 +362,29 @@ static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax) {
             for (size_t j = 0; j < keywords->array->size; j++) {
                 JsonValue* item = keywords->array->data[j];
                 CHECK(item->type == JSON_STRING);
-                vector_push(syntax->keywords[i], item->string);
+                vector_push(syntax_def->keywords[i], item->string);
             }
         }
-        vector_shrink(syntax->keywords[i]);
+        vector_shrink(syntax_def->keywords[i]);
     }
 
+#undef CHECK
+
     // TODO: Add flags option in json file
-    syntax->flags = HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS;
+    syntax_def->flags = HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS;
 
     return true;
 }
 
 static void editorLoadBundledHLDB(void) {
     for (size_t i = 0; i < sizeof(bundle) / sizeof(bundle[0]); i++) {
-        EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
-        if (editorLoadJsonHLDB(bundle[i], syntax)) {
+        EditorSyntax* syntax_def = calloc_s(1, sizeof(EditorSyntax));
+        if (editorLoadJsonHLDB(bundle[i], syntax_def)) {
             // Add to HLDB
-            syntax->next = gEditor.HLDB;
-            gEditor.HLDB = syntax;
+            syntax_def->next = gEditor.HLDB;
+            gEditor.HLDB = syntax_def;
         } else {
-            free(syntax);
+            free(syntax_def);
         }
     }
 }
@@ -410,13 +412,13 @@ bool editorLoadHLDB(const char* path) {
     }
     fclose(fp);
 
-    EditorSyntax* syntax = calloc_s(1, sizeof(EditorSyntax));
-    if (editorLoadJsonHLDB(buffer, syntax)) {
+    EditorSyntax* syntax_def = calloc_s(1, sizeof(EditorSyntax));
+    if (editorLoadJsonHLDB(buffer, syntax_def)) {
         // Add to HLDB
-        syntax->next = gEditor.HLDB;
-        gEditor.HLDB = syntax;
+        syntax_def->next = gEditor.HLDB;
+        gEditor.HLDB = syntax_def;
     } else {
-        free(syntax);
+        free(syntax_def);
     }
 
     free(buffer);

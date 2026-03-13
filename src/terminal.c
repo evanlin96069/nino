@@ -154,7 +154,7 @@ EditorInput editorReadKey(void) {
     while (!readConsole(&c, READ_WAIT_INFINITE)) {
     }
 
-    int timeout = CONVAR_GETINT(ttimeoutlen);
+    int timeout = ttimeoutlen.int_value;
 
     if (c == ESC) {
         char seq[16] = {0};

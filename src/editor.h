@@ -119,7 +119,7 @@ typedef struct Editor {
     EditorColorScheme color_cfg;
 
     // ConCmd linked list
-    EditorConCmd* cvars;
+    ConCommandBase* cvars;
 
     // Files
     EditorFile files[EDITOR_FILE_MAX_SLOT];

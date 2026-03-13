@@ -375,9 +375,9 @@ int findSubstring(const char* haystack,
     return -1;
 }
 
-int strToInt(const char* str) {
-    if (!str) {
-        return 0;
+bool strToInt(const char* str, int* out) {
+    if (!str || !out) {
+        return false;
     }
 
     // Skip front spaces
@@ -390,29 +390,34 @@ int strToInt(const char* str) {
         sign = (*str++ == '-') ? -1 : 1;
     }
 
-    int result = 0;
-    while (*str >= '0' && *str <= '9') {
-        if (result > INT_MAX / 10 ||
-            (result == INT_MAX / 10 && (*str - '0') > INT_MAX % 10)) {
-            // Overflow
-            return (sign == -1) ? INT_MIN : INT_MAX;
-        }
-
-        result = result * 10 + (*str - '0');
-        str++;
+    if (*str < '0' || *str > '9') {
+        return false;
     }
 
-    result = sign * result;
+    int result = 0;
+    while (*str >= '0' && *str <= '9') {
+        int digit = *str - '0';
+        if (result > INT_MAX / 10 ||
+            (result == INT_MAX / 10 && digit > INT_MAX % 10)) {
+            // Overflow
+            *out = (sign == -1) ? INT_MIN : INT_MAX;
+            return true;
+        }
+
+        result = result * 10 + digit;
+        str++;
+    }
 
     // Skip trailing spaces
     while (*str != '\0') {
         if (*str != ' ' && *str != '\t') {
-            return 0;
+            return false;
         }
         str++;
     }
 
-    return result;
+    *out = (sign == -1) ? -result : result;
+    return true;
 }
 
 // https://opensource.apple.com/source/QuickTimeStreamingServer/QuickTimeStreamingServer-452/CommonUtilitiesLib/base64.c

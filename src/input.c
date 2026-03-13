@@ -84,7 +84,7 @@ void editorExplorerShow(void) {
     if (gEditor.explorer.width == 0) {
         gEditor.explorer.width = gEditor.explorer.prefered_width
                                      ? gEditor.explorer.prefered_width
-                                     : CONVAR_GETINT(ex_default_width);
+                                     : ex_default_width.int_value;
     }
 }
 
@@ -722,7 +722,7 @@ void editorProcessKeypress(void) {
             editorClipboardAppendNewline(&edit.after);
             editorClipboardAppendNewline(&edit.after);
 
-            if (CONVAR_GETINT(autoindent)) {
+            if (autoindent.int_value) {
                 const EditorRow* row = &file->row[tab->cursor.y];
                 bool should_indent;
                 if (tab->cursor.x < row->size) {
@@ -766,10 +766,10 @@ void editorProcessKeypress(void) {
                     }
 
                     if (should_inc) {
-                        if (CONVAR_GETINT(whitespace)) {
+                        if (whitespace.int_value) {
                             editorClipboardAppendAtRepeat(
                                 &edit.after, edit.after.size - 1, ' ',
-                                CONVAR_GETINT(tabsize));
+                                tabsize.int_value);
                         } else {
                             editorClipboardAppendChar(&edit.after, '\t');
                         }
@@ -1041,7 +1041,7 @@ void editorProcessKeypress(void) {
                     start_x = editorRowPreviousUTF8(row, cx);
                     char deleted_char = row->data[start_x];
                     bool should_delete_tab =
-                        CONVAR_GETINT(backspace) && deleted_char == ' ';
+                        backspace.int_value && deleted_char == ' ';
                     if (should_delete_tab) {
                         bool only_spaces = true;
                         for (int i = 0; i < start_x; i++) {
@@ -1052,8 +1052,7 @@ void editorProcessKeypress(void) {
                         }
                         if (only_spaces) {
                             int rx = editorRowCxToRx(row, start_x);
-                            while (rx % CONVAR_GETINT(tabsize) != 0 &&
-                                   start_x > 0 &&
+                            while (rx % tabsize.int_value != 0 && start_x > 0 &&
                                    row->data[start_x - 1] == ' ') {
                                 start_x--;
                                 rx--;
@@ -1860,17 +1859,17 @@ void editorProcessKeypress(void) {
             int open_bracket = isCloseBracket(c);
             bool should_skip = false;
             bool did_autocomplete = false;
-            if (c == '\t' && CONVAR_GETINT(whitespace)) {
-                int tabsize = CONVAR_GETINT(tabsize);
+            if (c == '\t' && whitespace.int_value) {
+                int tab_size = tabsize.int_value;
                 int column =
                     editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x);
-                int total_spaces = tabsize - (column % tabsize);
+                int total_spaces = tab_size - (column % tab_size);
                 if (total_spaces <= 0)
-                    total_spaces = tabsize;
+                    total_spaces = tab_size;
 
                 editorClipboardAppendAtRepeat(&edit.after, 0, ' ',
                                               (size_t)total_spaces);
-            } else if (!CONVAR_GETINT(bracket)) {
+            } else if (!bracket.int_value) {
                 editorClipboardAppendUnicode(&edit.after, c);
             } else if (close_bracket) {
                 editorClipboardAppendUnicode(&edit.after, c);

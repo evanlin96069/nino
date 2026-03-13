@@ -474,7 +474,8 @@ static void editorGotoCallback(char* query, int key) {
     EditorTab* tab = editorGetActiveTab();
     const EditorFile* file = editorTabGetFile(tab);
 
-    int line = strToInt(query);
+    int line = 0;
+    strToInt(query, &line);  // If failed, 0 will still print the error.
 
     if (line < 0) {
         line = file->num_rows + 1 + line;
@@ -580,7 +581,7 @@ static void editorFindCallback(char* query, int key) {
         memcpy(prev_query, query, len + 1);
         prev_query[len] = '\0';
 
-        int ignorecase_mode = CONVAR_GETINT(ignorecase);
+        int ignorecase_mode = ignorecase.int_value;
         bool ignore_case = false;
         if (ignorecase_mode == 1) {
             ignore_case = true;
