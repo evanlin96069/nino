@@ -801,17 +801,20 @@ static void parseLine(const char* cmd, int depth) {
                 }
 
                 char* buf = calloc_s(sizeof(char), COMMAND_MAX_LENGTH);
+                int buf_len = 0;
 
-                for (int i = 0;
-                     *cmd != '\0' &&
-                     (in_quote ? (*cmd != '"')
-                               : (*cmd != '#' && *cmd != ';' && *cmd != ' '));
-                     i++) {
-                    buf[i] = *cmd;
+                while (*cmd != '\0' &&
+                       (in_quote
+                            ? (*cmd != '"')
+                            : (*cmd != '#' && *cmd != ';' && *cmd != ' '))) {
+                    if (buf_len < COMMAND_MAX_LENGTH - 1) {
+                        buf[buf_len] = *cmd;
+                    }
+                    buf_len++;
                     cmd++;
                 }
 
-                if (in_quote) {
+                if (in_quote && *cmd == '"') {
                     cmd++;
                 }
 
