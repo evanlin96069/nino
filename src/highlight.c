@@ -246,9 +246,12 @@ void editorInitHLDB(void) {
     loadEditorConfigHLDB();
     editorLoadBundledHLDB();
 
+    const char* home_dir = getEnv(ENV_HOME);
+    if (!home_dir)
+        return;
+
     char path[EDITOR_PATH_MAX];
-    snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"),
-             getEnv(ENV_HOME));
+    snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, "syntax"), home_dir);
 
     DirIter iter = dirFindFirst(path);
     if (iter.error)

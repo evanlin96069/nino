@@ -200,10 +200,15 @@ CON_COMMAND(exec, "Execute a config file.") {
 
     if (!editorLoadConfig(filename)) {
         // Try config directory
+        const char* home_dir = getEnv(ENV_HOME);
+        if (!home_dir) {
+            editorMsg("exec: Failed to exec \"%s\"", args.argv[1]);
+            return;
+        }
+
         char config_path[EDITOR_PATH_MAX];
         int len = snprintf(config_path, sizeof(config_path),
-                           PATH_CAT("%s", CONF_DIR, "%s"), getEnv(ENV_HOME),
-                           filename);
+                           PATH_CAT("%s", CONF_DIR, "%s"), home_dir, filename);
 
         if (len < 0 || !editorLoadConfig(config_path)) {
             editorMsg("exec: Failed to exec \"%s\"", args.argv[1]);
@@ -258,10 +263,15 @@ CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
 
     if (!editorLoadHLDB(filename)) {
         // Try config directory
+        const char* home_dir = getEnv(ENV_HOME);
+        if (!home_dir) {
+            editorMsg("hldb_load: Failed to load \"%s\"", args.argv[1]);
+            return;
+        }
+
         char config_path[EDITOR_PATH_MAX];
         int len = snprintf(config_path, sizeof(config_path),
-                           PATH_CAT("%s", CONF_DIR, "%s"), getEnv(ENV_HOME),
-                           filename);
+                           PATH_CAT("%s", CONF_DIR, "%s"), home_dir, filename);
 
         if (len < 0 || !editorLoadHLDB(config_path)) {
             editorMsg("hldb_load: Failed to load \"%s\"", args.argv[1]);
@@ -913,6 +923,9 @@ bool editorLoadConfig(const char* path) {
 void editorLoadInitConfig(void) {
     char path[EDITOR_PATH_MAX] = {0};
     const char* home_dir = getEnv(ENV_HOME);
+    if (!home_dir)
+        return;
+
     snprintf(path, sizeof(path), PATH_CAT("%s", CONF_DIR, EDITOR_RC_FILE),
              home_dir);
     if (!editorLoadConfig(path)) {
