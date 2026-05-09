@@ -420,39 +420,45 @@ bool strToInt(const char* str, int* out) {
     return true;
 }
 
-// https://opensource.apple.com/source/QuickTimeStreamingServer/QuickTimeStreamingServer-452/CommonUtilitiesLib/base64.c
+size_t base64Encode(const char* buf, size_t len, char* output) {
+    const char* table =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static const char basis_64[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-int base64Encode(const char* string, int len, char* output) {
-    int i;
+    size_t i;
     char* p = output;
 
-    for (i = 0; i < len - 2; i += 3) {
-        *p++ = basis_64[(string[i] >> 2) & 0x3F];
-        *p++ = basis_64[((string[i] & 0x3) << 4) |
-                        ((int)(string[i + 1] & 0xF0) >> 4)];
-        *p++ = basis_64[((string[i + 1] & 0xF) << 2) |
-                        ((int)(string[i + 2] & 0xC0) >> 6)];
-        *p++ = basis_64[string[i + 2] & 0x3F];
+    for (i = 0; i < (len / 3) * 3; i += 3) {
+        uint8_t b0 = buf[i];
+        uint8_t b1 = buf[i + 1];
+        uint8_t b2 = buf[i + 2];
+
+        *p++ = table[b0 >> 2];
+        *p++ = table[(b0 & 0x3) << 4 | b1 >> 4];
+        *p++ = table[(b1 & 0xF) << 2 | b2 >> 6];
+        *p++ = table[b2 & 0x3F];
     }
 
-    if (i < len) {
-        *p++ = basis_64[(string[i] >> 2) & 0x3F];
-        if (i == (len - 1)) {
-            *p++ = basis_64[((string[i] & 0x3) << 4)];
-            *p++ = '=';
-        } else {
-            *p++ = basis_64[((string[i] & 0x3) << 4) |
-                            ((int)(string[i + 1] & 0xF0) >> 4)];
-            *p++ = basis_64[((string[i + 1] & 0xF) << 2)];
-        }
+    uint8_t remain = (len % 3);
+    if (remain == 2) {
+        uint8_t b0 = buf[i];
+        uint8_t b1 = buf[i + 1];
+
+        *p++ = table[b0 >> 2];
+        *p++ = table[(b0 & 0x3) << 4 | b1 >> 4];
+        *p++ = table[(b1 & 0xF) << 2];
+        *p++ = '=';
+    } else if (remain == 1) {
+        uint8_t b0 = buf[i];
+
+        *p++ = table[b0 >> 2];
+        *p++ = table[(b0 & 0x3) << 4];
+        *p++ = '=';
         *p++ = '=';
     }
 
     *p++ = '\0';
-    return p - output;
+
+    return (size_t)(p - output);
 }
 
 bool writeConsoleAll(const void* buf, size_t len) {

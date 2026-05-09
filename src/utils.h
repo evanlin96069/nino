@@ -116,11 +116,12 @@ int findSubstring(const char* haystack,
 bool strToInt(const char* str, int* out);
 
 // Base64
-static inline int base64EncodeLen(int len) {
-    return ((len + 2) / 3 * 4) + 1;
+static inline size_t base64EncodeLen(size_t len) {
+    return ((len + 2) / 3 * 4) + 1;  // +1 for null terminator
 }
 
-int base64Encode(const char* string, int len, char* output);
+// Returns length including null terminator
+size_t base64Encode(const char* string, size_t len, char* output);
 
 // Write console
 #define writeConsoleStr(s) writeConsole((s), sizeof(s) - 1)

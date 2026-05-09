@@ -280,7 +280,7 @@ void editorCopyToSysClipboard(EditorClipboard* clipboard, uint8_t newline) {
     }
 #endif
     abufAppendStr(&ab, "\x1b]52;c;");
-    abufAppendN(&ab, b64_buf, b64_len);
+    abufAppendN(&ab, b64_buf, b64_len - 1);  // exclude null terminator
     abufAppendStr(&ab, "\x07");
 
 #ifndef _WIN32
