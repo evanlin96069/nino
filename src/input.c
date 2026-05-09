@@ -738,8 +738,12 @@ void editorProcessKeypress(void) {
                 }
 
                 if (should_indent) {
+                    int indent_limit = tab->cursor.x;
+                    if (indent_limit > row->size)
+                        indent_limit = row->size;
+
                     int i = 0;
-                    while (i < row->size &&
+                    while (i < indent_limit &&
                            (row->data[i] == ' ' || row->data[i] == '\t')) {
                         i++;
                     }
