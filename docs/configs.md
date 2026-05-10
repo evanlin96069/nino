@@ -53,6 +53,7 @@ The command will first search for the file in the current directory, then the co
 | `version` | cmd | Print version info string. |
 | `suspend` | cmd | Suspend the editor (Not available on Windows). |
 | `run` | cmd | Run a shell command. |
+| `quit` | cmd | Exit the editor (without save). |
 
 ## Color
 `color <element> [color]`

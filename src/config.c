@@ -539,6 +539,10 @@ CON_COMMAND(run, "Run a shell command.") {
     abufFree(&cmd);
 }
 
+CON_COMMAND(quit, "Exit the editor (without save).") {
+    gEditor.state = STATE_EXIT;
+}
+
 #ifndef NDEBUG
 
 CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
@@ -887,6 +891,8 @@ void editorRegisterCommands(void) {
     editorInitConVar(&shell);
     editorInitConCommand(&run);
     editorInitConCommand(&suspend);
+
+    editorInitConCommand(&quit);
 
 #ifndef NDEBUG
     editorInitConCommand(&crash);
