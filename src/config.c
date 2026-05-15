@@ -178,7 +178,7 @@ CON_COMMAND(color, "Change the color of an element.") {
     }
 
     if (args.argc == 2) {
-        char buf[8];
+        char buf[16];
         colorToStr(*target, buf);
         editorMsg("%s = %s", args.argv[1], buf);
     } else if (args.argc == 3) {
@@ -567,61 +567,152 @@ CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
 #endif
 
 const EditorColorScheme color_default = {
-    .bg = {30, 30, 30},
+    .bg = {.kind = COLOR_RGB, {{.r = 30, .g = 30, .b = 30}}},
     .top_status =
         {
-            {229, 229, 229},
-            {37, 37, 37},
-            {150, 150, 150},
-            {45, 45, 45},
-            {229, 229, 229},
-            {87, 80, 104},
+            {
+                .kind = COLOR_RGB,
+                {{.r = 229, .g = 229, .b = 229}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 37, .g = 37, .b = 37}},
+            },
+            {.kind = COLOR_RGB, {{.r = 150, .g = 150, .b = 150}}},
+            {.kind = COLOR_RGB, {{.r = 45, .g = 45, .b = 45}}},
+            {.kind = COLOR_RGB, {{.r = 229, .g = 229, .b = 229}}},
+            {.kind = COLOR_RGB, {{.r = 87, .g = 80, .b = 104}}},
         },
     .explorer =
         {
-            {37, 37, 37},
-            {87, 80, 104},
-            {236, 193, 132},
-            {229, 229, 229},
-            {45, 45, 45},
+            {
+                .kind = COLOR_RGB,
+                {{.r = 37, .g = 37, .b = 37}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 87, .g = 80, .b = 104}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 236, .g = 193, .b = 132}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 229, .g = 229, .b = 229}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 45, .g = 45, .b = 45}},
+            },
         },
     .prompt =
         {
-            {229, 229, 229},
-            {60, 60, 60},
+            {
+                .kind = COLOR_RGB,
+                {{.r = 229, .g = 229, .b = 229}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 60, .g = 60, .b = 60}},
+            },
         },
     .status =
         {
-            {225, 219, 239},
-            {87, 80, 104},
-            {225, 219, 239},
-            {169, 107, 33},
-            {225, 219, 239},
-            {217, 138, 43},
+            {
+                .kind = COLOR_RGB,
+                {{.r = 225, .g = 219, .b = 239}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 87, .g = 80, .b = 104}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 225, .g = 219, .b = 239}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 169, .g = 107, .b = 33}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 225, .g = 219, .b = 239}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 217, .g = 138, .b = 43}},
+            },
         },
     .line_number =
         {
-            {127, 127, 127},
-            {30, 30, 30},
+            {
+                .kind = COLOR_RGB,
+                {{.r = 127, .g = 127, .b = 127}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 30, .g = 30, .b = 30}},
+            },
         },
-    .cursor_line = {40, 40, 40},
+    .cursor_line =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 40, .g = 40, .b = 40}},
+        },
     .highlightFg =
         {
-            {229, 229, 229},
-            {106, 153, 85},
-            {197, 134, 192},
-            {86, 156, 214},
-            {78, 201, 176},
-            {206, 145, 120},
-            {181, 206, 168},
-            {63, 63, 63},
+            {
+                .kind = COLOR_RGB,
+                {{.r = 229, .g = 229, .b = 229}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 106, .g = 153, .b = 85}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 197, .g = 134, .b = 192}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 86, .g = 156, .b = 214}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 78, .g = 201, .b = 176}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 206, .g = 145, .b = 120}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 181, .g = 206, .b = 168}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 63, .g = 63, .b = 63}},
+            },
         },
     .highlightBg =
         {
-            {0, 0, 0},
-            {89, 46, 20},
-            {38, 79, 120},
-            {255, 100, 100},
+            {
+                .kind = COLOR_RGB,
+                {{.r = 0, .g = 0, .b = 0}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 89, .g = 46, .b = 20}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 38, .g = 79, .b = 120}},
+            },
+            {
+                .kind = COLOR_RGB,
+                {{.r = 255, .g = 100, .b = 100}},
+            },
         },
 };
 

@@ -74,65 +74,198 @@ void abufFree(abuf* ab) {
     ab->capacity = 0;
 }
 
-static inline bool isValidColor(const char* color) {
-    if (strlen(color) != 6)
+typedef struct {
+    const char* name;
+    int value;
+} ColorStrIntPair;
+
+static const ColorStrIntPair str_color_map[ANSI16_COUNT] = {
+    [ANSI16_BLACK] = {"BLACK", 30},
+    [ANSI16_RED] = {"RED", 31},
+    [ANSI16_GREEN] = {"GREEN", 32},
+    [ANSI16_YELLOW] = {"YELLOW", 33},
+    [ANSI16_BLUE] = {"BLUE", 34},
+    [ANSI16_MAGENTA] = {"MAGENTA", 35},
+    [ANSI16_CYAN] = {"CYAN", 36},
+    [ANSI16_WHITE] = {"WHITE", 37},
+    [ANSI16_GRAY] = {"GRAY", 90},
+    [ANSI16_BRIGHT_RED] = {"BRIGHT_RED", 91},
+    [ANSI16_BRIGHT_GREEN] = {"BRIGHT_GREEN", 92},
+    [ANSI16_BRIGHT_YELLOW] = {"BRIGHT_YELLOW", 93},
+    [ANSI16_BRIGHT_BLUE] = {"BRIGHT_BLUE", 94},
+    [ANSI16_BRIGHT_MAGENTA] = {"BRIGHT_MAGENTA", 95},
+    [ANSI16_BRIGHT_CYAN] = {"BRIGHT_CYAN", 96},
+    [ANSI16_BRIGHT_WHITE] = {"BRIGHT_WHITE", 97},
+};
+
+bool strToColor(const char* s, Color* out) {
+    if (!s || !out || s[0] == '\0')
         return false;
-    for (int i = 0; i < 6; i++) {
-        if (!((color[i] >= '0' && color[i] <= '9') ||
-              (color[i] >= 'A' && color[i] <= 'F') ||
-              (color[i] >= 'a' && color[i] <= 'f')))
-            return false;
+
+    size_t len = strlen(s);
+    switch (len) {
+        // 256 color index
+        case 1:
+            if (!(s[0] >= '0' && s[0] <= '9'))
+                return false;
+
+            out->kind = COLOR_256;
+            out->index = s[0] - '0';
+            return true;
+
+        case 2:
+            if (!(s[0] >= '1' && s[0] <= '9'))
+                return false;
+            if (!(s[1] >= '0' && s[1] <= '9'))
+                return false;
+
+            out->kind = COLOR_256;
+            out->index = (s[0] - '0') * 10;
+            out->index += (s[1] - '0');
+            return true;
+
+        case 3:
+            if (!(s[0] >= '1' && s[0] <= '9'))
+                break;  // Might be "RED"
+            if (!(s[1] >= '0' && s[1] <= '9'))
+                return false;
+            if (!(s[2] >= '0' && s[2] <= '9'))
+                return false;
+
+            {
+                int index = (s[0] - '0') * 100;
+                index += (s[1] - '0') * 10;
+                index += (s[2] - '0');
+                if (index > 255)
+                    return false;
+
+                out->kind = COLOR_256;
+                out->index = index;
+            }
+            return true;
+
+        case 6:
+        case 7:
+        case 8: {
+            const char* hex_start = s;
+            if (len == 8) {
+                if (s[0] != '0' || (s[1] != 'x' && s[1] != 'X'))
+                    break;
+                hex_start += 2;
+            } else if (len == 7) {
+                if (s[0] != '#')
+                    break;
+                hex_start++;
+            }
+
+            // RGB hex string
+            bool valid = true;
+            for (int i = 0; i < 6; i++) {
+                if (!((hex_start[i] >= '0' && hex_start[i] <= '9') ||
+                      (hex_start[i] >= 'A' && hex_start[i] <= 'F') ||
+                      (hex_start[i] >= 'a' && hex_start[i] <= 'f'))) {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (!valid)
+                break;
+
+            out->kind = COLOR_RGB;
+
+            unsigned int hex = strtoul(hex_start, NULL, 16);
+            out->r = (hex >> 16) & 0xFF;
+            out->g = (hex >> 8) & 0xFF;
+            out->b = hex & 0xFF;
+        }
+            return true;
+
+        default:
+            break;
     }
-    return true;
+
+    // Default
+    if (strCaseCmp(s, "NONE") == 0 || strCaseCmp(s, "DEFAULT") == 0) {
+        out->kind = COLOR_DEFAULT;
+        return true;
+    }
+
+    // 16 color
+    for (int i = 0; i < ANSI16_COUNT; i++) {
+        if (strCaseCmp(s, str_color_map[i].name) == 0) {
+            out->kind = COLOR_ANSI16;
+            out->index = i;
+            return true;
+        }
+    }
+
+    return false;
 }
 
-bool strToColor(const char* color, Color* out) {
-    if (!isValidColor(color))
-        return false;
+int colorToStr(Color color, char buf[16]) {
+    switch (color.kind) {
+        case COLOR_DEFAULT:
+            return snprintf(buf, 8, "DEFAULT");
+        case COLOR_ANSI16:
+            return snprintf(buf, 16, "%s", str_color_map[color.index].name);
+        case COLOR_256:
+            return snprintf(buf, 8, "%d", color.index);
+        case COLOR_RGB:
+            return snprintf(buf, 16, "%02x%02x%02x", color.r, color.g, color.b);
+    }
+    return 0;
+}
 
-    int shift = 16;
-    unsigned int hex = strtoul(color, NULL, 16);
-    out->r = (hex >> shift) & 0xFF;
-    shift -= 8;
-    out->g = (hex >> shift) & 0xFF;
-    shift -= 8;
-    out->b = (hex >> shift) & 0xFF;
-    return true;
+static inline void appendColorParams(abuf* ab, Color color, bool is_bg) {
+    switch (color.kind) {
+        case COLOR_DEFAULT:
+            abufAppendStr(ab, is_bg ? "49" : "39");
+            break;
+        case COLOR_ANSI16: {
+            int code = str_color_map[color.index].value;
+            if (is_bg)
+                code += 10;
+            char buf[16];
+            int len = snprintf(buf, sizeof(buf), "%d", code);
+            abufAppendN(ab, buf, len);
+            break;
+        }
+        case COLOR_256: {
+            char buf[16];
+            int len = snprintf(buf, sizeof(buf), "%d;5;%d", is_bg ? 48 : 38,
+                               color.index);
+            abufAppendN(ab, buf, len);
+            break;
+        }
+        case COLOR_RGB: {
+            char buf[32];
+            int len = snprintf(buf, sizeof(buf), "%d;2;%d;%d;%d",
+                               is_bg ? 48 : 38, color.r, color.g, color.b);
+            abufAppendN(ab, buf, len);
+            break;
+        }
+    }
 }
 
 void setColor(abuf* ab, Color color, bool is_bg) {
-    if (color.r == 0 && color.g == 0 && color.b == 0 && is_bg) {
-        abufAppendStr(ab, ANSI_DEFAULT_BG);
-        return;
-    }
-
-    char buf[32];
-    int len = snprintf(buf, sizeof(buf), "\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38,
-                       color.r, color.g, color.b);
-    abufAppendN(ab, buf, len);
+    abufAppendStr(ab, "\x1b[");
+    appendColorParams(ab, color, is_bg);
+    abufAppendStr(ab, "m");
 }
 
 void setColors(abuf* ab, Color fg, Color bg) {
-    char buf[48];
-    int len;
-    if (bg.r == 0 && bg.g == 0 && bg.b == 0) {
-        len = snprintf(buf, sizeof(buf), "\x1b[38;2;%d;%d;%d;49m", fg.r, fg.g,
-                       fg.b);
-    } else {
-        len = snprintf(buf, sizeof(buf), "\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm",
-                       fg.r, fg.g, fg.b, bg.r, bg.g, bg.b);
-    }
-    abufAppendN(ab, buf, len);
+    abufAppendStr(ab, "\x1b[");
+    appendColorParams(ab, fg, false);
+    abufAppendStr(ab, ";");
+    appendColorParams(ab, bg, true);
+    abufAppendStr(ab, "m");
 }
 
 void gotoXY(abuf* ab, int x, int y) {
     char buf[32];
     int len = snprintf(buf, sizeof(buf), "\x1b[%d;%dH", x, y);
     abufAppendN(ab, buf, len);
-}
-
-int colorToStr(Color color, char buf[8]) {
-    return snprintf(buf, 8, "%02x%02x%02x", color.r, color.g, color.b);
 }
 
 int isSeparator(int c) {

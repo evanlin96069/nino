@@ -58,7 +58,31 @@ The command will first search for the file in the current directory, then the co
 ## Color
 `color <element> [color]`
 
-When color code is `000000` it will be transparent.
+### Color String:
+Color string is case-insensitive.
+1. Default color used by the terminal:
+- `default` or `none`
+2. ANSI 16 color:
+- `black`
+- `red`
+- `green`
+- `yellow`
+- `blue`
+- `magenta`
+- `cyan`
+- `white`
+- `gray`
+- `bright_red`
+- `bright_green`
+- `bright_yellow`
+- `bright_blue`
+- `bright_magenta`
+- `bright_cyan`
+- `bright_white`
+3. 256 color:
+- `0` to `255`
+4. RGB color:
+- 6-digit hex color code (can also starts with `#`, `0x`)
 
 ### Default Theme
 | Element | Default |

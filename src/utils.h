@@ -65,21 +65,68 @@ typedef struct {
 } abuf;
 
 void abufAppendN(abuf* ab, const char* s, size_t n);
-#define abufAppendStr(ab, s) abufAppendN((ab), (s), sizeof(s) - 1)
+#define abufAppendStr(ab, s) abufAppendN((ab), (s), strlen(s))
 void abufFree(abuf* ab);
 #define abufReset abufFree
 
 // Color
+
+typedef enum ANSI16Color {
+    ANSI16_BLACK = 0,
+    ANSI16_RED,
+    ANSI16_GREEN,
+    ANSI16_YELLOW,
+    ANSI16_BLUE,
+    ANSI16_MAGENTA,
+    ANSI16_CYAN,
+    ANSI16_WHITE,
+    ANSI16_GRAY,
+    ANSI16_BRIGHT_RED,
+    ANSI16_BRIGHT_GREEN,
+    ANSI16_BRIGHT_YELLOW,
+    ANSI16_BRIGHT_BLUE,
+    ANSI16_BRIGHT_MAGENTA,
+    ANSI16_BRIGHT_CYAN,
+    ANSI16_BRIGHT_WHITE,
+
+    ANSI16_COUNT,
+} ANSI16Color;
+
+typedef enum ColorKind {
+    COLOR_DEFAULT,
+    COLOR_ANSI16,
+    COLOR_256,
+    COLOR_RGB,
+} ColorKind;
+
 typedef struct Color {
-    int r, g, b;
+    uint8_t kind;
+    union {
+        struct {
+            uint8_t r, g, b;
+        };
+        uint8_t index;
+    };
 } Color;
 
 static inline bool colorEql(Color a, Color b) {
-    return a.r == b.r && a.g == b.g && a.b == b.b;
+    if (a.kind != b.kind)
+        return false;
+    switch (a.kind) {
+        case COLOR_DEFAULT:
+            return true;
+        case COLOR_ANSI16:
+        case COLOR_256:
+            return a.index == b.index;
+        case COLOR_RGB:
+            return a.r == b.r && a.g == b.g && a.b == b.b;
+        default:
+            return false;
+    }
 }
 
-bool strToColor(const char* color, Color* out);
-int colorToStr(Color color, char buf[8]);
+bool strToColor(const char* s, Color* out);
+int colorToStr(Color color, char buf[16]);
 void setColor(abuf* ab, Color color, bool is_bg);
 void setColors(abuf* ab, Color fg, Color bg);
 
