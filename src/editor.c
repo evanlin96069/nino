@@ -15,7 +15,7 @@ void editorInit(void) {
     memset(&gEditor, 0, sizeof(Editor));
     gEditor.state = STATE_LOADING;
     gEditor.mouse_mode = true;
-    gEditor.color_cfg = color_default;
+    memcpy(gEditor.color_cfg, color_default, sizeof(gEditor.color_cfg));
     gEditor.con_front = -1;
     gEditor.pending_input.type = UNKNOWN;
 

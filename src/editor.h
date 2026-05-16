@@ -116,7 +116,7 @@ typedef struct Editor {
     bool copy_line;
 
     // Color settings
-    EditorColorScheme color_cfg;
+    Color color_cfg[UI_COLOR_COUNT];
 
     // ConCmd linked list
     ConCommandBase* cvars;

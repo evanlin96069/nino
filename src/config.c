@@ -113,48 +113,48 @@ static void cvarMouseCallback(void) {
 }
 
 const ColorElement color_element_map[EDITOR_COLOR_COUNT] = {
-    {"bg", &gEditor.color_cfg.bg},
+    {"bg", &gEditor.color_cfg[UI_COLOR_BG]},
 
-    {"top.fg", &gEditor.color_cfg.top_status[0]},
-    {"top.bg", &gEditor.color_cfg.top_status[1]},
-    {"top.tabs.fg", &gEditor.color_cfg.top_status[2]},
-    {"top.tabs.bg", &gEditor.color_cfg.top_status[3]},
-    {"top.select.fg", &gEditor.color_cfg.top_status[4]},
-    {"top.select.bg", &gEditor.color_cfg.top_status[5]},
+    {"top.fg", &gEditor.color_cfg[UI_COLOR_TOP_FG]},
+    {"top.bg", &gEditor.color_cfg[UI_COLOR_TOP_BG]},
+    {"top.tabs.fg", &gEditor.color_cfg[UI_COLOR_TOP_TABS_FG]},
+    {"top.tabs.bg", &gEditor.color_cfg[UI_COLOR_TOP_TABS_BG]},
+    {"top.select.fg", &gEditor.color_cfg[UI_COLOR_TOP_SELECT_FG]},
+    {"top.select.bg", &gEditor.color_cfg[UI_COLOR_TOP_SELECT_BG]},
 
-    {"explorer.bg", &gEditor.color_cfg.explorer[0]},
-    {"explorer.select", &gEditor.color_cfg.explorer[1]},
-    {"explorer.directory", &gEditor.color_cfg.explorer[2]},
-    {"explorer.file", &gEditor.color_cfg.explorer[3]},
-    {"explorer.focus", &gEditor.color_cfg.explorer[4]},
+    {"explorer.bg", &gEditor.color_cfg[UI_COLOR_EXPLORER_BG]},
+    {"explorer.select", &gEditor.color_cfg[UI_COLOR_EXPLORER_SELECT]},
+    {"explorer.directory", &gEditor.color_cfg[UI_COLOR_EXPLORER_DIRECTORY]},
+    {"explorer.file", &gEditor.color_cfg[UI_COLOR_EXPLORER_FILE]},
+    {"explorer.focus", &gEditor.color_cfg[UI_COLOR_EXPLORER_FOCUS]},
 
-    {"prompt.fg", &gEditor.color_cfg.prompt[0]},
-    {"prompt.bg", &gEditor.color_cfg.prompt[1]},
+    {"prompt.fg", &gEditor.color_cfg[UI_COLOR_PROMPT_FG]},
+    {"prompt.bg", &gEditor.color_cfg[UI_COLOR_PROMPT_BG]},
 
     // TODO: Customizable status bar
-    {"status.fg", &gEditor.color_cfg.status[0]},
-    {"status.bg", &gEditor.color_cfg.status[1]},
-    {"status.lang.fg", &gEditor.color_cfg.status[2]},
-    {"status.lang.bg", &gEditor.color_cfg.status[3]},
-    {"status.pos.fg", &gEditor.color_cfg.status[4]},
-    {"status.pos.bg", &gEditor.color_cfg.status[5]},
+    {"status.fg", &gEditor.color_cfg[UI_COLOR_STATUS_FG]},
+    {"status.bg", &gEditor.color_cfg[UI_COLOR_STATUS_BG]},
+    {"status.lang.fg", &gEditor.color_cfg[UI_COLOR_STATUS_LANG_FG]},
+    {"status.lang.bg", &gEditor.color_cfg[UI_COLOR_STATUS_LANG_BG]},
+    {"status.pos.fg", &gEditor.color_cfg[UI_COLOR_STATUS_POS_FG]},
+    {"status.pos.bg", &gEditor.color_cfg[UI_COLOR_STATUS_POS_BG]},
 
-    {"lineno.fg", &gEditor.color_cfg.line_number[0]},
-    {"lineno.bg", &gEditor.color_cfg.line_number[1]},
+    {"lineno.fg", &gEditor.color_cfg[UI_COLOR_LINENO_FG]},
+    {"lineno.bg", &gEditor.color_cfg[UI_COLOR_LINENO_BG]},
 
-    {"cursorline", &gEditor.color_cfg.cursor_line},
+    {"cursorline", &gEditor.color_cfg[UI_COLOR_CURSORLINE]},
 
-    {"hl.normal", &gEditor.color_cfg.highlightFg[HL_NORMAL]},
-    {"hl.comment", &gEditor.color_cfg.highlightFg[HL_COMMENT]},
-    {"hl.keyword1", &gEditor.color_cfg.highlightFg[HL_KEYWORD1]},
-    {"hl.keyword2", &gEditor.color_cfg.highlightFg[HL_KEYWORD2]},
-    {"hl.keyword3", &gEditor.color_cfg.highlightFg[HL_KEYWORD3]},
-    {"hl.string", &gEditor.color_cfg.highlightFg[HL_STRING]},
-    {"hl.number", &gEditor.color_cfg.highlightFg[HL_NUMBER]},
-    {"hl.space", &gEditor.color_cfg.highlightFg[HL_SPACE]},
-    {"hl.match", &gEditor.color_cfg.highlightBg[HL_BG_MATCH]},
-    {"hl.select", &gEditor.color_cfg.highlightBg[HL_BG_SELECT]},
-    {"hl.trailing", &gEditor.color_cfg.highlightBg[HL_BG_TRAILING]},
+    {"hl.normal", &gEditor.color_cfg[UI_COLOR_HL_NORMAL]},
+    {"hl.comment", &gEditor.color_cfg[UI_COLOR_HL_COMMENT]},
+    {"hl.keyword1", &gEditor.color_cfg[UI_COLOR_HL_KEYWORD1]},
+    {"hl.keyword2", &gEditor.color_cfg[UI_COLOR_HL_KEYWORD2]},
+    {"hl.keyword3", &gEditor.color_cfg[UI_COLOR_HL_KEYWORD3]},
+    {"hl.string", &gEditor.color_cfg[UI_COLOR_HL_STRING]},
+    {"hl.number", &gEditor.color_cfg[UI_COLOR_HL_NUMBER]},
+    {"hl.space", &gEditor.color_cfg[UI_COLOR_HL_SPACE]},
+    {"hl.match", &gEditor.color_cfg[UI_COLOR_HL_BG_MATCH]},
+    {"hl.select", &gEditor.color_cfg[UI_COLOR_HL_BG_SELECT]},
+    {"hl.trailing", &gEditor.color_cfg[UI_COLOR_HL_BG_TRAILING]},
 };
 
 CON_COMMAND(color, "Change the color of an element.") {
@@ -566,153 +566,189 @@ CON_COMMAND(crash, "Cause the editor to crash. (Debug!!)") {
 
 #endif
 
-const EditorColorScheme color_default = {
-    .bg = {.kind = COLOR_RGB, {{.r = 30, .g = 30, .b = 30}}},
-    .top_status =
+const Color color_default[UI_COLOR_COUNT] = {
+    [UI_COLOR_BG] =
         {
-            {
-                .kind = COLOR_RGB,
-                {{.r = 229, .g = 229, .b = 229}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 37, .g = 37, .b = 37}},
-            },
-            {.kind = COLOR_RGB, {{.r = 150, .g = 150, .b = 150}}},
-            {.kind = COLOR_RGB, {{.r = 45, .g = 45, .b = 45}}},
-            {.kind = COLOR_RGB, {{.r = 229, .g = 229, .b = 229}}},
-            {.kind = COLOR_RGB, {{.r = 87, .g = 80, .b = 104}}},
+            .kind = COLOR_RGB,
+            {{.r = 30, .g = 30, .b = 30}},
         },
-    .explorer =
+
+    [UI_COLOR_TOP_FG] =
         {
-            {
-                .kind = COLOR_RGB,
-                {{.r = 37, .g = 37, .b = 37}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 87, .g = 80, .b = 104}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 236, .g = 193, .b = 132}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 229, .g = 229, .b = 229}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 45, .g = 45, .b = 45}},
-            },
+            .kind = COLOR_RGB,
+            {{.r = 229, .g = 229, .b = 229}},
         },
-    .prompt =
+    [UI_COLOR_TOP_BG] =
         {
-            {
-                .kind = COLOR_RGB,
-                {{.r = 229, .g = 229, .b = 229}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 60, .g = 60, .b = 60}},
-            },
+            .kind = COLOR_RGB,
+            {{.r = 37, .g = 37, .b = 37}},
         },
-    .status =
+    [UI_COLOR_TOP_TABS_FG] =
         {
-            {
-                .kind = COLOR_RGB,
-                {{.r = 225, .g = 219, .b = 239}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 87, .g = 80, .b = 104}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 225, .g = 219, .b = 239}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 169, .g = 107, .b = 33}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 225, .g = 219, .b = 239}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 217, .g = 138, .b = 43}},
-            },
+            .kind = COLOR_RGB,
+            {{.r = 150, .g = 150, .b = 150}},
         },
-    .line_number =
+    [UI_COLOR_TOP_TABS_BG] =
         {
-            {
-                .kind = COLOR_RGB,
-                {{.r = 127, .g = 127, .b = 127}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 30, .g = 30, .b = 30}},
-            },
+            .kind = COLOR_RGB,
+            {{.r = 45, .g = 45, .b = 45}},
         },
-    .cursor_line =
+    [UI_COLOR_TOP_SELECT_FG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 229, .g = 229, .b = 229}},
+        },
+    [UI_COLOR_TOP_SELECT_BG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 87, .g = 80, .b = 104}},
+        },
+
+    [UI_COLOR_EXPLORER_BG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 37, .g = 37, .b = 37}},
+        },
+    [UI_COLOR_EXPLORER_SELECT] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 87, .g = 80, .b = 104}},
+        },
+    [UI_COLOR_EXPLORER_DIRECTORY] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 236, .g = 193, .b = 132}},
+        },
+    [UI_COLOR_EXPLORER_FILE] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 229, .g = 229, .b = 229}},
+        },
+    [UI_COLOR_EXPLORER_FOCUS] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 45, .g = 45, .b = 45}},
+        },
+
+    [UI_COLOR_PROMPT_FG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 229, .g = 229, .b = 229}},
+        },
+    [UI_COLOR_PROMPT_BG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 60, .g = 60, .b = 60}},
+        },
+
+    [UI_COLOR_STATUS_FG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 225, .g = 219, .b = 239}},
+        },
+    [UI_COLOR_STATUS_BG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 87, .g = 80, .b = 104}},
+        },
+    [UI_COLOR_STATUS_LANG_FG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 225, .g = 219, .b = 239}},
+        },
+    [UI_COLOR_STATUS_LANG_BG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 169, .g = 107, .b = 33}},
+        },
+    [UI_COLOR_STATUS_POS_FG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 225, .g = 219, .b = 239}},
+        },
+    [UI_COLOR_STATUS_POS_BG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 217, .g = 138, .b = 43}},
+        },
+
+    [UI_COLOR_LINENO_FG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 127, .g = 127, .b = 127}},
+        },
+    [UI_COLOR_LINENO_BG] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 30, .g = 30, .b = 30}},
+        },
+
+    [UI_COLOR_CURSORLINE] =
         {
             .kind = COLOR_RGB,
             {{.r = 40, .g = 40, .b = 40}},
         },
-    .highlightFg =
+
+    [UI_COLOR_HL_NORMAL] =
         {
-            {
-                .kind = COLOR_RGB,
-                {{.r = 229, .g = 229, .b = 229}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 106, .g = 153, .b = 85}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 197, .g = 134, .b = 192}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 86, .g = 156, .b = 214}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 78, .g = 201, .b = 176}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 206, .g = 145, .b = 120}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 181, .g = 206, .b = 168}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 63, .g = 63, .b = 63}},
-            },
+            .kind = COLOR_RGB,
+            {{.r = 229, .g = 229, .b = 229}},
         },
-    .highlightBg =
+    [UI_COLOR_HL_COMMENT] =
         {
-            {
-                .kind = COLOR_RGB,
-                {{.r = 0, .g = 0, .b = 0}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 89, .g = 46, .b = 20}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 38, .g = 79, .b = 120}},
-            },
-            {
-                .kind = COLOR_RGB,
-                {{.r = 255, .g = 100, .b = 100}},
-            },
+            .kind = COLOR_RGB,
+            {{.r = 106, .g = 153, .b = 85}},
+        },
+    [UI_COLOR_HL_KEYWORD1] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 197, .g = 134, .b = 192}},
+        },
+    [UI_COLOR_HL_KEYWORD2] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 86, .g = 156, .b = 214}},
+        },
+    [UI_COLOR_HL_KEYWORD3] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 78, .g = 201, .b = 176}},
+        },
+    [UI_COLOR_HL_STRING] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 206, .g = 145, .b = 120}},
+        },
+    [UI_COLOR_HL_NUMBER] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 181, .g = 206, .b = 168}},
+        },
+    [UI_COLOR_HL_SPACE] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 63, .g = 63, .b = 63}},
+        },
+
+    [UI_COLOR_HL_BG_NORMAL] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 0, .g = 0, .b = 0}},
+        },
+    [UI_COLOR_HL_BG_MATCH] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 89, .g = 46, .b = 20}},
+        },
+    [UI_COLOR_HL_BG_SELECT] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 38, .g = 79, .b = 120}},
+        },
+    [UI_COLOR_HL_BG_TRAILING] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 255, .g = 100, .b = 100}},
         },
 };
 

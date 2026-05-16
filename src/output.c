@@ -358,22 +358,22 @@ static void editorDrawTopStatusBar(void) {
 
     ScreenCell* row = gEditor.screen[0];
     const ScreenStyle default_style = {
-        .fg = gEditor.color_cfg.top_status[0],
-        .bg = gEditor.color_cfg.top_status[1],
+        .fg = gEditor.color_cfg[UI_COLOR_TOP_FG],
+        .bg = gEditor.color_cfg[UI_COLOR_TOP_BG],
     };
     const ScreenStyle tab_default_style = {
-        .fg = gEditor.color_cfg.top_status[2],
-        .bg = gEditor.color_cfg.top_status[3],
+        .fg = gEditor.color_cfg[UI_COLOR_TOP_TABS_FG],
+        .bg = gEditor.color_cfg[UI_COLOR_TOP_TABS_BG],
     };
     // Active split active tab style
     const ScreenStyle tab_active_style1 = {
-        .fg = gEditor.color_cfg.top_status[4],
-        .bg = gEditor.color_cfg.top_status[5],
+        .fg = gEditor.color_cfg[UI_COLOR_TOP_SELECT_FG],
+        .bg = gEditor.color_cfg[UI_COLOR_TOP_SELECT_BG],
     };
     // Non-active split active tab style
     const ScreenStyle tab_active_style2 = {
-        .fg = gEditor.color_cfg.top_status[4],
-        .bg = gEditor.color_cfg.top_status[3],
+        .fg = gEditor.color_cfg[UI_COLOR_TOP_SELECT_FG],
+        .bg = gEditor.color_cfg[UI_COLOR_TOP_TABS_BG],
     };
 
     screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
@@ -506,8 +506,8 @@ static void editorDrawConMsg(void) {
     }
 
     ScreenStyle style = {
-        .fg = gEditor.color_cfg.prompt[0],
-        .bg = gEditor.color_cfg.prompt[1],
+        .fg = gEditor.color_cfg[UI_COLOR_PROMPT_FG],
+        .bg = gEditor.color_cfg[UI_COLOR_PROMPT_BG],
     };
 
     // con_size + status bar
@@ -539,8 +539,8 @@ static void editorDrawPrompt(void) {
     ScreenCell* row =
         gEditor.screen[gEditor.screen_rows - 2];  // prompt + status bar
     ScreenStyle style = {
-        .fg = gEditor.color_cfg.prompt[0],
-        .bg = gEditor.color_cfg.prompt[1],
+        .fg = gEditor.color_cfg[UI_COLOR_PROMPT_FG],
+        .bg = gEditor.color_cfg[UI_COLOR_PROMPT_BG],
     };
 
     screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols, style);
@@ -631,7 +631,7 @@ static void editorDrawPrompt(void) {
         gEditor.prompt_select_end_rx > gEditor.prompt_select_start_rx) {
         ScreenStyle select_style = {
             .fg = style.fg,
-            .bg = gEditor.color_cfg.highlightBg[HL_BG_SELECT],
+            .bg = gEditor.color_cfg[UI_COLOR_HL_BG_SELECT],
         };
         int select_start = gEditor.prompt_select_start_rx;
         int select_end = gEditor.prompt_select_end_rx;
@@ -652,8 +652,8 @@ static void editorDrawPrompt(void) {
 static void editorDrawStatusBar(void) {
     ScreenCell* row = gEditor.screen[gEditor.screen_rows - 1];
     ScreenStyle default_style = {
-        .fg = gEditor.color_cfg.status[0],
-        .bg = gEditor.color_cfg.status[1],
+        .fg = gEditor.color_cfg[UI_COLOR_STATUS_FG],
+        .bg = gEditor.color_cfg[UI_COLOR_STATUS_BG],
     };
 
     screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols,
@@ -724,12 +724,12 @@ static void editorDrawStatusBar(void) {
 
     if (rlen > 0 && gEditor.screen_cols - x >= rlen) {
         int right_x = gEditor.screen_cols - rlen;
-        style.fg = gEditor.color_cfg.status[2];
-        style.bg = gEditor.color_cfg.status[3];
+        style.fg = gEditor.color_cfg[UI_COLOR_STATUS_LANG_FG];
+        style.bg = gEditor.color_cfg[UI_COLOR_STATUS_LANG_BG];
         int lang_width = strUTF8Width(lang);
         screenPutAscii(row, gEditor.screen_cols, right_x, lang, style);
-        style.fg = gEditor.color_cfg.status[4];
-        style.bg = gEditor.color_cfg.status[5];
+        style.fg = gEditor.color_cfg[UI_COLOR_STATUS_POS_FG];
+        style.bg = gEditor.color_cfg[UI_COLOR_STATUS_POS_BG];
         screenPutAscii(row, gEditor.screen_cols, right_x + lang_width, pos,
                        style);
     }
@@ -737,8 +737,8 @@ static void editorDrawStatusBar(void) {
 
 static void editorDrawBackground(void) {
     ScreenStyle style = {
-        .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
-        .bg = gEditor.color_cfg.bg,
+        .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
+        .bg = gEditor.color_cfg[UI_COLOR_BG],
     };
 
     for (int i = 0; i < gEditor.screen_rows; i++) {
@@ -795,12 +795,12 @@ static void editorDrawIntroMessages(void) {
         return;
 
     ScreenStyle text_style = {
-        .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
-        .bg = gEditor.color_cfg.bg,
+        .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
+        .bg = gEditor.color_cfg[UI_COLOR_BG],
     };
     ScreenStyle hint_style = {
-        .fg = gEditor.color_cfg.highlightFg[HL_COMMENT],
-        .bg = gEditor.color_cfg.bg,
+        .fg = gEditor.color_cfg[UI_COLOR_HL_COMMENT],
+        .bg = gEditor.color_cfg[UI_COLOR_BG],
     };
 
     int start_row = top + (rows - line_count) / 2;
@@ -849,11 +849,11 @@ static void editorDrawSplit(int split_index) {
 
         // Clear the entire row
         ScreenStyle bg_style = {
-            .fg = gEditor.color_cfg.highlightFg[HL_NORMAL],
-            .bg = gEditor.color_cfg.bg,
+            .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
+            .bg = gEditor.color_cfg[UI_COLOR_BG],
         };
         if (i == tab->cursor.y && !tab->cursor.is_selected) {
-            bg_style.bg = gEditor.color_cfg.cursor_line;
+            bg_style.bg = gEditor.color_cfg[UI_COLOR_CURSORLINE];
         }
         screenClearCells(row, gEditor.screen_cols, start, end - start,
                          bg_style);
@@ -865,11 +865,11 @@ static void editorDrawSplit(int split_index) {
             if (lineno.int_value) {
                 ScreenStyle lineno_style;
                 lineno_style.fg = (i == tab->cursor.y)
-                                      ? gEditor.color_cfg.line_number[1]
-                                      : gEditor.color_cfg.line_number[0];
+                                      ? gEditor.color_cfg[UI_COLOR_LINENO_BG]
+                                      : gEditor.color_cfg[UI_COLOR_LINENO_FG];
                 lineno_style.bg = (i == tab->cursor.y)
-                                      ? gEditor.color_cfg.line_number[0]
-                                      : gEditor.color_cfg.line_number[1];
+                                      ? gEditor.color_cfg[UI_COLOR_LINENO_FG]
+                                      : gEditor.color_cfg[UI_COLOR_LINENO_BG];
 
                 char line_number[16];
                 snprintf(line_number, sizeof(line_number), " %*d ",
@@ -912,11 +912,12 @@ static void editorDrawSplit(int split_index) {
 
                 if (iscntrl((uint8_t)c[j]) && c[j] != '\t') {
                     // Control character (show inverted)
-                    style.fg = gEditor.color_cfg.highlightFg[fg];
+                    style.fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL + fg];
                     if (bg == HL_BG_NORMAL) {
                         style.bg = bg_style.bg;
                     } else {
-                        style.bg = gEditor.color_cfg.highlightBg[bg];
+                        style.bg =
+                            gEditor.color_cfg[UI_COLOR_HL_BG_NORMAL + bg];
                     }
 
                     uint32_t sym = (c[j] <= 26) ? '@' + c[j] : '?';
@@ -937,11 +938,12 @@ static void editorDrawSplit(int split_index) {
                         bg = HL_BG_NORMAL;
                     }
 
-                    style.fg = gEditor.color_cfg.highlightFg[fg];
+                    style.fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL + fg];
                     if (bg == HL_BG_NORMAL) {
                         style.bg = bg_style.bg;
                     } else {
-                        style.bg = gEditor.color_cfg.highlightBg[bg];
+                        style.bg =
+                            gEditor.color_cfg[UI_COLOR_HL_BG_NORMAL + bg];
                     }
 
                     if (c[j] == '\t') {
@@ -1015,8 +1017,8 @@ static void editorDrawSplit(int split_index) {
                 file->row[i].rsize - tab->col_offset < content_cols &&
                 screen_x < end) {
                 ScreenStyle select_style = {
-                    .fg = gEditor.color_cfg.highlightFg[HL_BG_NORMAL],
-                    .bg = gEditor.color_cfg.highlightBg[HL_BG_SELECT],
+                    .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
+                    .bg = gEditor.color_cfg[UI_COLOR_HL_BG_SELECT],
                 };
                 screenPutChar(row, gEditor.screen_cols, screen_x, ' ',
                               &select_style);
@@ -1038,9 +1040,10 @@ static void editorDrawFileExplorer(void) {
     // Draw header
     ScreenCell* header_row = gEditor.screen[0];
     ScreenStyle header_style = {
-        .fg = gEditor.color_cfg.explorer[3],
-        .bg = (gEditor.state == STATE_EXPLORER) ? gEditor.color_cfg.explorer[4]
-                                                : gEditor.color_cfg.explorer[0],
+        .fg = gEditor.color_cfg[UI_COLOR_EXPLORER_FILE],
+        .bg = (gEditor.state == STATE_EXPLORER)
+                  ? gEditor.color_cfg[UI_COLOR_EXPLORER_FOCUS]
+                  : gEditor.color_cfg[UI_COLOR_EXPLORER_BG],
     };
 
     screenClearCells(header_row, gEditor.screen_cols, 0, explorer_width,
@@ -1055,12 +1058,12 @@ static void editorDrawFileExplorer(void) {
     }
 
     ScreenStyle default_style = {
-        .fg = gEditor.color_cfg.explorer[3],
-        .bg = gEditor.color_cfg.explorer[0],
+        .fg = gEditor.color_cfg[UI_COLOR_EXPLORER_FILE],
+        .bg = gEditor.color_cfg[UI_COLOR_EXPLORER_BG],
     };
     ScreenStyle directory_style = {
-        .fg = gEditor.color_cfg.explorer[2],
-        .bg = gEditor.color_cfg.explorer[0],
+        .fg = gEditor.color_cfg[UI_COLOR_EXPLORER_DIRECTORY],
+        .bg = gEditor.color_cfg[UI_COLOR_EXPLORER_BG],
     };
 
     for (int i = 0; i < lines; i++) {
@@ -1071,7 +1074,7 @@ static void editorDrawFileExplorer(void) {
         ScreenStyle row_style =
             (node->is_directory) ? directory_style : default_style;
         if (index == gEditor.explorer.selected_index) {
-            row_style.bg = gEditor.color_cfg.explorer[1];
+            row_style.bg = gEditor.color_cfg[UI_COLOR_EXPLORER_SELECT];
         }
 
         screenClearCells(row, gEditor.screen_cols, 0, explorer_width,
@@ -1102,8 +1105,8 @@ static void editorDrawSplitSeparators(void) {
         return;
 
     ScreenStyle style = {
-        .fg = gEditor.color_cfg.top_status[1],
-        .bg = gEditor.color_cfg.bg,
+        .fg = gEditor.color_cfg[UI_COLOR_TOP_BG],
+        .bg = gEditor.color_cfg[UI_COLOR_BG],
     };
 
     for (int i = 0; i < gEditor.split_count - 1; i++) {

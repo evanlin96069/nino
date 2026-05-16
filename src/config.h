@@ -136,7 +136,51 @@ extern ConVar shell;
 
 // Color scheme
 
-#define EDITOR_COLOR_COUNT 34
+typedef enum EditorUIColorType {
+    UI_COLOR_BG = 0,
+    UI_COLOR_TOP_FG,
+    UI_COLOR_TOP_BG,
+    UI_COLOR_TOP_TABS_FG,
+    UI_COLOR_TOP_TABS_BG,
+    UI_COLOR_TOP_SELECT_FG,
+    UI_COLOR_TOP_SELECT_BG,
+    UI_COLOR_EXPLORER_BG,
+    UI_COLOR_EXPLORER_SELECT,
+    UI_COLOR_EXPLORER_DIRECTORY,
+    UI_COLOR_EXPLORER_FILE,
+    UI_COLOR_EXPLORER_FOCUS,
+    UI_COLOR_PROMPT_FG,
+    UI_COLOR_PROMPT_BG,
+    UI_COLOR_STATUS_FG,
+    UI_COLOR_STATUS_BG,
+    UI_COLOR_STATUS_LANG_FG,
+    UI_COLOR_STATUS_LANG_BG,
+    UI_COLOR_STATUS_POS_FG,
+    UI_COLOR_STATUS_POS_BG,
+    UI_COLOR_LINENO_FG,
+    UI_COLOR_LINENO_BG,
+    UI_COLOR_CURSORLINE,
+    // FIXME: Must be contiguous because highlight code uses offset
+    UI_COLOR_HL_NORMAL,
+    UI_COLOR_HL_COMMENT,
+    UI_COLOR_HL_KEYWORD1,
+    UI_COLOR_HL_KEYWORD2,
+    UI_COLOR_HL_KEYWORD3,
+    UI_COLOR_HL_STRING,
+    UI_COLOR_HL_NUMBER,
+    UI_COLOR_HL_SPACE,
+    // FIXME: Must be contiguous because highlight code uses offset
+    UI_COLOR_HL_BG_NORMAL,
+    UI_COLOR_HL_BG_MATCH,
+    UI_COLOR_HL_BG_SELECT,
+    UI_COLOR_HL_BG_TRAILING,
+
+    UI_COLOR_COUNT,
+} EditorUIColorType;
+
+// Excludes UI_COLOR_HL_BG_NORMAL
+// TODO: Remove UI_COLOR_HL_BG_NORMAL
+#define EDITOR_COLOR_COUNT (UI_COLOR_COUNT - 1)
 
 typedef struct {
     const char* label;
@@ -145,19 +189,7 @@ typedef struct {
 
 extern const ColorElement color_element_map[EDITOR_COLOR_COUNT];
 
-typedef struct EditorColorScheme {
-    Color bg;
-    Color top_status[6];
-    Color explorer[5];
-    Color prompt[2];
-    Color status[6];
-    Color line_number[2];
-    Color cursor_line;
-    Color highlightFg[HL_FG_COUNT];
-    Color highlightBg[HL_BG_COUNT];
-} EditorColorScheme;
-
-extern const EditorColorScheme color_default;
+extern const Color color_default[UI_COLOR_COUNT];
 
 void editorRegisterCommands(void);
 void editorUnregisterCommands(void);
