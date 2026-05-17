@@ -461,18 +461,13 @@ static void flattenNode(EditorExplorerNode* node) {
 }
 
 void editorExplorerRefresh(void) {
-    gEditor.explorer.flatten.size = 0;
-    gEditor.explorer.flatten.capacity = 0;
-    free(gEditor.explorer.flatten.data);
+    vector_clear(gEditor.explorer.flatten);
     flattenNode(gEditor.explorer.node);
     vector_shrink(gEditor.explorer.flatten);
 }
 
 void editorExplorerFree(void) {
     editorExplorerFreeNode(gEditor.explorer.node);
-    free(gEditor.explorer.flatten.data);
+    vector_free(gEditor.explorer.flatten);
     gEditor.explorer.node = NULL;
-    gEditor.explorer.flatten.data = NULL;
-    gEditor.explorer.flatten.size = 0;
-    gEditor.explorer.flatten.capacity = 0;
 }

@@ -233,7 +233,7 @@ EditorInput editorReadEvent(void) {
             bool last_was_cr = false;
             while (true) {
                 if (!readConsoleKey(&c, timeout)) {
-                    free(content.data);
+                    vector_free(content);
                     abufFree(&line);
                     return result;
                 }
@@ -248,7 +248,7 @@ EditorInput editorReadEvent(void) {
                          index < sizeof(end_seq) / sizeof(end_seq[0]);
                          index++) {
                         if (!readConsoleKey(&end_seq[index], timeout)) {
-                            free(content.data);
+                            vector_free(content);
                             abufFree(&line);
                             return result;
                         }
@@ -269,6 +269,7 @@ EditorInput editorReadEvent(void) {
                             vector_push(content, s_line);
                             vector_shrink(content);
 
+                            // transfer the vector to clipboard
                             clipboard.size = content.size;
                             clipboard.lines = content.data;
                         }

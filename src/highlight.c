@@ -433,10 +433,10 @@ void editorFreeHLDB(void) {
     while (HLDB) {
         EditorSyntax* temp = HLDB;
         HLDB = HLDB->next;
-        free(temp->file_exts.data);
+        vector_free(temp->file_exts);
         for (size_t i = 0;
              i < sizeof(temp->keywords) / sizeof(temp->keywords[0]); i++) {
-            free(temp->keywords[i].data);
+            vector_free(temp->keywords[i]);
         }
         free(temp);
     }

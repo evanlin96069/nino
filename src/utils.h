@@ -47,6 +47,19 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
             realloc_s((vec).data, sizeof((vec).data[0]) * (vec).size); \
     } while (0)
 
+#define vector_clear(vec)   \
+    do {                    \
+        (vec).size = 0;     \
+    } while (0)
+
+#define vector_free(vec)    \
+    do {                    \
+        free((vec).data);   \
+        (vec).data = NULL;  \
+        (vec).size = 0;     \
+        (vec).capacity = 0; \
+    } while (0)
+
 // Str
 typedef struct Str {
     char* data;
