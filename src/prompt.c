@@ -523,20 +523,13 @@ static void editorFindCallback(char* query, int key) {
     static FindList head = {.prev = NULL, .next = NULL};
     static FindList* match_node = NULL;
 
-    static uint8_t* saved_hl_pos = NULL;
-    static uint8_t* saved_hl = NULL;
-    static size_t saved_hl_len = 0;
-
     static int total = 0;
     static int current = 0;
 
-    if (saved_hl && saved_hl_pos) {
-        memcpy(saved_hl_pos, saved_hl, saved_hl_len);
-        free(saved_hl);
-        saved_hl = NULL;
-        saved_hl_pos = NULL;
-        saved_hl_len = 0;
-    }
+    EditorTab* tab = editorGetActiveTab();
+    EditorFile* file = editorTabGetFile(tab);
+
+    tab->has_match = false;
 
     // Quit find mode
     if (key == ESC || key == CTRL_KEY('q') || key == '\r' ||
@@ -544,10 +537,6 @@ static void editorFindCallback(char* query, int key) {
         if (prev_query) {
             free(prev_query);
             prev_query = NULL;
-        }
-        if (saved_hl) {
-            free(saved_hl);
-            saved_hl = NULL;
         }
         findListFree(head.next);
         head.next = NULL;
@@ -560,9 +549,6 @@ static void editorFindCallback(char* query, int key) {
         editorSetRightPrompt("");
         return;
     }
-
-    EditorTab* tab = editorGetActiveTab();
-    EditorFile* file = editorTabGetFile(tab);
 
     FindList* tail_node = NULL;
     if (!head.next || !prev_query || strcmp(prev_query, query) != 0) {
@@ -665,15 +651,10 @@ static void editorFindCallback(char* query, int key) {
     tab->cursor.y = match_node->row;
     editorScrollToCursorCenter(gEditor.split_active_index);
 
-    uint8_t* match_pos = &file->row[match_node->row].hl[match_node->col];
-    saved_hl_len = len;
-    saved_hl_pos = match_pos;
-    saved_hl = malloc_s(len + 1);
-    memcpy(saved_hl, match_pos, len);
-    for (size_t i = 0; i < len; i++) {
-        match_pos[i] &= ~HL_BG_MASK;
-        match_pos[i] |= HL_BG_MATCH << HL_FG_BITS;
-    }
+    tab->has_match = true;
+    tab->match_row = match_node->row;
+    tab->match_col = match_node->col;
+    tab->match_len = len;
 }
 
 void editorFind(void) {

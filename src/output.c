@@ -1,6 +1,6 @@
 #include "output.h"
 
-#include <ctype.h>
+#include <ctype.h>  // iscntrl
 
 #include "config.h"
 #include "editor.h"
@@ -631,7 +631,7 @@ static void editorDrawPrompt(void) {
         gEditor.prompt_select_end_rx > gEditor.prompt_select_start_rx) {
         ScreenStyle select_style = {
             .fg = style.fg,
-            .bg = gEditor.color_cfg[UI_COLOR_HL_BG_SELECT],
+            .bg = gEditor.color_cfg[UI_COLOR_HL_SELECT],
         };
         int select_start = gEditor.prompt_select_start_rx;
         int select_end = gEditor.prompt_select_end_rx;
@@ -848,15 +848,15 @@ static void editorDrawSplit(int split_index) {
         ScreenCell* row = gEditor.screen[s_row];
 
         // Clear the entire row
-        ScreenStyle bg_style = {
-            .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
-            .bg = gEditor.color_cfg[UI_COLOR_BG],
-        };
-        if (i == tab->cursor.y && !tab->cursor.is_selected) {
-            bg_style.bg = gEditor.color_cfg[UI_COLOR_CURSORLINE];
-        }
+        EditorUIColorType bg_color =
+            (i == tab->cursor.y && !tab->cursor.is_selected)
+                ? UI_COLOR_CURSORLINE
+                : UI_COLOR_BG;
         screenClearCells(row, gEditor.screen_cols, start, end - start,
-                         bg_style);
+                         (ScreenStyle){
+                             .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
+                             .bg = gEditor.color_cfg[bg_color],
+                         });
 
         if (i < file->num_rows) {
             int x = start;
@@ -891,8 +891,11 @@ static void editorDrawSplit(int split_index) {
             }
             rlen += tab->col_offset;
 
+            // Highlight span index
+            uint32_t hls_index = 0;
+            const EditorHLSpanVector hl_spans = file->row[i].hl_spans;
+
             char* c = &file->row[i].data[col_offset];
-            uint8_t* hl = &(file->row[i].hl[col_offset]);
 
             int j = 0;
             int rx = tab->col_offset;
@@ -901,24 +904,48 @@ static void editorDrawSplit(int split_index) {
             Grapheme* curr_grapheme = NULL;
 
             while (rx < rlen && screen_x < end) {
-                uint8_t fg = hl[j] & HL_FG_MASK;
-                uint8_t bg = hl[j] >> HL_FG_BITS;
-                if (tab->cursor.is_selected &&
-                    isPosSelected(i, j + col_offset, range)) {
-                    bg = HL_BG_SELECT;
+                uint32_t cx = j + col_offset;
+                // TODO: scan hl_spans
+                EditorUIColorType fg = UI_COLOR_HL_NORMAL;
+                EditorUIColorType bg = bg_color;
+
+                // We assume the span is sorted and not overlapping
+                while (hls_index < hl_spans.size &&
+                       hl_spans.data[hls_index].start +
+                               hl_spans.data[hls_index].len <=
+                           cx) {
+                    hls_index++;
+                }
+
+                if (hls_index < hl_spans.size) {
+                    const EditorHLSpan* span = &hl_spans.data[hls_index];
+                    uint32_t span_start = span->start;
+                    uint32_t span_end = span->start + span->len;
+                    if (span_start <= cx && cx < span_end) {
+                        EditorUIColorType hl_color =
+                            editorHL2UIColor(span->type);
+                        if (hl_color == UI_COLOR_HL_TRAILING) {
+                            bg = hl_color;
+                        } else {
+                            fg = hl_color;
+                        }
+                    }
+                }
+
+                if (tab->cursor.is_selected && isPosSelected(i, cx, range)) {
+                    bg = UI_COLOR_HL_SELECT;
+                } else if (tab->has_match && i == tab->match_row &&
+                           cx >= tab->match_col &&
+                           cx < tab->match_col + tab->match_len) {
+                    bg = UI_COLOR_HL_MATCH;
                 }
 
                 ScreenStyle style = {0};
 
                 if (iscntrl((uint8_t)c[j]) && c[j] != '\t') {
                     // Control character (show inverted)
-                    style.fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL + fg];
-                    if (bg == HL_BG_NORMAL) {
-                        style.bg = bg_style.bg;
-                    } else {
-                        style.bg =
-                            gEditor.color_cfg[UI_COLOR_HL_BG_NORMAL + bg];
-                    }
+                    style.fg = gEditor.color_cfg[fg];
+                    style.bg = gEditor.color_cfg[bg];
 
                     uint32_t sym = (c[j] <= 26) ? '@' + c[j] : '?';
                     Color tmp = style.fg;
@@ -932,19 +959,14 @@ static void editorDrawSplit(int split_index) {
                     j++;
                 } else {
                     if (drawspace.int_value && (c[j] == ' ' || c[j] == '\t')) {
-                        fg = HL_SPACE;
+                        fg = UI_COLOR_HL_SPACE;
                     }
-                    if (bg == HL_BG_TRAILING && !trailing.int_value) {
-                        bg = HL_BG_NORMAL;
+                    if (bg == UI_COLOR_HL_TRAILING && !trailing.int_value) {
+                        bg = bg_color;
                     }
 
-                    style.fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL + fg];
-                    if (bg == HL_BG_NORMAL) {
-                        style.bg = bg_style.bg;
-                    } else {
-                        style.bg =
-                            gEditor.color_cfg[UI_COLOR_HL_BG_NORMAL + bg];
-                    }
+                    style.fg = gEditor.color_cfg[fg];
+                    style.bg = gEditor.color_cfg[bg];
 
                     if (c[j] == '\t') {
                         char tab_char = drawspace.int_value ? '|' : ' ';
@@ -1018,7 +1040,7 @@ static void editorDrawSplit(int split_index) {
                 screen_x < end) {
                 ScreenStyle select_style = {
                     .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
-                    .bg = gEditor.color_cfg[UI_COLOR_HL_BG_SELECT],
+                    .bg = gEditor.color_cfg[UI_COLOR_HL_SELECT],
                 };
                 screenPutChar(row, gEditor.screen_cols, screen_x, ' ',
                               &select_style);

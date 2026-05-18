@@ -15,28 +15,25 @@
 #define PATH_CAT(...) _MAP(_NOP, DIR_SEP, __VA_ARGS__)
 
 // Vector
-#define VECTOR_MIN_CAPACITY 16
+#define VECTOR_MIN_CAPACITY 4
 #define VECTOR_EXTEND_RATE 1.5
 
-#define VECTOR(type)     \
-    struct {             \
-        size_t size;     \
-        size_t capacity; \
-        type* data;      \
+#define VECTOR(type)       \
+    struct {               \
+        uint32_t size;     \
+        uint32_t capacity; \
+        type* data;        \
     }
 
-typedef struct {
-    size_t size;
-    size_t capacity;
-    void* data;
-} _Vector;
+typedef VECTOR(void) _Vector;
 
 void _vector_make_room(_Vector* _vec, size_t item_size);
 
-#define vector_push(vec, val)                                       \
+// Use __VA_ARGS__ so we can pass in compound literal
+#define vector_push(vec, ...)                                       \
     do {                                                            \
         _vector_make_room((_Vector*)&(vec), sizeof((vec).data[0])); \
-        (vec).data[(vec).size++] = (val);                           \
+        (vec).data[(vec).size++] = (__VA_ARGS__);                   \
     } while (0)
 
 #define vector_pop(vec) ((vec).data[--(vec).size])
@@ -47,9 +44,9 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
             realloc_s((vec).data, sizeof((vec).data[0]) * (vec).size); \
     } while (0)
 
-#define vector_clear(vec)   \
-    do {                    \
-        (vec).size = 0;     \
+#define vector_clear(vec) \
+    do {                  \
+        (vec).size = 0;   \
     } while (0)
 
 #define vector_free(vec)    \
@@ -143,17 +140,6 @@ int colorToStr(Color color, char buf[16]);
 void setColor(abuf* ab, Color color, bool is_bg);
 void setColors(abuf* ab, Color fg, Color bg);
 
-// Separator
-typedef int (*IsCharFunc)(int c);
-int isSeparator(int c);
-int isNonSeparator(int c);
-int isNonIdentifierChar(int c);
-int isIdentifierChar(int c);
-int isSpace(int c);
-int isNonSpace(int c);
-char isOpenBracket(int key);
-char isCloseBracket(int key);
-
 // File
 char* getBaseName(char* path);
 char* getDirName(char* path);
@@ -161,7 +147,6 @@ void addDefaultExtension(char* path, const char* extension, int path_length);
 
 // Misc
 void gotoXY(abuf* ab, int x, int y);
-int getDigit(int n);
 
 // String
 int64_t getLine(char** lineptr, size_t* n, FILE* stream);
@@ -186,5 +171,92 @@ size_t base64Encode(const char* string, size_t len, char* output);
 // Write console
 #define writeConsoleStr(s) writeConsole((s), sizeof(s) - 1)
 bool writeConsoleAll(const void* buf, size_t len);
+
+// ctype
+typedef int (*IsCharFunc)(int c);
+
+static inline int isSeparator(int c) {
+    return strchr("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", c) != NULL;
+}
+
+static inline int isNonSeparator(int c) {
+    return !isSeparator(c);
+}
+
+static inline int isSpace(int c) {
+    switch (c) {
+        case ' ':
+        case '\t':
+        case '\n':
+        case '\r':
+        case '\v':
+        case '\f':
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+static inline int isNonSpace(int c) {
+    return !isSpace(c);
+}
+
+static inline int isNonIdentifierChar(int c) {
+    return isSpace(c) || c == '\0' || isSeparator(c);
+}
+
+static inline int isIdentifierChar(int c) {
+    return !isNonIdentifierChar(c);
+}
+
+static inline int isDigit(int c) {
+    return c >= '0' && c <= '9';
+}
+
+static inline char isOpenBracket(int key) {
+    switch (key) {
+        case '(':
+            return ')';
+        case '[':
+            return ']';
+        case '{':
+            return '}';
+        default:
+            return 0;
+    }
+}
+
+static inline char isCloseBracket(int key) {
+    switch (key) {
+        case ')':
+            return '(';
+        case ']':
+            return '[';
+        case '}':
+            return '{';
+        default:
+            return 0;
+    }
+}
+
+static inline int getDigit(int n) {
+    if (n < 10)
+        return 1;
+    if (n < 100)
+        return 2;
+    if (n < 1000)
+        return 3;
+    if (n < 10000000) {
+        if (n < 1000000) {
+            if (n < 10000)
+                return 4;
+            return 5 + (n >= 100000);
+        }
+        return 7;
+    }
+    if (n < 1000000000)
+        return 8 + (n >= 100000000);
+    return 10;
+}
 
 #endif

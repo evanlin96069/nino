@@ -6,14 +6,11 @@
 typedef struct EditorFile EditorFile;
 typedef struct EditorRow EditorRow;
 
-#define HL_FG_MASK 0x0F
-#define HL_BG_MASK 0xF0
-#define HL_FG_BITS 4
-
+// Highlighting flags
 #define HL_HIGHLIGHT_NUMBERS (1 << 0)
 #define HL_HIGHLIGHT_STRINGS (1 << 1)
 
-enum EditorHighlightFg {
+typedef enum EditorHLType {
     HL_NORMAL = 0,
     HL_COMMENT,
     HL_KEYWORD1,
@@ -21,19 +18,15 @@ enum EditorHighlightFg {
     HL_KEYWORD3,
     HL_STRING,
     HL_NUMBER,
-    HL_SPACE,
+    HL_TRAILING,
+} EditorHLType;
 
-    HL_FG_COUNT,
-};
-
-enum EditorHighlightBg {
-    HL_BG_NORMAL = 0,
-    HL_BG_MATCH,
-    HL_BG_SELECT,
-    HL_BG_TRAILING,
-
-    HL_BG_COUNT,
-};
+typedef struct EditorHLSpan {
+    uint32_t start;
+    uint16_t len;
+    EditorHLType type;
+    // padding (1 byte)
+} EditorHLSpan;
 
 typedef struct EditorSyntax {
     struct EditorSyntax* next;
@@ -44,7 +37,7 @@ typedef struct EditorSyntax {
     const char* multiline_comment_end;
     VECTOR(const char*) file_exts;
     VECTOR(const char*) keywords[3];
-    int flags;
+    uint32_t flags;
 
     struct JsonValue* value;
 } EditorSyntax;

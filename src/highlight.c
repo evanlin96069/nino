@@ -1,7 +1,5 @@
 #include "highlight.h"
 
-#include <ctype.h>
-
 #include "../resources/bundle.h"
 #include "config.h"
 #include "editor.h"
@@ -23,156 +21,256 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
     const int mce_len = mce ? strlen(mce) : 0;
 
     bool do_highlight = syntax.int_value && s;
+    bool do_next_row = true;
 
     int row_index = (int)(r - file->row);
 
-    bool do_next_row = true;
     while (do_next_row && row_index < file->num_rows) {
         EditorRow* row = &file->row[row_index];
 
-        if (row->hl) {
-            // realloc might returns NULL when row->size == 0
-            memset(row->hl, HL_NORMAL, row->size);
-        }
+        vector_clear(row->hl_spans);
 
         do_next_row = false;
 
         if (!do_highlight)
             goto update_trailing;
 
-        int prev_sep = 1;
-        int in_string = 0;
-        int in_comment =
+        bool prev_sep = true;
+        // TODO: support single-line comments and strings that end with '\' in
+        // C/C++
+        bool in_comment =
             (row_index > 0 && file->row[row_index - 1].hl_open_comment);
 
         int i = 0;
         while (i < row->size) {
             char c = row->data[i];
 
-            if (scs_len && !in_string && !in_comment) {
+            // Multi-line comment
+            if (mcs_len && mce_len) {
+                int start = i;
+                if (!in_comment && i + mcs_len <= row->size &&
+                    strncmp(&row->data[i], mcs, mcs_len) == 0) {
+                    i += mcs_len;
+                    in_comment = true;
+                }
+
+                if (in_comment) {
+                    while (i < row->size) {
+                        if (i + mce_len <= row->size &&
+                            strncmp(&row->data[i], mce, mce_len) == 0) {
+                            i += mce_len;
+                            in_comment = false;
+                            prev_sep = true;
+                            break;
+                        }
+                        i++;
+                    }
+
+                    if (i > row->size)
+                        i = row->size;
+
+                    vector_push(row->hl_spans, (EditorHLSpan){
+                                                   .start = start,
+                                                   .len = i - start,
+                                                   .type = HL_COMMENT,
+                                               });
+                    continue;
+                }
+            }
+
+            // Single line comment
+            if (scs_len) {
                 if (i + scs_len <= row->size &&
                     strncmp(&row->data[i], scs, scs_len) == 0) {
-                    memset(&row->hl[i], HL_COMMENT, row->size - i);
+                    // Mark entire line as comment
+                    vector_push(row->hl_spans, (EditorHLSpan){
+                                                   .start = i,
+                                                   .len = row->size - i,
+                                                   .type = HL_COMMENT,
+                                               });
                     break;
                 }
             }
 
-            if (mcs_len && mce_len && !in_string) {
-                if (in_comment) {
-                    row->hl[i] = HL_COMMENT;
-                    if (i + mce_len <= row->size &&
-                        strncmp(&row->data[i], mce, mce_len) == 0) {
-                        memset(&row->hl[i], HL_COMMENT, mce_len);
-                        i += mce_len;
-                        in_comment = 0;
-                        prev_sep = 1;
-                    }
-                    i++;
-                    continue;
-                } else if (i + mcs_len <= row->size &&
-                           strncmp(&row->data[i], mcs, mcs_len) == 0) {
-                    memset(&row->hl[i], HL_COMMENT, mcs_len);
-                    i += mcs_len;
-                    in_comment = 1;
-                    continue;
-                }
-            }
-
+            // String
             if (s->flags & HL_HIGHLIGHT_STRINGS) {
-                if (in_string) {
-                    row->hl[i] = HL_STRING;
-                    if (c == '\\' && i + 1 < row->size) {
-                        row->hl[i + 1] = HL_STRING;
-                        i += 2;
-                        continue;
-                    }
-                    if (c == in_string)
-                        in_string = 0;
-                    i++;
-                    prev_sep = 1;
-                    continue;
-                } else if (c == '"' || c == '\'') {
-                    in_string = c;
-                    row->hl[i] = HL_STRING;
-                    i++;
-                    continue;
-                }
-            }
-
-            if (s->flags & HL_HIGHLIGHT_NUMBERS) {
-                if ((isdigit((uint8_t)c) || c == '.') && prev_sep) {
+                if (c == '"' || c == '\'') {
                     int start = i;
                     i++;
+                    while (i < row->size && row->data[i] != c) {
+                        if (row->data[i] == '\\') {
+                            i++;
+                        }
+                        i++;
+                    }
+
+                    if (row->data[i] == c)
+                        i++;
+                    if (i > row->size)
+                        i = row->size;
+
+                    vector_push(row->hl_spans, (EditorHLSpan){
+                                                   .start = start,
+                                                   .len = i - start,
+                                                   .type = HL_STRING,
+                                               });
+                    prev_sep = true;
+                    continue;
+                }
+            }
+
+            // Number
+            if (s->flags & HL_HIGHLIGHT_NUMBERS) {
+                // Try to keep this simple and general, not tied too closely to
+                // C/C++
+                if ((isDigit(c) || c == '.') && prev_sep) {
+                    int start = i;
+                    enum NumberParseState {
+                        NP_UNKNOWN,
+                        NP_ACCEPT,
+                        NP_REJECT,
+                    } state = NP_UNKNOWN;
                     if (c == '0') {
+                        i++;
                         if (i < row->size) {
-                            if (row->data[i] == 'x' || row->data[i] == 'X') {
-                                // hex
+                            if (row->data[i] == 'b' || row->data[i] == 'B') {
+                                // Binary
+                                i++;
+                                while (i < row->size && (row->data[i] == '0' ||
+                                                         row->data[i] == '1')) {
+                                    i++;
+                                }
+                                state = (i - start > 2) ? NP_ACCEPT : NP_REJECT;
+                            } else if (row->data[i] == 'x' ||
+                                       row->data[i] == 'X') {
+                                // Hex
                                 i++;
                                 while (i < row->size &&
-                                       (isdigit((uint8_t)row->data[i]) ||
+                                       (isDigit(row->data[i]) ||
                                         (row->data[i] >= 'a' &&
                                          row->data[i] <= 'f') ||
                                         (row->data[i] >= 'A' &&
                                          row->data[i] <= 'F'))) {
                                     i++;
                                 }
-                            } else if (row->data[i] >= '0' &&
-                                       row->data[i] <= '7') {
-                                // oct
-                                i++;
+                                state = (i - start > 2) ? NP_ACCEPT : NP_REJECT;
+                            } else {
+                                // Oct
                                 while (i < row->size && row->data[i] >= '0' &&
                                        row->data[i] <= '7') {
                                     i++;
                                 }
-                            } else if (row->data[i] == '.') {
-                                // float
+
+                                if (i < row->size && row->data[i] != '.' &&
+                                    row->data[i] != 'e' &&
+                                    row->data[i] != 'E' &&
+                                    !isDigit(row->data[i])) {
+                                    // Make sure it's not a float
+                                    state = NP_ACCEPT;
+                                }
+                            }
+                        }
+                    }
+
+                    if (state == NP_UNKNOWN) {
+                        bool is_float = false;
+                        bool has_non_octal = false;
+
+                        i = start;
+
+                        // Float or decimal
+                        while (i < row->size && isDigit(row->data[i])) {
+                            if (c == '0' && i > start &&
+                                (row->data[i] == '8' || row->data[i] == '9')) {
+                                has_non_octal = true;
+                            }
+                            i++;
+                        }
+
+                        if (i < row->size && (row->data[i] == '.')) {
+                            is_float = true;
+                            i++;
+                            while (i < row->size && isDigit(row->data[i])) {
                                 i++;
-                                while (i < row->size &&
-                                       isdigit((uint8_t)row->data[i])) {
+                            }
+                        }
+
+                        if (c == '.' && i == start + 1) {
+                            // Reject only '.'
+                            state = NP_REJECT;
+                        }
+
+                        if (state == NP_UNKNOWN && i < row->size &&
+                            (row->data[i] == 'e' || row->data[i] == 'E')) {
+                            is_float = true;
+                            i++;
+                            if (i < row->size &&
+                                (row->data[i] == '+' || row->data[i] == '-')) {
+                                i++;
+                            }
+                            if (!(i < row->size && isDigit(row->data[i]))) {
+                                state = NP_REJECT;
+                            } else {
+                                // Keep the state as NP_UNKNOWN to add suffixes
+                                // later
+                                while (i < row->size && isDigit(row->data[i])) {
                                     i++;
                                 }
                             }
                         }
-                    } else {
-                        while (i < row->size &&
-                               isdigit((uint8_t)row->data[i])) {
+
+                        // Reject invalid octal integers that aren't floats
+                        if (state == NP_UNKNOWN && c == '0' && has_non_octal &&
+                            !is_float) {
+                            state = NP_REJECT;
+                        }
+
+                        // We only allow float suffixes since they are common
+                        if (state == NP_UNKNOWN && is_float && i < row->size &&
+                            (row->data[i] == 'f' || row->data[i] == 'F')) {
                             i++;
                         }
-                        if (c != '.' && i < row->size && row->data[i] == '.') {
-                            i++;
-                            while (i < row->size &&
-                                   isdigit((uint8_t)row->data[i])) {
-                                i++;
-                            }
+
+                        if (state == NP_UNKNOWN) {
+                            state = NP_ACCEPT;
                         }
                     }
-                    if (c == '.' && i - start == 1)
-                        continue;
 
-                    if (i < row->size &&
-                        (row->data[i] == 'f' || row->data[i] == 'F'))
-                        i++;
-                    if (i == row->size || isSeparator(row->data[i]) ||
-                        isSpace(row->data[i]))
-                        memset(&row->hl[start], HL_NUMBER, i - start);
-                    prev_sep = 0;
+                    if (i > row->size)
+                        i = row->size;
+
+                    if (state == NP_ACCEPT &&
+                        (i == row->size || isSeparator(row->data[i]) ||
+                         isSpace(row->data[i]))) {
+                        vector_push(row->hl_spans, (EditorHLSpan){
+                                                       .start = start,
+                                                       .len = i - start,
+                                                       .type = HL_NUMBER,
+                                                   });
+                    }
+                    prev_sep = false;
                     continue;
                 }
             }
 
+            // Keyword
             if (prev_sep) {
                 bool found_keyword = false;
                 for (int kw = 0; kw < 3; kw++) {
                     for (size_t j = 0; j < s->keywords[kw].size; j++) {
                         int klen = strlen(s->keywords[kw].data[j]);
-                        int keyword_type = HL_KEYWORD1 + kw;
+                        EditorHLType keyword_type = HL_KEYWORD1 + kw;
                         if (klen <= row->size - i &&
                             strncmp(&row->data[i], s->keywords[kw].data[j],
                                     klen) == 0 &&
                             (i + klen == row->size ||
                              isNonIdentifierChar(row->data[i + klen]))) {
                             found_keyword = true;
-                            memset(&row->hl[i], keyword_type, klen);
+                            vector_push(row->hl_spans, (EditorHLSpan){
+                                                           .start = i,
+                                                           .len = klen,
+                                                           .type = keyword_type,
+                                                       });
                             i += klen;
                             break;
                         }
@@ -183,26 +281,34 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
                 }
 
                 if (found_keyword) {
-                    prev_sep = 0;
+                    prev_sep = false;
                     continue;
                 }
             }
-            prev_sep = isNonIdentifierChar(c);
+            prev_sep = !!isNonIdentifierChar(c);
             i++;
         }
-        int changed = (row->hl_open_comment != in_comment);
+
+        bool changed = (row->hl_open_comment != in_comment);
         row->hl_open_comment = in_comment;
 
         do_next_row = changed;
         row_index++;
 
-    update_trailing:
+    update_trailing:;  // Label cannot follow by declaration before C23
+        uint32_t trailing_spaces = 0;
         for (i = row->size - 1; i >= 0; i--) {
-            if (row->data[i] == ' ' || row->data[i] == '\t') {
-                row->hl[i] = HL_BG_TRAILING << HL_FG_BITS;
-            } else {
+            if (!isSpace(row->data[i]))
                 break;
-            }
+            trailing_spaces++;
+        }
+
+        if (trailing_spaces > 0) {
+            vector_push(row->hl_spans, (EditorHLSpan){
+                                           .start = i + 1,
+                                           .len = trailing_spaces,
+                                           .type = HL_TRAILING,
+                                       });
         }
     }
 }
@@ -288,13 +394,15 @@ static void loadEditorConfigHLDB(void) {
     syntax_def->multiline_comment_start = NULL;
     syntax_def->multiline_comment_end = NULL;
 
+    // Add commands
     ConCommandBase* curr = gEditor.cvars;
     while (curr) {
         vector_push(syntax_def->keywords[curr->is_command ? 0 : 1], curr->name);
         curr = curr->next;
     }
 
-    for (int i = 0; i < EDITOR_COLOR_COUNT; i++) {
+    // Add color labels
+    for (int i = 0; i < UI_COLOR_COUNT; i++) {
         vector_push(syntax_def->keywords[2], color_element_map[i].label);
     }
 

@@ -1,6 +1,6 @@
 #include "utils.h"
 
-#include <ctype.h>
+#include <ctype.h>  // tolower
 #include <limits.h>
 
 #include "os.h"
@@ -266,86 +266,6 @@ void gotoXY(abuf* ab, int x, int y) {
     char buf[32];
     int len = snprintf(buf, sizeof(buf), "\x1b[%d;%dH", x, y);
     abufAppendN(ab, buf, len);
-}
-
-int isSeparator(int c) {
-    return strchr("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?", c) != NULL;
-}
-
-int isNonSeparator(int c) {
-    return !isSeparator(c);
-}
-
-int isSpace(int c) {
-    switch (c) {
-        case ' ':
-        case '\t':
-        case '\n':
-        case '\r':
-        case '\v':
-        case '\f':
-            return 1;
-        default:
-            return 0;
-    }
-}
-
-int isNonSpace(int c) {
-    return !isSpace(c);
-}
-
-int isNonIdentifierChar(int c) {
-    return isSpace(c) || c == '\0' || isSeparator(c);
-}
-
-int isIdentifierChar(int c) {
-    return !isNonIdentifierChar(c);
-}
-
-char isOpenBracket(int key) {
-    switch (key) {
-        case '(':
-            return ')';
-        case '[':
-            return ']';
-        case '{':
-            return '}';
-        default:
-            return 0;
-    }
-}
-
-char isCloseBracket(int key) {
-    switch (key) {
-        case ')':
-            return '(';
-        case ']':
-            return '[';
-        case '}':
-            return '{';
-        default:
-            return 0;
-    }
-}
-
-int getDigit(int n) {
-    if (n < 10)
-        return 1;
-    if (n < 100)
-        return 2;
-    if (n < 1000)
-        return 3;
-    if (n < 10000000) {
-        if (n < 1000000) {
-            if (n < 10000)
-                return 4;
-            return 5 + (n >= 100000);
-        }
-        return 7;
-    }
-    if (n < 1000000000)
-        return 8 + (n >= 100000000);
-    return 10;
 }
 
 char* getBaseName(char* path) {

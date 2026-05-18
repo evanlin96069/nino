@@ -1,17 +1,21 @@
 #ifndef ROW_H
 #define ROW_H
 
+#include "highlight.h"
 #include "utils.h"
 
 typedef struct EditorFile EditorFile;
+
+typedef VECTOR(EditorHLSpan) EditorHLSpanVector;
 
 typedef struct EditorRow {
     int size;
     int rsize;
     char* data;
-    size_t capacity;
-    uint8_t* hl;
-    int hl_open_comment;
+    uint32_t capacity;
+    bool hl_open_comment;
+    // padding (3 bytes)
+    EditorHLSpanVector hl_spans;
 } EditorRow;
 
 void editorRowEnsureCapacity(EditorRow* row, size_t size);

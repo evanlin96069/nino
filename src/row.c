@@ -1,7 +1,6 @@
 #include "row.h"
 
 #include "editor.h"
-#include "highlight.h"
 #include "unicode.h"
 #include "utils.h"
 
@@ -28,7 +27,6 @@ void editorRowEnsureCapacity(EditorRow* row, size_t size) {
         return;
 
     row->data = realloc_s(row->data, new_capacity);
-    row->hl = realloc_s(row->hl, new_capacity);
     row->capacity = new_capacity;
 }
 
@@ -61,7 +59,7 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
 
 void editorFreeRow(EditorRow* row) {
     free(row->data);
-    free(row->hl);
+    vector_free(row->hl_spans);
 }
 
 void editorDelRow(EditorFile* file, int at) {

@@ -160,7 +160,7 @@ typedef enum EditorUIColorType {
     UI_COLOR_LINENO_FG,
     UI_COLOR_LINENO_BG,
     UI_COLOR_CURSORLINE,
-    // FIXME: Must be contiguous because highlight code uses offset
+
     UI_COLOR_HL_NORMAL,
     UI_COLOR_HL_COMMENT,
     UI_COLOR_HL_KEYWORD1,
@@ -168,26 +168,42 @@ typedef enum EditorUIColorType {
     UI_COLOR_HL_KEYWORD3,
     UI_COLOR_HL_STRING,
     UI_COLOR_HL_NUMBER,
+    UI_COLOR_HL_TRAILING,
+
     UI_COLOR_HL_SPACE,
-    // FIXME: Must be contiguous because highlight code uses offset
-    UI_COLOR_HL_BG_NORMAL,
-    UI_COLOR_HL_BG_MATCH,
-    UI_COLOR_HL_BG_SELECT,
-    UI_COLOR_HL_BG_TRAILING,
+    UI_COLOR_HL_MATCH,
+    UI_COLOR_HL_SELECT,
 
     UI_COLOR_COUNT,
 } EditorUIColorType;
 
-// Excludes UI_COLOR_HL_BG_NORMAL
-// TODO: Remove UI_COLOR_HL_BG_NORMAL
-#define EDITOR_COLOR_COUNT (UI_COLOR_COUNT - 1)
+static inline EditorUIColorType editorHL2UIColor(EditorHLType type) {
+    switch (type) {
+        case HL_COMMENT:
+            return UI_COLOR_HL_COMMENT;
+        case HL_KEYWORD1:
+            return UI_COLOR_HL_KEYWORD1;
+        case HL_KEYWORD2:
+            return UI_COLOR_HL_KEYWORD2;
+        case HL_KEYWORD3:
+            return UI_COLOR_HL_KEYWORD3;
+        case HL_STRING:
+            return UI_COLOR_HL_STRING;
+        case HL_NUMBER:
+            return UI_COLOR_HL_NUMBER;
+        case HL_TRAILING:
+            return UI_COLOR_HL_TRAILING;
+        default:
+            return UI_COLOR_HL_NORMAL;
+    }
+}
 
 typedef struct {
     const char* label;
     Color* color;
 } ColorElement;
 
-extern const ColorElement color_element_map[EDITOR_COLOR_COUNT];
+extern const ColorElement color_element_map[UI_COLOR_COUNT];
 
 extern const Color color_default[UI_COLOR_COUNT];
 

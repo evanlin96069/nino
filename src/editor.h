@@ -49,6 +49,12 @@ typedef struct EditorTab {
     // Editor offsets
     int row_offset;
     int col_offset;
+
+    // Find
+    bool has_match;
+    int match_row;
+    uint32_t match_col;
+    uint32_t match_len;
 } EditorTab;
 
 typedef struct EditorSplit {

@@ -112,7 +112,7 @@ static void cvarMouseCallback(void) {
     }
 }
 
-const ColorElement color_element_map[EDITOR_COLOR_COUNT] = {
+const ColorElement color_element_map[UI_COLOR_COUNT] = {
     {"bg", &gEditor.color_cfg[UI_COLOR_BG]},
 
     {"top.fg", &gEditor.color_cfg[UI_COLOR_TOP_FG]},
@@ -151,10 +151,11 @@ const ColorElement color_element_map[EDITOR_COLOR_COUNT] = {
     {"hl.keyword3", &gEditor.color_cfg[UI_COLOR_HL_KEYWORD3]},
     {"hl.string", &gEditor.color_cfg[UI_COLOR_HL_STRING]},
     {"hl.number", &gEditor.color_cfg[UI_COLOR_HL_NUMBER]},
+    {"hl.trailing", &gEditor.color_cfg[UI_COLOR_HL_TRAILING]},
+
     {"hl.space", &gEditor.color_cfg[UI_COLOR_HL_SPACE]},
-    {"hl.match", &gEditor.color_cfg[UI_COLOR_HL_BG_MATCH]},
-    {"hl.select", &gEditor.color_cfg[UI_COLOR_HL_BG_SELECT]},
-    {"hl.trailing", &gEditor.color_cfg[UI_COLOR_HL_BG_TRAILING]},
+    {"hl.match", &gEditor.color_cfg[UI_COLOR_HL_MATCH]},
+    {"hl.select", &gEditor.color_cfg[UI_COLOR_HL_SELECT]},
 };
 
 CON_COMMAND(color, "Change the color of an element.") {
@@ -724,31 +725,26 @@ const Color color_default[UI_COLOR_COUNT] = {
             .kind = COLOR_RGB,
             {{.r = 181, .g = 206, .b = 168}},
         },
+    [UI_COLOR_HL_TRAILING] =
+        {
+            .kind = COLOR_RGB,
+            {{.r = 255, .g = 100, .b = 100}},
+        },
+
     [UI_COLOR_HL_SPACE] =
         {
             .kind = COLOR_RGB,
             {{.r = 63, .g = 63, .b = 63}},
         },
-
-    [UI_COLOR_HL_BG_NORMAL] =
-        {
-            .kind = COLOR_RGB,
-            {{.r = 0, .g = 0, .b = 0}},
-        },
-    [UI_COLOR_HL_BG_MATCH] =
+    [UI_COLOR_HL_MATCH] =
         {
             .kind = COLOR_RGB,
             {{.r = 89, .g = 46, .b = 20}},
         },
-    [UI_COLOR_HL_BG_SELECT] =
+    [UI_COLOR_HL_SELECT] =
         {
             .kind = COLOR_RGB,
             {{.r = 38, .g = 79, .b = 120}},
-        },
-    [UI_COLOR_HL_BG_TRAILING] =
-        {
-            .kind = COLOR_RGB,
-            {{.r = 255, .g = 100, .b = 100}},
         },
 };
 
