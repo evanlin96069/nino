@@ -58,6 +58,7 @@ void _vector_make_room(_Vector* _vec, size_t item_size) {
         _vec->capacity = VECTOR_MIN_CAPACITY;
     }
     if (_vec->size >= _vec->capacity) {
+        _vec->capacity += 1;  // Ensure at least increase by 1
         _vec->capacity *= VECTOR_EXTEND_RATE;
         _vec->data = realloc_s(_vec->data, _vec->capacity * item_size);
     }

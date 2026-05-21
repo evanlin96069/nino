@@ -16,7 +16,7 @@
 
 // Vector
 #define VECTOR_MIN_CAPACITY 4
-#define VECTOR_EXTEND_RATE 1.5
+#define VECTOR_EXTEND_RATE 1.5f
 
 #define VECTOR(type)       \
     struct {               \
