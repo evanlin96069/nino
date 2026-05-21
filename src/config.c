@@ -19,7 +19,7 @@ CONVAR(backspace, "1", "Use hungry backspace.");
 CONVAR(bracket, "0", "Use auto bracket completion.");
 CONVAR(trailing, "1", "Highlight trailing spaces.");
 CONVAR(drawspace, "0", "Render whitespace and tab.");
-CONVAR(syntax, "1", "Enable syntax highlight.");
+CONVAR(syntax, "1", "Enable syntax highlight.", cvarSyntaxCallback);
 CONVAR(helpinfo, "1", "Show the help information.");
 CONVAR(intro, "1", "Show the introductory message when no files are open.");
 CONVAR(start_new_file,
