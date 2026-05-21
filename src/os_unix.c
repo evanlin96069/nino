@@ -609,20 +609,20 @@ void osRunShell(const char* shell_hint, const char* cmd) {
     }
 
     const char* press_key_msg = "\r\nPress any key to continue...";
-    write(tty_fd, press_key_msg, strlen(press_key_msg));
+    UNUSED(write(tty_fd, press_key_msg, strlen(press_key_msg)));
 
     // echo off
     struct termios cbreak = orig_termios;
     cbreak.c_lflag &= ~(ECHO | ICANON);
     cbreak.c_cc[VMIN] = 1;
     cbreak.c_cc[VTIME] = 0;
-    tcsetattr(tty_fd, TCSAFLUSH, &cbreak);
+    UNUSED(tcsetattr(tty_fd, TCSAFLUSH, &cbreak));
 
     uint8_t dummy;
     UNUSED(read(tty_fd, &dummy, 1));
-    write(tty_fd, "\r\n", 2);
+    UNUSED(write(tty_fd, "\r\n", 2));
 
-    tcsetattr(tty_fd, TCSAFLUSH, &orig_termios);
+    UNUSED(tcsetattr(tty_fd, TCSAFLUSH, &orig_termios));
 
     // Drain queued signals
     struct pollfd pfd = {.fd = sig_rd, .events = POLLIN};
