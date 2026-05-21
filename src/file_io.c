@@ -463,7 +463,6 @@ static void flattenNode(EditorExplorerNode* node) {
 void editorExplorerRefresh(void) {
     vector_clear(gEditor.explorer.flatten);
     flattenNode(gEditor.explorer.node);
-    vector_shrink(gEditor.explorer.flatten);
 }
 
 void editorExplorerFree(void) {

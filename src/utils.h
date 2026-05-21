@@ -42,6 +42,7 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
     do {                                                               \
         (vec).data =                                                   \
             realloc_s((vec).data, sizeof((vec).data[0]) * (vec).size); \
+        (vec).capacity = (vec).size;                                   \
     } while (0)
 
 #define vector_clear(vec) \
