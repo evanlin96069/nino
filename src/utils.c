@@ -19,24 +19,35 @@ void panic(const char* file, int line, const char* s) {
 }
 
 void* _malloc_s(const char* file, int line, size_t size) {
+    if (size == 0)
+        return NULL;
+
     void* ptr = malloc(size);
-    if (!ptr && size != 0)
+    if (!ptr)
         panic(file, line, "malloc");
 
     return ptr;
 }
 
 void* _calloc_s(const char* file, int line, size_t n, size_t size) {
+    if (n == 0 || size == 0)
+        return NULL;
+
     void* ptr = calloc(n, size);
-    if (!ptr && size != 0)
+    if (!ptr)
         panic(file, line, "calloc");
 
     return ptr;
 }
 
 void* _realloc_s(const char* file, int line, void* ptr, size_t size) {
+    if (size == 0) {
+        free(ptr);
+        return NULL;
+    }
+
     ptr = realloc(ptr, size);
-    if (!ptr && size != 0)
+    if (!ptr)
         panic(file, line, "realloc");
     return ptr;
 }
