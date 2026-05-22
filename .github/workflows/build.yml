@@ -15,7 +15,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake g++
       - name: Create Build Directory
@@ -27,7 +27,7 @@ jobs:
         run: cmake --build .
         working-directory: ./build
       - name: Upload Linux Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nino-linux
           path: build/nino
@@ -35,7 +35,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Create Build Directory
         run: mkdir build
       - name: Configure CMake
@@ -45,7 +45,7 @@ jobs:
         run: cmake --build . --config Debug
         working-directory: ./build
       - name: Upload Windows Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nino-windows
           path: build/Debug/nino.exe

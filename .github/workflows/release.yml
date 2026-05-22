@@ -7,7 +7,7 @@ jobs:
   release-linux-x86_64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake gcc
       - name: Create Build Directory
@@ -19,7 +19,7 @@ jobs:
         run: cmake --build .
         working-directory: ./build
       - name: Upload Linux x86_64 Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nino-linux-x86_64
           path: build/nino
@@ -27,7 +27,7 @@ jobs:
   release-linux-x86:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake gcc gcc-multilib
       - name: Create Build Directory
@@ -39,7 +39,7 @@ jobs:
         run: cmake --build .
         working-directory: ./build
       - name: Upload Linux x86 Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nino-linux-x86
           path: build/nino
@@ -47,7 +47,7 @@ jobs:
   release-linux-aarch64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake gcc gcc-aarch64-linux-gnu
       - name: Generate bundle.h (native bundler)
@@ -65,7 +65,7 @@ jobs:
         run: cmake --build .
         working-directory: ./build
       - name: Upload Linux aarch64 Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nino-linux-aarch64
           path: build/nino
@@ -73,7 +73,7 @@ jobs:
   release-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Create Build Directory
         run: mkdir build
       - name: Configure CMake
@@ -83,7 +83,7 @@ jobs:
         run: cmake --build . --config Release
         working-directory: ./build
       - name: Upload Windows Binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nino-windows-x86_64
           path: build/Release/nino.exe
