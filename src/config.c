@@ -243,10 +243,16 @@ CON_COMMAND(lang, "Set the syntax highlighting language of the current file.") {
     }
 
     EditorFile* file = editorGetActiveFile();
-
     const char* name = args.argv[1];
+
+    if (*name == '\0') {
+        // No syntax highlighting
+        editorSetSyntaxHighlight(file, NULL);
+        return;
+    }
+
     for (EditorSyntax* s = gEditor.HLDB; s; s = s->next) {
-        // Match the language name or the externaion
+        // Match the language name or the extensions
         if (strCaseCmp(name, s->file_type) == 0) {
             editorSetSyntaxHighlight(file, s);
             return;
