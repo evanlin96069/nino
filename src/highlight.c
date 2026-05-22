@@ -9,20 +9,36 @@
 #define JSON_MALLOC malloc_s
 #include "json.h"
 
+static uint32_t editorRowCountTrailingSpaces(const EditorRow* row) {
+    uint32_t count = 0;
+    for (int i = row->size - 1; i >= 0; i--) {
+        if (!isSpace(row->data[i]))
+            break;
+        count++;
+    }
+
+    return count;
+}
+
 void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
     const EditorSyntax* s = file->syntax;
 
-    const char* scs = s ? s->singleline_comment_start : NULL;
-    const char* mcs = s ? s->multiline_comment_start : NULL;
-    const char* mce = s ? s->multiline_comment_end : NULL;
+    r->trailing_spaces = editorRowCountTrailingSpaces(r);
+
+    if (!syntax.int_value || !s) {
+        vector_clear(r->hl_spans);
+        return;
+    }
+
+    const char* scs = s->singleline_comment_start;
+    const char* mcs = s->multiline_comment_start;
+    const char* mce = s->multiline_comment_end;
 
     const int scs_len = scs ? strlen(scs) : 0;
     const int mcs_len = mcs ? strlen(mcs) : 0;
     const int mce_len = mce ? strlen(mce) : 0;
 
-    bool do_highlight = syntax.int_value && s;
     bool do_next_row = true;
-
     int row_index = (int)(r - file->row);
 
     while (do_next_row && row_index < file->num_rows) {
@@ -32,12 +48,8 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
 
         do_next_row = false;
 
-        if (!do_highlight)
-            goto update_trailing;
-
         bool prev_sep = true;
-        // TODO: support single-line comments and strings that end with '\' in
-        // C/C++
+        // TODO: support single-line comments/strings that end with '\' in C/C++
         bool in_comment =
             (row_index > 0 && file->row[row_index - 1].hl_open_comment);
 
@@ -104,7 +116,7 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
                         i++;
                     }
 
-                    if (row->data[i] == c)
+                    if (i < row->size && row->data[i] == c)
                         i++;
                     if (i > row->size)
                         i = row->size;
@@ -294,22 +306,6 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
 
         do_next_row = changed;
         row_index++;
-
-    update_trailing:;  // Label cannot follow by declaration before C23
-        uint32_t trailing_spaces = 0;
-        for (i = row->size - 1; i >= 0; i--) {
-            if (!isSpace(row->data[i]))
-                break;
-            trailing_spaces++;
-        }
-
-        if (trailing_spaces > 0) {
-            vector_push(row->hl_spans, (EditorHLSpan){
-                                           .start = i + 1,
-                                           .len = trailing_spaces,
-                                           .type = HL_TRAILING,
-                                       });
-        }
     }
 }
 

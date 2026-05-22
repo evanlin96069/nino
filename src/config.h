@@ -191,8 +191,6 @@ static inline EditorUIColorType editorHL2UIColor(EditorHLType type) {
             return UI_COLOR_HL_STRING;
         case HL_NUMBER:
             return UI_COLOR_HL_NUMBER;
-        case HL_TRAILING:
-            return UI_COLOR_HL_TRAILING;
         default:
             return UI_COLOR_HL_NORMAL;
     }

@@ -12,10 +12,12 @@ typedef struct EditorRow {
     int size;
     int rsize;
     char* data;
-    uint32_t capacity;
-    bool hl_open_comment;
-    // padding (3 bytes)
+    size_t capacity;
+
+    // Highlighting attribute
     EditorHLSpanVector hl_spans;
+    uint32_t trailing_spaces;
+    bool hl_open_comment;
 } EditorRow;
 
 void editorRowEnsureCapacity(EditorRow* row, size_t size);

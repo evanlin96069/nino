@@ -18,14 +18,12 @@ typedef enum EditorHLType {
     HL_KEYWORD3,
     HL_STRING,
     HL_NUMBER,
-    HL_TRAILING,
 } EditorHLType;
 
 typedef struct EditorHLSpan {
     uint32_t start;
-    uint16_t len;
+    uint32_t len;
     EditorHLType type;
-    // padding (1 byte)
 } EditorHLSpan;
 
 typedef struct EditorSyntax {

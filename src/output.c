@@ -878,14 +878,16 @@ static void editorDrawSplit(int split_index) {
                                     lineno_style);
             }
 
+            EditorRow* row_data = &file->row[i];
+
             // Draw content
-            int col_offset = editorRowRxToCx(&file->row[i], tab->col_offset);
-            int data_len = file->row[i].size - col_offset;
+            int col_offset = editorRowRxToCx(row_data, tab->col_offset);
+            int data_len = row_data->size - col_offset;
             if (data_len < 0) {
                 data_len = 0;
             }
 
-            int rlen = file->row[i].rsize - tab->col_offset;
+            int rlen = row_data->rsize - tab->col_offset;
             if (rlen > content_cols) {
                 rlen = content_cols;
             }
@@ -893,9 +895,9 @@ static void editorDrawSplit(int split_index) {
 
             // Highlight span index
             uint32_t hls_index = 0;
-            const EditorHLSpanVector hl_spans = file->row[i].hl_spans;
+            const EditorHLSpanVector hl_spans = row_data->hl_spans;
 
-            char* c = &file->row[i].data[col_offset];
+            char* c = &row_data->data[col_offset];
 
             int j = 0;
             int rx = tab->col_offset;
@@ -905,7 +907,7 @@ static void editorDrawSplit(int split_index) {
 
             while (rx < rlen && screen_x < end) {
                 uint32_t cx = j + col_offset;
-                // TODO: scan hl_spans
+
                 EditorUIColorType fg = UI_COLOR_HL_NORMAL;
                 EditorUIColorType bg = bg_color;
 
@@ -924,11 +926,7 @@ static void editorDrawSplit(int split_index) {
                     if (span_start <= cx && cx < span_end) {
                         EditorUIColorType hl_color =
                             editorHL2UIColor(span->type);
-                        if (hl_color == UI_COLOR_HL_TRAILING) {
-                            bg = hl_color;
-                        } else {
-                            fg = hl_color;
-                        }
+                        fg = hl_color;
                     }
                 }
 
@@ -938,6 +936,8 @@ static void editorDrawSplit(int split_index) {
                            cx >= tab->match_col &&
                            cx < tab->match_col + tab->match_len) {
                     bg = UI_COLOR_HL_MATCH;
+                } else if (row_data->size - row_data->trailing_spaces <= cx) {
+                    bg = UI_COLOR_HL_TRAILING;
                 }
 
                 ScreenStyle style = {0};
@@ -1036,7 +1036,7 @@ static void editorDrawSplit(int split_index) {
             // Add newline character when selected
             if (tab->cursor.is_selected && range.end_y > i &&
                 i >= range.start_y &&
-                file->row[i].rsize - tab->col_offset < content_cols &&
+                row_data->rsize - tab->col_offset < content_cols &&
                 screen_x < end) {
                 ScreenStyle select_style = {
                     .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
