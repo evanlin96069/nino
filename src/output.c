@@ -1190,17 +1190,22 @@ void editorRefreshScreen(void) {
     const EditorFile* file = editorTabGetFile(tab);
 
     // Draw screen
-    editorDrawTopStatusBar();
+    bool draw_top_status = true;
 
     if (gEditor.split_count == 0) {
         editorDrawBackground();
         if (gEditor.state != STATE_LOADING && intro.int_value) {
+            draw_top_status = false;
             editorDrawIntroMessages();
         }
     } else {
         for (int i = 0; i < gEditor.split_count; i++) {
             editorDrawSplit(i);
         }
+    }
+
+    if (draw_top_status) {
+        editorDrawTopStatusBar();
     }
 
     editorDrawFileExplorer();
