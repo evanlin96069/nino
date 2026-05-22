@@ -34,7 +34,7 @@ void editorUpdateRow(EditorFile* file, EditorRow* row) {
     row->rsize = editorRowCxToRx(row, row->size);
     if (file) {
         // When doing prompt editing, file can be NULL.
-        editorUpdateSyntax(file, row);
+        editorUpdateSyntax(file, row, HL_UPDATE_LAZY);
     }
 }
 

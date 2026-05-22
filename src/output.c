@@ -832,8 +832,8 @@ static void editorDrawSplit(int split_index) {
     int start, end;
     editorGetSplitScreenCols(split_index, &start, &end);
 
-    const EditorTab* tab = editorSplitGetTab(split_index);
-    const EditorFile* file = editorTabGetFile(tab);
+    EditorTab* tab = editorSplitGetTab(split_index);
+    EditorFile* file = editorTabGetFile(tab);
 
     EditorSelectRange range = {0};
     if (tab->cursor.is_selected)
@@ -879,6 +879,10 @@ static void editorDrawSplit(int split_index) {
             }
 
             EditorRow* row_data = &file->row[i];
+            if (!row_data->hl_updated) {
+                // Do full single line syntax update
+                editorUpdateSyntax(file, row_data, HL_UPDATE_SINGLE_LINE);
+            }
 
             // Draw content
             int col_offset = editorRowRxToCx(row_data, tab->col_offset);

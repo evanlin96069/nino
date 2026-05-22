@@ -10,6 +10,10 @@ typedef struct EditorRow EditorRow;
 #define HL_HIGHLIGHT_NUMBERS (1 << 0)
 #define HL_HIGHLIGHT_STRINGS (1 << 1)
 
+// editorUpdateSyntax flags
+#define HL_UPDATE_LAZY (1 << 0)
+#define HL_UPDATE_SINGLE_LINE (1 << 1)
+
 typedef enum EditorHLType {
     HL_NORMAL = 0,
     HL_COMMENT,
@@ -40,7 +44,13 @@ typedef struct EditorSyntax {
     struct JsonValue* value;
 } EditorSyntax;
 
-void editorUpdateSyntax(EditorFile* file, EditorRow* row);
+// flags:
+// - HL_UPDATE_LAZY: Only detect multiline comment (hl_open_comment)
+// - HL_UPDATE_SINGLE_LINE: Only update the current line
+// Probably doesn't make much sense to have both flags on though
+// return: number of rows updated
+int editorUpdateSyntax(EditorFile* file, EditorRow* row, int flags);
+void editorFileReloadHighlight(EditorFile* file);
 void editorSetSyntaxHighlight(EditorFile* file, EditorSyntax* syntax_def);
 void editorSelectSyntaxHighlight(EditorFile* file);
 void editorInitHLDB(void);

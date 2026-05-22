@@ -20,14 +20,19 @@ static uint32_t editorRowCountTrailingSpaces(const EditorRow* row) {
     return count;
 }
 
-void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
+int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
     const EditorSyntax* s = file->syntax;
 
-    r->trailing_spaces = editorRowCountTrailingSpaces(r);
+    bool lazy = flags & HL_UPDATE_LAZY;
+    bool single_line = flags & HL_UPDATE_SINGLE_LINE;
+
+    if (!lazy)
+        r->trailing_spaces = editorRowCountTrailingSpaces(r);
 
     if (!syntax.int_value || !s) {
         vector_clear(r->hl_spans);
-        return;
+        r->hl_updated = !lazy;
+        return 1;
     }
 
     const char* scs = s->singleline_comment_start;
@@ -41,10 +46,13 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
     bool do_next_row = true;
     int row_index = (int)(r - file->row);
 
+    int processed_rows = 0;
+
     while (do_next_row && row_index < file->num_rows) {
         EditorRow* row = &file->row[row_index];
 
         vector_clear(row->hl_spans);
+        row->hl_updated = !lazy;
 
         do_next_row = false;
 
@@ -88,6 +96,11 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
                                                });
                     continue;
                 }
+            }
+
+            if (lazy) {
+                i++;
+                continue;
             }
 
             // Single line comment
@@ -306,14 +319,32 @@ void editorUpdateSyntax(EditorFile* file, EditorRow* r) {
 
         do_next_row = changed;
         row_index++;
+        processed_rows++;
+
+        if (single_line) {
+            break;
+        }
+    }
+
+    return processed_rows;
+}
+
+void editorFileReloadHighlight(EditorFile* file) {
+    int i = 0;
+    while (i < file->num_rows) {
+        int count = editorUpdateSyntax(file, &file->row[i], HL_UPDATE_LAZY);
+        if (count <= 0) {
+            // This shouldn't happen
+            break;
+        }
+
+        i += count;
     }
 }
 
 void editorSetSyntaxHighlight(EditorFile* file, EditorSyntax* syntax_def) {
     file->syntax = syntax_def;
-    for (int i = 0; i < file->num_rows; i++) {
-        editorUpdateSyntax(file, &file->row[i]);
-    }
+    editorFileReloadHighlight(file);
 }
 
 void editorSelectSyntaxHighlight(EditorFile* file) {

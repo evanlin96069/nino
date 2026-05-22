@@ -8,11 +8,12 @@
 
 CCommand args;
 
+static void cvarTabSizeCallback(void);
 static void cvarSyntaxCallback(void);
 static void cvarExplorerCallback(void);
 static void cvarMouseCallback(void);
 
-CONVAR(tabsize, "4", "Tab size.", true, 1, true, 16, cvarSyntaxCallback);
+CONVAR(tabsize, "4", "Tab size.", true, 1, true, 16, cvarTabSizeCallback);
 CONVAR(whitespace, "1", "Use whitespace instead of tab.");
 CONVAR(autoindent, "0", "Enable auto indent.");
 CONVAR(backspace, "1", "Use hungry backspace.");
@@ -24,7 +25,8 @@ CONVAR(helpinfo, "1", "Show the help information.");
 CONVAR(intro, "1", "Show the introductory message when no files are open.");
 CONVAR(start_new_file,
        "0",
-       "Create an untitled file when starting with no files and no directory.");
+       "Create an untitled file when starting with no files and no "
+       "directory.");
 CONVAR(ignorecase,
        "2",
        "Use case insensitive search. Set to 2 to use smart case.",
@@ -73,9 +75,7 @@ static void reloadSyntax(void) {
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
         if (gEditor.files[i].reference_count == 0)
             continue;
-        for (int j = 0; j < gEditor.files[i].num_rows; j++) {
-            editorUpdateRow(&gEditor.files[i], &gEditor.files[i].row[j]);
-        }
+        editorFileReloadHighlight(&gEditor.files[i]);
     }
 }
 
@@ -87,6 +87,19 @@ static void reloadExplorer(void) {
 
         gEditor.explorer.offset = 0;
         gEditor.explorer.selected_index = 0;
+    }
+}
+
+static void cvarTabSizeCallback(void) {
+    // Update rsize
+    for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+        if (gEditor.files[i].reference_count == 0)
+            continue;
+        EditorFile* file = &gEditor.files[i];
+        for (int j = 0; j < file->num_rows; j++) {
+            file->row[j].rsize =
+                editorRowCxToRx(&file->row[j], file->row[j].size);
+        }
     }
 }
 
@@ -388,7 +401,8 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
                 EditorSplit* split = &gEditor.splits[i];
                 for (int j = 0; j < split->tab_count; j++) {
                     EditorTab* tab = &split->tabs[j];
-                    // TODO: Move cursor based on the position in the old file
+                    // TODO: Move cursor based on the position in the old
+                    // file
                     if (tab->file_index == file_index) {
                         tab->cursor.x = 0;
                         tab->cursor.y = 0;

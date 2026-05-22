@@ -18,6 +18,7 @@ typedef struct EditorRow {
     EditorHLSpanVector hl_spans;
     uint32_t trailing_spaces;
     bool hl_open_comment;
+    bool hl_updated;
 } EditorRow;
 
 void editorRowEnsureCapacity(EditorRow* row, size_t size);
