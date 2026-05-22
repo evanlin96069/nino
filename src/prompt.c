@@ -1,6 +1,5 @@
 #include "prompt.h"
 
-#include <ctype.h>
 #include <stdarg.h>
 
 #include "editor.h"
@@ -574,7 +573,7 @@ static void editorFindCallback(char* query, int key) {
         } else if (ignorecase_mode == 2) {
             bool has_upper = false;
             for (size_t j = 0; j < len; j++) {
-                if (isupper((unsigned char)query[j])) {
+                if (isUpper(query[j])) {
                     has_upper = true;
                     break;
                 }

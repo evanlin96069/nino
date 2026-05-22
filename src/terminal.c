@@ -1,6 +1,5 @@
 #include "terminal.h"
 
-#include <ctype.h>
 #include <signal.h>
 
 #include "config.h"
@@ -135,7 +134,7 @@ static bool parseMouseSGR(const char* seq,
 
     // Cy
     *Cy = atoi(seq);
-    while (*seq && isdigit((unsigned char)*seq))
+    while (*seq && isDigit(*seq))
         seq++;
 
     if (*seq != 'M' && *seq != 'm')
@@ -215,7 +214,7 @@ EditorInput editorReadEvent(void) {
                 return result;
             }
             seq[i] = (char)c;
-            if (isupper((uint8_t)seq[i]) || seq[i] == 'm' || seq[i] == '~') {
+            if (isUpper(seq[i]) || seq[i] == 'm' || seq[i] == '~') {
                 success = true;
                 break;
             }

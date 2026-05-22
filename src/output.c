@@ -1,7 +1,5 @@
 #include "output.h"
 
-#include <ctype.h>  // iscntrl
-
 #include "config.h"
 #include "editor.h"
 #include "highlight.h"
@@ -946,7 +944,7 @@ static void editorDrawSplit(int split_index) {
 
                 ScreenStyle style = {0};
 
-                if (iscntrl((uint8_t)c[j]) && c[j] != '\t') {
+                if (isCntrl(c[j]) && c[j] != '\t') {
                     // Control character (show inverted)
                     style.fg = gEditor.color_cfg[fg];
                     style.bg = gEditor.color_cfg[bg];

@@ -214,6 +214,27 @@ static inline int isDigit(int c) {
     return c >= '0' && c <= '9';
 }
 
+static inline int isCntrl(int c) {
+    // 0x7F is DEL
+    return (c >= 0x00 && c <= 0x1F) || (c == 0x7F);
+}
+
+static inline int isLower(int c) {
+    return (c >= 'a' && c <= 'z');
+}
+
+static inline int isUpper(int c) {
+    return (c >= 'A' && c <= 'Z');
+}
+
+static inline int toLower(int c) {
+    return isUpper(c) ? c + 32 : c;
+}
+
+static inline int toUpper(int c) {
+    return isLower(c) ? c - 32 : c;
+}
+
 static inline char isOpenBracket(int key) {
     switch (key) {
         case '(':

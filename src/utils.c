@@ -1,6 +1,5 @@
 #include "utils.h"
 
-#include <ctype.h>  // tolower
 #include <limits.h>
 
 #include "os.h"
@@ -374,7 +373,7 @@ int strCaseCmp(const char* s1, const char* s2) {
         return 0;
 
     int result;
-    while ((result = tolower(*s1) - tolower(*s2)) == 0) {
+    while ((result = toLower(*s1) - toLower(*s2)) == 0) {
         if (*s1 == '\0')
             break;
         s1++;
@@ -391,7 +390,7 @@ char* strCaseStr(const char* str, const char* sub_str) {
     while (*str != '\0') {
         const char* s = str;
         const char* sub = sub_str;
-        while (tolower(*s) == tolower(*sub)) {
+        while (toLower(*s) == toLower(*sub)) {
             s++;
             sub++;
             if (*sub == '\0') {
@@ -427,7 +426,7 @@ int findSubstring(const char* haystack,
             uint8_t hay = (uint8_t)haystack[i + j];
             uint8_t nee = (uint8_t)needle[j];
             if (ignore_case) {
-                if (tolower(hay) != tolower(nee))
+                if (toLower(hay) != toLower(nee))
                     break;
             } else if (hay != nee) {
                 break;

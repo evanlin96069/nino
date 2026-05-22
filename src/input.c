@@ -1,7 +1,5 @@
 #include "input.h"
 
-#include <ctype.h>
-
 #include "config.h"
 #include "editor.h"
 #include "file_io.h"
@@ -97,11 +95,11 @@ static bool editorExplorerProcessKeypress(EditorInput input) {
         if (unicode > 255)
             return true;
 
-        char c = tolower(unicode);
+        char c = toLower(unicode);
         size_t index = gEditor.explorer.selected_index + 1;
         for (size_t i = 0; i < gEditor.explorer.flatten.size; i++) {
             index = index % gEditor.explorer.flatten.size;
-            if (tolower(getBaseName(
+            if (toLower(getBaseName(
                     gEditor.explorer.flatten.data[index]->filename)[0]) == c) {
                 gEditor.explorer.selected_index = index;
                 editorExplorerScrollToSelect();
