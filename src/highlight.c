@@ -457,35 +457,41 @@ static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax_def) {
     JsonObject* object = value->object;
 
     JsonValue* name = json_object_find(object, "name");
-    CHECK(name && name->type == JSON_STRING);
+    // Name is required
+    CHECK(name && name->type == JSON_STRING && *name->string != '\0');
     syntax_def->file_type = name->string;
 
     JsonValue* extensions = json_object_find(object, "extensions");
-    CHECK(extensions && extensions->type == JSON_ARRAY);
-    for (size_t i = 0; i < extensions->array->size; i++) {
-        JsonValue* item = extensions->array->data[i];
-        CHECK(item->type == JSON_STRING);
-        vector_push(syntax_def->file_exts, item->string);
+    // Extension is optional
+    if (extensions) {
+        CHECK(extensions->type == JSON_ARRAY);
+        for (size_t i = 0; i < extensions->array->size; i++) {
+            JsonValue* item = extensions->array->data[i];
+            CHECK(item->type == JSON_STRING && *item->string != '\0');
+            vector_push(syntax_def->file_exts, item->string);
+        }
+        vector_shrink(syntax_def->file_exts);
     }
-    vector_shrink(syntax_def->file_exts);
 
+    // Comment is optional
     JsonValue* comment = json_object_find(object, "comment");
-    if (comment && comment->type != JSON_NULL) {
-        CHECK(comment->type == JSON_STRING);
+    if (comment) {
+        CHECK(comment->type == JSON_STRING && *comment->string != '\0');
         syntax_def->singleline_comment_start = comment->string;
     } else {
         syntax_def->singleline_comment_start = NULL;
     }
 
+    // Multi-line comment is optional, but needs to come in pair
     JsonValue* multi_comment = json_object_find(object, "multiline-comment");
-    if (multi_comment && multi_comment->type != JSON_NULL) {
+    if (multi_comment) {
         CHECK(multi_comment->type == JSON_ARRAY);
         CHECK(multi_comment->array->size == 2);
         JsonValue* mcs = multi_comment->array->data[0];
-        CHECK(mcs && mcs->type == JSON_STRING);
+        CHECK(mcs && mcs->type == JSON_STRING && *mcs->string != '\0');
         syntax_def->multiline_comment_start = mcs->string;
         JsonValue* mce = multi_comment->array->data[1];
-        CHECK(mce && mce->type == JSON_STRING);
+        CHECK(mce && mce->type == JSON_STRING && *mce->string != '\0');
         syntax_def->multiline_comment_end = mce->string;
     } else {
         syntax_def->multiline_comment_start = NULL;
@@ -495,11 +501,11 @@ static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax_def) {
 
     for (int i = 0; i < 3; i++) {
         JsonValue* keywords = json_object_find(object, kw_fields[i]);
-        if (keywords && keywords->type != JSON_NULL) {
+        if (keywords) {
             CHECK(keywords->type == JSON_ARRAY);
             for (size_t j = 0; j < keywords->array->size; j++) {
                 JsonValue* item = keywords->array->data[j];
-                CHECK(item->type == JSON_STRING);
+                CHECK(item->type == JSON_STRING && *item->string != '\0');
                 vector_push(syntax_def->keywords[i], item->string);
             }
         }
