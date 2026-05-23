@@ -403,18 +403,19 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
             *curr_file = temp_file;
             curr_file->reference_count = reference_count;
 
+            int max_y = curr_file->num_rows > 0 ? curr_file->num_rows - 1 : 0;
             for (int i = 0; i < gEditor.split_count; i++) {
                 EditorSplit* split = &gEditor.splits[i];
                 for (int j = 0; j < split->tab_count; j++) {
                     EditorTab* tab = &split->tabs[j];
-                    // TODO: Move cursor based on the position in the old
-                    // file
                     if (tab->file_index == file_index) {
                         tab->cursor.x = 0;
-                        tab->cursor.y = 0;
+                        if (tab->cursor.y > max_y)
+                            tab->cursor.y = max_y;
+                        if (tab->row_offset > max_y)
+                            tab->row_offset = max_y;
                         tab->cursor.is_selected = false;
                         tab->sx = 0;
-                        tab->row_offset = 0;
                         tab->col_offset = 0;
                     }
                 }
