@@ -2,6 +2,7 @@
 #define PROMPT_H
 
 void editorMsg(const char* fmt, ...);
+void editorDevMsg(const char* fmt, ...);
 void editorMsgClear(void);
 
 char* editorPrompt(const char* prefix, int state, void (*callback)(char*, int));

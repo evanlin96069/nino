@@ -133,6 +133,7 @@ extern ConVar ttimeoutlen;
 extern ConVar lineno;
 extern ConVar readonly;
 extern ConVar shell;
+extern ConVar developer;
 
 // Color scheme
 

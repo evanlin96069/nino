@@ -71,6 +71,8 @@ CONVAR(ttimeoutlen,
 CONVAR(lineno, "1", "Show line numbers.");
 CONVAR(readonly, "0", "Open files in read-only mode.");
 
+CONVAR(developer, "0", "Set developer message level.");
+
 static void reloadSyntax(void) {
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
         if (gEditor.files[i].reference_count == 0)
@@ -1040,6 +1042,7 @@ void editorRegisterCommands(void) {
 
 #ifndef NDEBUG
     editorInitConCommand(&crash);
+    editorInitConVar(&developer);
 #endif
 }
 
