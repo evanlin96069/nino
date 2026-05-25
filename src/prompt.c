@@ -608,22 +608,35 @@ static int findStateSearchCache(FindState* state, const char* new_query) {
 
     int best_index = -1;
     size_t best_len = 0;
+    bool best_exact_mode = false;
 
     size_t new_query_len = strlen(new_query);
 
     for (int i = state->head; i != state->tail;
          i = (i + 1) % FIND_MAX_HISTORY) {
-        if (state->cache[i].ignore_case != state->ignore_case)
+        // Ignore-case cannot use case-sensitive cache
+        if (state->ignore_case && !state->cache[i].ignore_case)
             continue;
         if (state->cache[i].query_len > new_query_len)
             continue;
-        if (best_index != -1 && best_len >= state->cache[i].query_len)
-            continue;
+
+        bool exact_mode = (state->cache[i].ignore_case == state->ignore_case);
+
+        if (best_index != -1) {
+            // Prefer same-mode over cross-mode
+            if (best_exact_mode && !exact_mode)
+                continue;
+            // Prefer longer prefix match
+            if (best_exact_mode == exact_mode &&
+                best_len >= state->cache[i].query_len)
+                continue;
+        }
 
         if (strStartsWith(new_query, state->cache[i].query,
-                          state->ignore_case)) {
+                          state->cache[i].ignore_case)) {
             best_index = i;
             best_len = state->cache[i].query_len;
+            best_exact_mode = exact_mode;
         }
     }
 
@@ -720,23 +733,45 @@ static void editorFindCallback(char* query, int key) {
                 }
             } else {
                 // Search in the matched cache
-                editorDevMsg("Find: Cache hit, prefix matched");
                 const VecFindPos* matches = &state.cache[cache_index].matches;
                 size_t prefix_len = state.cache[cache_index].query_len;
-                size_t search_len = query_len - prefix_len;
-                const char* search_start = query + prefix_len;
-                for (size_t i = 0; i < matches->size; i++) {
-                    FindPos match = matches->data[i];
-                    match.col += prefix_len;
-                    if (match.col + search_len >
-                        (size_t)file->row[match.row].size)
-                        continue;
-                    // We checked the size, this should be safe
-                    if (!strStartsWith(file->row[match.row].data + match.col,
-                                       search_start, ignore_case))
-                        continue;
-                    // Push the original pos
-                    vector_push(cache.matches, matches->data[i]);
+                bool cross_mode =
+                    (state.cache[cache_index].ignore_case != ignore_case);
+
+                if (cross_mode) {
+                    // Cross-mode: has to verify the entire query
+                    editorDevMsg("Find: Cache hit, cross-mode prefix matched");
+                    for (size_t i = 0; i < matches->size; i++) {
+                        FindPos match = matches->data[i];
+                        if ((size_t)match.col + query_len >
+                            (size_t)file->row[match.row].size)
+                            continue;
+                        // We checked the size, this should be safe
+                        if (!strStartsWith(
+                                file->row[match.row].data + match.col, query,
+                                ignore_case))
+                            continue;
+                        vector_push(cache.matches, matches->data[i]);
+                    }
+                } else {
+                    // Same-mode: only verify the suffix after the prefix
+                    editorDevMsg("Find: Cache hit, prefix matched");
+                    size_t search_len = query_len - prefix_len;
+                    const char* search_start = query + prefix_len;
+                    for (size_t i = 0; i < matches->size; i++) {
+                        FindPos match = matches->data[i];
+                        match.col += prefix_len;
+                        if ((size_t)match.col + search_len >
+                            (size_t)file->row[match.row].size)
+                            continue;
+                        // We checked the size, this should be safe
+                        if (!strStartsWith(
+                                file->row[match.row].data + match.col,
+                                search_start, ignore_case))
+                            continue;
+                        // Push the original pos
+                        vector_push(cache.matches, matches->data[i]);
+                    }
                 }
             }
             state.index = findStateAppend(&state, &cache);
