@@ -516,29 +516,127 @@ void editorGotoLine(void) {
 
 // Find
 
-typedef struct FindList {
-    struct FindList* prev;
-    struct FindList* next;
-    int row;
-    int col;
-} FindList;
+// Well, the actual size is FIND_MAX_HISTORY - 1
+// for easy circular queue implementation
+#define FIND_MAX_HISTORY 32
 
-static void findListFree(FindList* thisptr) {
-    FindList* temp;
-    while (thisptr) {
-        temp = thisptr;
-        thisptr = thisptr->next;
-        free(temp);
+typedef struct FindPos {
+    int row, col;
+} FindPos;
+
+typedef VECTOR(FindPos) VecFindPos;
+
+typedef struct FindCacheEntry {
+    char* query;
+    size_t query_len;
+    bool ignore_case;
+    VecFindPos matches;
+} FindCacheEntry;
+
+typedef struct FindState {
+    bool ignore_case;
+    int index;  // index into cache array
+    int match;  // index into FindCacheEntry matches
+
+    // Cache (circular queue)
+    int head, tail;
+    FindCacheEntry cache[FIND_MAX_HISTORY];
+} FindState;
+
+static void findCacheFree(FindCacheEntry* entry) {
+    free(entry->query);
+    vector_free(entry->matches);
+}
+
+static inline bool findStateIsEmpty(FindState* state) {
+    return state->head == -1;
+}
+
+static inline bool findStateIsFull(FindState* state) {
+    return ((state->tail + 1) % FIND_MAX_HISTORY) == state->head;
+}
+
+static void findStateFree(FindState* state) {
+    if (findStateIsEmpty(state))
+        return;
+
+    for (int i = state->head; i != state->tail;
+         i = (i + 1) % FIND_MAX_HISTORY) {
+        findCacheFree(&state->cache[i]);
+    }
+
+    state->index = -1;
+    state->match = -1;
+    state->head = -1;
+    state->tail = -1;
+}
+
+static void findStatePop(FindState* state) {
+    if (findStateIsEmpty(state))
+        return;
+
+    findCacheFree(&state->cache[state->head]);
+    state->head = (state->head + 1) % FIND_MAX_HISTORY;
+
+    if (state->head == state->tail) {
+        // Queue is now empty
+        state->head = -1;
+        state->tail = -1;
     }
 }
 
-static void editorFindCallback(char* query, int key) {
-    static char* prev_query = NULL;
-    static FindList head = {.prev = NULL, .next = NULL};
-    static FindList* match_node = NULL;
+static int findStateAppend(FindState* state, FindCacheEntry* cache) {
+    if (findStateIsFull(state)) {
+        findStatePop(state);
+    }
 
-    static int total = 0;
-    static int current = 0;
+    if (findStateIsEmpty(state)) {
+        state->head = 0;
+        state->tail = 0;
+    }
+
+    state->cache[state->tail] = *cache;
+    int index = state->tail;
+    state->tail = (state->tail + 1) % FIND_MAX_HISTORY;
+    return index;
+}
+
+// Returns the best matched cache, -1 if no match
+static int findStateSearchCache(FindState* state, const char* new_query) {
+    if (findStateIsEmpty(state))
+        return -1;
+
+    int best_index = -1;
+    size_t best_len = 0;
+
+    size_t new_query_len = strlen(new_query);
+
+    for (int i = state->head; i != state->tail;
+         i = (i + 1) % FIND_MAX_HISTORY) {
+        if (state->cache[i].ignore_case != state->ignore_case)
+            continue;
+        if (state->cache[i].query_len > new_query_len)
+            continue;
+        if (best_index != -1 && best_len >= state->cache[i].query_len)
+            continue;
+
+        if (strStartsWith(new_query, state->cache[i].query,
+                          state->ignore_case)) {
+            best_index = i;
+            best_len = state->cache[i].query_len;
+        }
+    }
+
+    return best_index;
+}
+
+static void editorFindCallback(char* query, int key) {
+    static FindState state = {
+        .index = -1,
+        .match = -1,
+        .head = -1,
+        .tail = -1,
+    };
 
     EditorTab* tab = editorGetActiveTab();
     EditorFile* file = editorTabGetFile(tab);
@@ -548,46 +646,32 @@ static void editorFindCallback(char* query, int key) {
     // Quit find mode
     if (key == ESC || key == CTRL_KEY('q') || key == '\r' ||
         key == MOUSE_PRESSED) {
-        if (prev_query) {
-            free(prev_query);
-            prev_query = NULL;
-        }
-        findListFree(head.next);
-        head.next = NULL;
+        findStateFree(&state);
         editorSetRightPrompt("");
         return;
     }
 
-    size_t len = strlen(query);
-    if (len == 0) {
+    size_t query_len = strlen(query);
+    if (query_len == 0) {
         editorSetRightPrompt("");
         return;
     }
 
-    FindList* tail_node = NULL;
-    if (!head.next || !prev_query || strcmp(prev_query, query) != 0) {
-        // Recompute find list
+    if (state.index == -1 ||
+        (query_len != state.cache[state.index].query_len ||
+         strcmp(state.cache[state.index].query, query) != 0)) {
+        // Query changed
+        state.index = -1;
+        state.match = -1;
 
-        total = 0;
-        current = 0;
-
-        match_node = NULL;
-        if (prev_query)
-            free(prev_query);
-        findListFree(head.next);
-        head.next = NULL;
-
-        prev_query = malloc_s(len + 1);
-        memcpy(prev_query, query, len + 1);
-        prev_query[len] = '\0';
-
+        // Case
         int ignorecase_mode = ignorecase.int_value;
         bool ignore_case = false;
         if (ignorecase_mode == 1) {
             ignore_case = true;
         } else if (ignorecase_mode == 2) {
             bool has_upper = false;
-            for (size_t j = 0; j < len; j++) {
+            for (size_t j = 0; j < query_len; j++) {
                 if (isUpper(query[j])) {
                     has_upper = true;
                     break;
@@ -596,79 +680,113 @@ static void editorFindCallback(char* query, int key) {
             ignore_case = !has_upper;
         }
 
-        FindList* cur = &head;
-        for (int i = 0; i < file->num_rows; i++) {
-            size_t col = 0;
-            size_t row_len = (size_t)file->row[i].size;
+        // Search the cache
+        state.ignore_case = ignore_case;
+        int cache_index = findStateSearchCache(&state, query);
 
-            while (col < row_len) {
-                int match_idx = findSubstring(file->row[i].data, row_len, query,
-                                              len, col, ignore_case);
-                if (match_idx < 0)
-                    break;
+        if (cache_index == -1 ||
+            (state.cache[cache_index].query_len != query_len &&
+             state.cache[cache_index].matches.size != 0)) {
+            FindCacheEntry cache = {
+                .query_len = query_len,
+                .ignore_case = ignore_case,
+            };
 
-                col = (size_t)match_idx;
+            size_t query_size = (query_len + 1) * sizeof(char);
+            cache.query = malloc_s(query_size);
+            memcpy(cache.query, query, query_size);
 
-                FindList* node = malloc_s(sizeof(FindList));
-                node->prev = cur;
-                node->next = NULL;
-                node->row = i;
-                node->col = (int)col;
-                cur->next = node;
-                cur = cur->next;
-                tail_node = cur;
+            if (cache_index == -1) {
+                // Search all matches
+                editorDevMsg("Find: No cache hit, full search");
+                for (int i = 0; i < file->num_rows; i++) {
+                    size_t col = 0;
+                    size_t row_len = (size_t)file->row[i].size;
 
-                total++;
-                if (!match_node) {
-                    current++;
-                    if (((i == tab->cursor.y && col >= (size_t)tab->cursor.x) ||
-                         i > tab->cursor.y)) {
-                        match_node = cur;
+                    while (col < row_len) {
+                        int match_idx =
+                            findSubstring(file->row[i].data, row_len, query,
+                                          query_len, col, ignore_case);
+                        if (match_idx < 0)
+                            break;
+
+                        col = (size_t)match_idx;
+                        vector_push(cache.matches, (FindPos){
+                                                       .row = i,
+                                                       .col = col,
+                                                   });
+                        col += query_len;
                     }
                 }
-                col += len;
+            } else {
+                // Search in the matched cache
+                editorDevMsg("Find: Cache hit, prefix matched");
+                const VecFindPos* matches = &state.cache[cache_index].matches;
+                size_t prefix_len = state.cache[cache_index].query_len;
+                size_t search_len = query_len - prefix_len;
+                const char* search_start = query + prefix_len;
+                for (size_t i = 0; i < matches->size; i++) {
+                    FindPos match = matches->data[i];
+                    match.col += prefix_len;
+                    if (match.col + search_len >
+                        (size_t)file->row[match.row].size)
+                        continue;
+                    // We checked the size, this should be safe
+                    if (!strStartsWith(file->row[match.row].data + match.col,
+                                       search_start, ignore_case))
+                        continue;
+                    // Push the original pos
+                    vector_push(cache.matches, matches->data[i]);
+                }
+            }
+            state.index = findStateAppend(&state, &cache);
+        } else {
+            // Exact match or matched a no result entry
+            if (state.cache[cache_index].matches.size == 0) {
+                editorDevMsg("Find: Cache hit, empty result");
+            } else {
+                editorDevMsg("Find: Cache hit, exact match");
+            }
+            state.index = cache_index;
+        }
+    }
+
+    if (state.index == -1 || state.cache[state.index].matches.size == 0) {
+        editorSetRightPrompt("  No results");
+        return;
+    }
+
+    const VecFindPos* matches = &state.cache[state.index].matches;
+    if (state.match == -1) {
+        // Find the next match in the current matches
+        state.match = 0;  // If not found later, jump to the start
+        for (size_t i = 0; i < matches->size; i++) {
+            FindPos match = matches->data[i];
+            if (match.row > tab->cursor.y ||
+                (match.row == tab->cursor.y && match.col >= tab->cursor.x)) {
+                state.match = i;
+                break;
             }
         }
-
-        if (!head.next) {
-            editorSetRightPrompt("  No results");
-            return;
-        }
-
-        if (!match_node) {
-            current = 1;
-            match_node = head.next;
-        }
-
-        // Don't go back to head
-        head.next->prev = tail_node;
     }
 
     if (key == ARROW_DOWN) {
-        if (match_node->next) {
-            match_node = match_node->next;
-            current++;
-        } else {
-            match_node = head.next;
-            current = 1;
-        }
+        state.match = (state.match + 1) % matches->size;
     } else if (key == ARROW_UP) {
-        match_node = match_node->prev;
-        if (current == 1)
-            current = total;
-        else
-            current--;
+        state.match = (state.match + matches->size - 1) % matches->size;
     }
-    editorSetRightPrompt("  %d of %d", current, total);
+    editorSetRightPrompt("  %d of %d", state.match + 1, matches->size);
 
-    tab->cursor.x = match_node->col;
-    tab->cursor.y = match_node->row;
+    int match_col = matches->data[state.match].col;
+    int match_row = matches->data[state.match].row;
+    tab->cursor.x = match_col;
+    tab->cursor.y = match_row;
     editorScrollToCursorCenter(gEditor.split_active_index);
 
     tab->has_match = true;
-    tab->match_row = match_node->row;
-    tab->match_col = match_node->col;
-    tab->match_len = len;
+    tab->match_row = match_row;
+    tab->match_col = match_col;
+    tab->match_len = query_len;
 }
 
 void editorFind(void) {

@@ -159,6 +159,7 @@ int findSubstring(const char* haystack,
                   size_t needle_len,
                   size_t start,
                   bool ignore_case);
+bool strStartsWith(const char* s, const char* value, bool ignore_case);
 bool strToInt(const char* str, int* out);
 
 // Base64

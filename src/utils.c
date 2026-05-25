@@ -439,6 +439,30 @@ int findSubstring(const char* haystack,
     return -1;
 }
 
+bool strStartsWith(const char* s, const char* value, bool ignore_case) {
+    if (s == value)
+        return true;
+
+    int i = 0;
+    while (value[i] != '\0') {
+        char c1, c2;
+        if (ignore_case) {
+            c1 = toLower(s[i]);
+            c2 = toLower(value[i]);
+        } else {
+            c1 = s[i];
+            c2 = value[i];
+        }
+
+        if (c1 != c2) {
+            return false;
+        }
+
+        i++;
+    }
+    return true;
+}
+
 bool strToInt(const char* str, int* out) {
     if (!str || !out) {
         return false;
