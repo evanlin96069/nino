@@ -698,8 +698,9 @@ static void editorFindCallback(char* query, int key) {
         int cache_index = findStateSearchCache(&state, query);
 
         if (cache_index == -1 ||
-            (state.cache[cache_index].query_len != query_len &&
-             state.cache[cache_index].matches.size != 0)) {
+            (state.cache[cache_index].matches.size != 0 &&
+             (state.cache[cache_index].ignore_case != ignore_case ||
+              state.cache[cache_index].query_len != query_len))) {
             FindCacheEntry cache = {
                 .query_len = query_len,
                 .ignore_case = ignore_case,
