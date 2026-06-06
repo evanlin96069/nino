@@ -87,6 +87,7 @@ else()
 endif()
 
 add_executable(${PROJECT_NAME} ${CORE_SOURCES} ${BUNDLED_FILE})
+target_include_directories(${PROJECT_NAME} PUBLIC src)
 
 add_custom_target(file_toucher
     COMMAND ${CMAKE_COMMAND} -E touch_nocreate

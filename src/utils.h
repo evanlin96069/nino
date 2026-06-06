@@ -38,6 +38,26 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
 
 #define vector_pop(vec) ((vec).data[--(vec).size])
 
+#define vector_insert(vec, index, ...)                              \
+    do {                                                            \
+        if ((index) > (vec).size)                                   \
+            break;                                                  \
+        _vector_make_room((_Vector*)&(vec), sizeof((vec).data[0])); \
+        memmove(&(vec).data[(index) + 1], &(vec).data[index],       \
+                sizeof((vec).data[0]) * ((vec).size - (index)));    \
+        (vec).data[index] = (__VA_ARGS__);                          \
+        (vec).size++;                                               \
+    } while (0)
+
+#define vector_erase(vec, index)                                         \
+    do {                                                                 \
+        if ((index) < (vec).size) {                                      \
+            memmove(&(vec).data[index], &(vec).data[(index) + 1],        \
+                    sizeof((vec).data[0]) * ((vec).size - (index) - 1)); \
+            (vec).size--;                                                \
+        }                                                                \
+    } while (0)
+
 #define vector_shrink(vec)                                             \
     do {                                                               \
         (vec).data =                                                   \
