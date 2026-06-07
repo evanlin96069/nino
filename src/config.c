@@ -403,6 +403,8 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
             int reference_count = curr_file->reference_count;
             editorFreeFile(curr_file);
             *curr_file = temp_file;
+            curr_file->action_head = calloc_s(1, sizeof(EditorActionList));
+            curr_file->action_current = curr_file->action_head;
             curr_file->reference_count = reference_count;
 
             int max_y = curr_file->num_rows > 0 ? curr_file->num_rows - 1 : 0;
