@@ -167,8 +167,6 @@ static bool readConsoleKey(uint32_t* out, int timeout_ms) {
 
 // ANSII escape sequences parsing.
 EditorInput editorReadEvent(void) {
-    static bool scroll_pressed = false;
-
     uint32_t c;
     EditorInput result = {.type = UNKNOWN};
     ConsoleEvent ev;
@@ -348,7 +346,6 @@ EditorInput editorReadEvent(void) {
                         break;
                     case 1:
                         result.type = SCROLL_PRESSED;
-                        scroll_pressed = true;
                         break;
                     default:
                         return result;
@@ -357,18 +354,10 @@ EditorInput editorReadEvent(void) {
             } else if (rel) {
                 switch (btn) {
                     case 0:
-                        // Hack: Some terminal emulators always return
-                        // [<0;Cx;Cym on any types of release
-                        if (scroll_pressed) {
-                            result.type = SCROLL_RELEASED;
-                            scroll_pressed = false;
-                        } else {
-                            result.type = MOUSE_RELEASED;
-                        }
+                        result.type = MOUSE_RELEASED;
                         break;
                     case 1:
                         result.type = SCROLL_RELEASED;
-                        scroll_pressed = false;
                         break;
                     default:
                         break;
