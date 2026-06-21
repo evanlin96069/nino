@@ -32,6 +32,7 @@ struct LayoutNode {
     int min_size;
     bool enabled;
     bool resizable;
+    bool has_enabled_content;  // only layoutUpdateEnabledCache updates this
 
     union {
         // LAYOUT_LEFTRIGHT/TOPBOTTOM
@@ -72,9 +73,16 @@ void layoutSplit(LayoutNode** root,
 void layoutRemove(LayoutNode** root, LayoutNode* node);
 // Return the node itself if the node is on the edge in the given direction
 LayoutNode* layoutNavigate(LayoutNode* node, LayoutDirection dir);
+// Find the next available leaf closest to the given node in the tree
+LayoutNode* layoutFindNextFocusNode(LayoutNode* node, bool prefer_next);
+void layoutSeparatorDrag(Separator* sep, int x, int y);
 
 // Return NULL if not found
 LayoutNode* layoutFindAt(LayoutNode* node, int x, int y);
 Separator* layoutFindSeparatorAt(VecSeparator* separators, int x, int y);
+
+// Update the enabled content cache
+// Call this after changing node->enabled
+void layoutUpdateEnabledCache(LayoutNode* root);
 
 #endif

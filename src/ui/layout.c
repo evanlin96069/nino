@@ -10,6 +10,7 @@ LayoutNode* layoutNodeCreate(LayoutNodeKind kind) {
     result->min_size = 1;
     result->enabled = true;
     result->resizable = true;
+    result->has_enabled_content = true;
     return result;
 }
 
@@ -25,26 +26,113 @@ LayoutNode* layoutNodeCreateSplit(bool leftright) {
     return result;
 }
 
-static bool layoutIsEnabled(const LayoutNode* node) {
+static void layoutComputeEnabledCache(LayoutNode* node) {
     if (!node)
-        return false;
-    if (!node->enabled)
-        return false;
+        return;
+
+    if (node->kind == LAYOUT_LEAF) {
+        node->has_enabled_content = node->enabled;
+    } else {
+        bool child_has_enabled_content = false;
+        for (uint32_t i = 0; i < node->children.size; i++) {
+            layoutComputeEnabledCache(node->children.data[i]);
+            child_has_enabled_content |=
+                node->children.data[i]->has_enabled_content;
+        }
+        node->has_enabled_content = node->enabled && child_has_enabled_content;
+    }
+}
+
+void layoutUpdateEnabledCache(LayoutNode* root) {
+    layoutComputeEnabledCache(root);
+}
+
+static int layoutFindFirstEnabledChildIndex(LayoutNode* node) {
+    if (!node)
+        return -1;
     if (node->kind == LAYOUT_LEAF)
-        return true;
+        return -1;
     for (uint32_t i = 0; i < node->children.size; i++) {
-        const LayoutNode* child = node->children.data[i];
-        if (layoutIsEnabled(child)) {
-            return true;
+        LayoutNode* child = node->children.data[i];
+        if (!child->has_enabled_content)
+            continue;
+        return (int)i;
+    }
+    return -1;
+}
+
+static int layoutFindLastEnabledChildIndex(LayoutNode* node) {
+    if (!node)
+        return -1;
+    if (node->kind == LAYOUT_LEAF)
+        return -1;
+    for (int i = node->children.size - 1; i >= 0; i--) {
+        LayoutNode* child = node->children.data[i];
+        if (!child->has_enabled_content)
+            continue;
+        return (int)i;
+    }
+    return -1;
+}
+
+static inline LayoutNode* layoutFindFirstEnabledChild(LayoutNode* node) {
+    int index = layoutFindFirstEnabledChildIndex(node);
+    if (index < 0)
+        return NULL;
+    return node->children.data[index];
+}
+
+static inline LayoutNode* layoutFindLastEnabledChild(LayoutNode* node) {
+    int index = layoutFindLastEnabledChildIndex(node);
+    if (index < 0)
+        return NULL;
+    return node->children.data[index];
+}
+
+static bool layoutComputeSizing(LayoutNode* node,
+                                int last,
+                                int total_size,
+                                int* content_size,
+                                float* total_ratio) {
+    if (!node || node->kind == LAYOUT_LEAF)
+        return false;
+
+    if (last < 0)
+        return false;
+
+    int size = total_size;
+    float ratio = 0.0f;
+    for (uint32_t i = 0; i < node->children.size; i++) {
+        LayoutNode* child = node->children.data[i];
+        if (!child->has_enabled_content)
+            continue;
+
+        if (child->size_type == LAYOUT_SIZE_FIXED) {
+            size -= child->fixed_size;
+        } else {
+            ratio += child->ratio;
+        }
+
+        // Separator
+        if (child->resizable && (int)i != last) {
+            size--;
         }
     }
-    return false;
+
+    if (ratio <= 0.0f)
+        ratio = 1.0f;
+    if (size < 0)
+        size = 0;
+
+    if (content_size)
+        *content_size = size;
+    if (total_ratio)
+        *total_ratio = ratio;
+    return true;
 }
 
 void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators) {
-    if (!node)
-        return;
-    if (!layoutIsEnabled(node))
+    if (!node || !node->has_enabled_content)
         return;
 
     node->rect = available;
@@ -52,50 +140,23 @@ void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators) {
     if (node->kind == LAYOUT_LEAF)
         return;
 
-    int last;
-    for (last = node->children.size - 1; last >= 0; last--) {
-        const LayoutNode* child = node->children.data[last];
-        if (layoutIsEnabled(child))
-            break;
-    }
-
+    int last = layoutFindLastEnabledChildIndex(node);
     if (last < 0)
         return;
 
     bool leftright = (node->kind == LAYOUT_LEFTRIGHT);
     int total_size = leftright ? available.w : available.h;
 
-    int content_size = total_size;
-    float total_ratio = 0.0f;
-    for (uint32_t i = 0; i < node->children.size; i++) {
-        LayoutNode* child = node->children.data[i];
-        // TODO: cache the layoutIsEnabled(child) results.
-        // Don't want to allocate memory for the cache.
-        // Need a stack fallback allocator backed vector.
-        if (!layoutIsEnabled(child))
-            continue;
-
-        if (child->size_type == LAYOUT_SIZE_FIXED) {
-            content_size -= child->fixed_size;
-        } else {
-            total_ratio += child->ratio;
-        }
-
-        // Separator
-        if (child->resizable && (int)i != last) {
-            content_size--;
-        }
-    }
-
-    if (total_ratio <= 0.0f)
-        total_ratio = 1.0f;
-    if (content_size < 0)
-        content_size = 0;
+    int content_size;
+    float total_ratio;
+    if (!layoutComputeSizing(node, last, total_size, &content_size,
+                             &total_ratio))
+        return;
 
     int offset = 0;
     for (uint32_t i = 0; i < node->children.size; i++) {
         LayoutNode* child = node->children.data[i];
-        if (!layoutIsEnabled(child))
+        if (!child->has_enabled_content)
             continue;
 
         int size = 0;
@@ -151,9 +212,7 @@ void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators) {
 }
 
 void layoutRender(LayoutNode* node, Surface s) {
-    if (!node)
-        return;
-    if (!layoutIsEnabled(node))
+    if (!node || !node->has_enabled_content)
         return;
 
     if (node->rect.w == 0 || node->rect.h == 0)
@@ -202,6 +261,7 @@ void layoutSplit(LayoutNode** root,
                 break;
             }
         }
+        layoutUpdateEnabledCache(*root);
         return;
     }
 
@@ -232,6 +292,8 @@ void layoutSplit(LayoutNode** root,
     } else {
         *root = split_node;
     }
+
+    layoutUpdateEnabledCache(*root);
 }
 
 void layoutRemove(LayoutNode** root, LayoutNode* node) {
@@ -269,16 +331,18 @@ void layoutRemove(LayoutNode** root, LayoutNode* node) {
         parent->children.size = 0;  // Don't free the child
         layoutFree(parent);
     }
+
+    layoutUpdateEnabledCache(*root);
 }
 
-static LayoutNode* layoutFindNextSibling(LayoutNode* node) {
+static LayoutNode* layoutFindNextEnabledSibling(LayoutNode* node) {
     if (!node || !node->parent)
         return NULL;
     LayoutNode* parent = node->parent;
     bool found_self = false;
     for (uint32_t i = 0; i < parent->children.size; i++) {
         LayoutNode* child = parent->children.data[i];
-        if (!layoutIsEnabled(child))
+        if (!child->has_enabled_content)
             continue;
         if (child == node) {
             found_self = true;
@@ -289,14 +353,14 @@ static LayoutNode* layoutFindNextSibling(LayoutNode* node) {
     return NULL;
 }
 
-static LayoutNode* layoutFindPrevSibling(LayoutNode* node) {
+static LayoutNode* layoutFindPrevEnabledSibling(LayoutNode* node) {
     if (!node || !node->parent)
         return NULL;
     LayoutNode* parent = node->parent;
     LayoutNode* prev = NULL;
     for (uint32_t i = 0; i < parent->children.size; i++) {
         LayoutNode* child = parent->children.data[i];
-        if (!layoutIsEnabled(child))
+        if (!child->has_enabled_content)
             continue;
         if (child == node) {
             return prev;
@@ -306,36 +370,8 @@ static LayoutNode* layoutFindPrevSibling(LayoutNode* node) {
     return NULL;
 }
 
-static LayoutNode* layoutFindFirstEnabledChild(LayoutNode* node) {
-    if (!node)
-        return NULL;
-    if (node->kind == LAYOUT_LEAF)
-        return NULL;
-    for (uint32_t i = 0; i < node->children.size; i++) {
-        LayoutNode* child = node->children.data[i];
-        if (!layoutIsEnabled(child))
-            continue;
-        return child;
-    }
-    return NULL;
-}
-
-static LayoutNode* layoutFindLastEnabledChild(LayoutNode* node) {
-    if (!node)
-        return NULL;
-    if (node->kind == LAYOUT_LEAF)
-        return NULL;
-    for (int i = node->children.size - 1; i >= 0; i--) {
-        LayoutNode* child = node->children.data[i];
-        if (!layoutIsEnabled(child))
-            continue;
-        return child;
-    }
-    return NULL;
-}
-
 LayoutNode* layoutNavigate(LayoutNode* node, LayoutDirection dir) {
-    if (!node || !layoutIsEnabled(node))
+    if (!node || !node->has_enabled_content)
         return NULL;
     bool positive = (dir == LAYOUT_DIR_RIGHT || dir == LAYOUT_DIR_DOWN);
     LayoutNodeKind expected_parent_kind =
@@ -345,8 +381,9 @@ LayoutNode* layoutNavigate(LayoutNode* node, LayoutDirection dir) {
     LayoutNode* current = node;
     while (current) {
         if (current->parent && current->parent->kind == expected_parent_kind) {
-            LayoutNode* sibling = positive ? layoutFindNextSibling(current)
-                                           : layoutFindPrevSibling(current);
+            LayoutNode* sibling = positive
+                                      ? layoutFindNextEnabledSibling(current)
+                                      : layoutFindPrevEnabledSibling(current);
             if (sibling) {
                 current = sibling;
                 break;
@@ -361,15 +398,106 @@ LayoutNode* layoutNavigate(LayoutNode* node, LayoutDirection dir) {
                            : layoutFindLastEnabledChild(current);
     }
 
-    if (!current)
-        return node;
     return current;
+}
+
+LayoutNode* layoutFindNextFocusNode(LayoutNode* node, bool prefer_next) {
+    if (!node || !node->has_enabled_content)
+        return NULL;
+
+    // Ascend
+    LayoutNode* current = node;
+    bool descend_first = !prefer_next;
+    while (current) {
+        LayoutNode* sibling = prefer_next
+                                  ? layoutFindNextEnabledSibling(current)
+                                  : layoutFindPrevEnabledSibling(current);
+        if (sibling) {
+            descend_first = !prefer_next;
+            current = sibling;
+            break;
+        }
+        sibling = prefer_next ? layoutFindPrevEnabledSibling(current)
+                              : layoutFindNextEnabledSibling(current);
+        if (sibling) {
+            descend_first = prefer_next;
+            current = sibling;
+            break;
+        }
+        current = current->parent;
+    }
+
+    // Descend
+    while (current && current->kind != LAYOUT_LEAF) {
+        current = descend_first ? layoutFindFirstEnabledChild(current)
+                                : layoutFindLastEnabledChild(current);
+    }
+
+    return current;
+}
+
+void layoutSeparatorDrag(Separator* sep, int x, int y) {
+    if (!sep || !sep->parent)
+        return;
+
+    LayoutNode* parent = sep->parent;
+    if (parent->kind != LAYOUT_LEFTRIGHT && parent->kind != LAYOUT_TOPBOTTOM)
+        return;
+    if (!parent->has_enabled_content)
+        return;
+
+    bool leftright = parent->kind == LAYOUT_LEFTRIGHT;
+
+    if (sep->index < 0 || (uint32_t)sep->index >= parent->children.size)
+        return;
+
+    int last = layoutFindLastEnabledChildIndex(parent);
+    if (last == -1 || last == sep->index)
+        return;
+
+    LayoutNode* node = parent->children.data[sep->index];
+    if (!node->has_enabled_content)
+        return;
+
+    LayoutNode* next = layoutFindNextEnabledSibling(node);
+    if (!next || !next->has_enabled_content)
+        return;
+
+    int curr_pos = (leftright ? node->rect.x : node->rect.y);
+    int lower_bound = curr_pos + node->min_size;
+    int upper_bound = (leftright ? next->rect.x + next->rect.w
+                                 : next->rect.y + next->rect.h) -
+                      next->min_size - 1;
+    int desired_pos = (leftright ? x : y);
+    if (desired_pos < lower_bound)
+        desired_pos = lower_bound;
+    if (desired_pos > upper_bound)
+        desired_pos = upper_bound;
+
+    int desired_size = desired_pos - curr_pos;
+
+    if (node->size_type == LAYOUT_SIZE_FIXED) {
+        node->fixed_size = desired_size;
+        return;
+    }
+
+    // Ratio
+    int total_size = (leftright ? parent->rect.w : parent->rect.h);
+    int content_size;
+    float total_ratio;
+    if (!layoutComputeSizing(parent, last, total_size, &content_size,
+                             &total_ratio))
+        return;
+    if (content_size <= 0)
+        return;
+
+    node->ratio = total_ratio * ((float)desired_size / (float)content_size);
 }
 
 LayoutNode* layoutFindAt(LayoutNode* node, int x, int y) {
     if (!node)
         return NULL;
-    if (!layoutIsEnabled(node))
+    if (!node->has_enabled_content)
         return NULL;
     if (!rectContains(node->rect, x, y))
         return NULL;

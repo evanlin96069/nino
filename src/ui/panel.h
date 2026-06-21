@@ -3,6 +3,7 @@
 
 #include "terminal.h"
 
+#include "ui/compositor.h"
 #include "ui/surface.h"
 
 typedef struct LayoutNode LayoutNode;
@@ -11,12 +12,10 @@ typedef struct Panel Panel;
 typedef struct PanelVtable {
     void (*destroy)(Panel* self);
     void (*render)(Panel* self, Surface s);
-    void (*onFocus)(Panel* self);
-    bool (*keyEvent)(Panel* self, EditorInput input);
-    bool (*mouseEvent)(Panel* self,
-                       EditorInput input,
-                       int local_x,
-                       int local_y);
+    void (*onFocus)(Panel* self, bool focused);
+    void (*keyEvent)(Panel* self, EditorInput input);
+    // Return if the panel capture the drag event (UI_MOUSE1_MOVE)
+    bool (*mouseEvent)(Panel* self, MouseEvent mouse_event);
 } PanelVtable;
 
 typedef struct Panel {
