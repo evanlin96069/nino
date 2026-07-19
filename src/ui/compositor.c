@@ -54,7 +54,21 @@ void uiComposite(UI* ui, Surface s, ScreenStyle sep_style) {
     }
 }
 
-static inline MouseEventType inputTypeToMouseEventType(int type) {
+bool uiGetCursor(UI* ui, UICursor* out) {
+    Panel* panel = ui->focused_panel;
+    if (!panel) {
+        out->visible = false;
+        out->x = 0;
+        out->y = 0;
+        return false;
+    }
+
+    panel->vt->getCursor(panel, out);
+    rectToGlobal(panel->layout->rect, out->x, out->y, &out->x, &out->y);
+    return true;
+}
+
+static inline UIMouseEventType inputTypeToMouseEventType(int type) {
     switch (type) {
         case MOUSE_MOVE:
             return UI_MOUSE1_MOVE;
@@ -77,7 +91,7 @@ static inline MouseEventType inputTypeToMouseEventType(int type) {
 
 void uiProcessInput(UI* ui,
                     EditorInput input,
-                    GlobalInputHandler global_input_handler) {
+                    UIGlobalInputHandler global_input_handler) {
     switch (input.type) {
         case MOUSE_MOVE:
         case MOUSE_PRESSED:
@@ -94,7 +108,7 @@ void uiProcessInput(UI* ui,
 
             switch (ui->mouse.type) {
                 case UI_MOUSE1_MOVE: {
-                    if (ui->mouse.drag.type == DRAG_PANEL) {
+                    if (ui->mouse.drag.type == UI_DRAG_PANEL) {
                         Panel* panel;
                         if (ui->mouse.drag.capture) {
                             panel = ui->mouse.drag.panel;
@@ -105,13 +119,13 @@ void uiProcessInput(UI* ui,
                             panel = node->panel;
                         }
 
-                        MouseEvent event;
+                        UIMouseEvent event;
                         event.state = &ui->mouse;
                         rectToLocal(panel->layout->rect, x, y, &event.x,
                                     &event.y);
 
                         panel->vt->mouseEvent(panel, event);
-                    } else if (ui->mouse.drag.type == DRAG_SEPARATOR) {
+                    } else if (ui->mouse.drag.type == UI_DRAG_SEPARATOR) {
                         layoutSeparatorDrag(&ui->mouse.drag.separator, x, y);
                     }
                 } break;
@@ -131,7 +145,7 @@ void uiProcessInput(UI* ui,
                     Separator* sep =
                         layoutFindSeparatorAt(&ui->separators, x, y);
                     if (sep) {
-                        ui->mouse.drag.type = DRAG_SEPARATOR;
+                        ui->mouse.drag.type = UI_DRAG_SEPARATOR;
                         ui->mouse.drag.separator = *sep;
                         break;
                     }
@@ -141,14 +155,14 @@ void uiProcessInput(UI* ui,
                         break;
 
                     Panel* panel = node->panel;
-                    ui->mouse.drag.type = DRAG_PANEL;
+                    ui->mouse.drag.type = UI_DRAG_PANEL;
                     ui->mouse.drag.panel = panel;
 
                     ui->focused_panel->vt->onFocus(ui->focused_panel, false);
                     ui->focused_panel = panel;
                     ui->focused_panel->vt->onFocus(ui->focused_panel, true);
 
-                    MouseEvent event;
+                    UIMouseEvent event;
                     event.state = &ui->mouse;
                     rectToLocal(node->rect, x, y, &event.x, &event.y);
 
@@ -157,7 +171,7 @@ void uiProcessInput(UI* ui,
                 } break;
 
                 case UI_MOUSE1_RELEASED:
-                    if (ui->mouse.drag.type == DRAG_PANEL) {
+                    if (ui->mouse.drag.type == UI_DRAG_PANEL) {
                         Panel* panel;
                         if (ui->mouse.drag.capture) {
                             panel = ui->mouse.drag.panel;
@@ -168,15 +182,15 @@ void uiProcessInput(UI* ui,
                             panel = node->panel;
                         }
 
-                        MouseEvent event;
+                        UIMouseEvent event;
                         event.state = &ui->mouse;
                         rectToLocal(panel->layout->rect, x, y, &event.x,
                                     &event.y);
 
-                        ui->mouse.drag.type = DRAG_NONE;
+                        ui->mouse.drag.type = UI_DRAG_NONE;
                         panel->vt->mouseEvent(panel, event);
                     } else {
-                        ui->mouse.drag.type = DRAG_NONE;
+                        ui->mouse.drag.type = UI_DRAG_NONE;
                     }
                     break;
 
@@ -188,7 +202,7 @@ void uiProcessInput(UI* ui,
                     if (!node || node->kind != LAYOUT_LEAF)
                         break;
 
-                    MouseEvent event;
+                    UIMouseEvent event;
                     event.state = &ui->mouse;
                     rectToLocal(node->rect, x, y, &event.x, &event.y);
 

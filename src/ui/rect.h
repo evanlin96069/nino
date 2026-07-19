@@ -19,4 +19,13 @@ static inline void rectToLocal(Rect rect,
     *local_y = y - rect.y;
 }
 
+static inline void rectToGlobal(Rect rect,
+                                int local_x,
+                                int local_y,
+                                int* x,
+                                int* y) {
+    *x = local_x + rect.x;
+    *y = local_y + rect.y;
+}
+
 #endif

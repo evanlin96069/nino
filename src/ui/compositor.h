@@ -7,7 +7,7 @@
 
 #define UI_MOUSE_DOUBLE_CLICK_TIME 500  // ms
 
-typedef enum MouseEventType {
+typedef enum UIMouseEventType {
     UI_MOUSE1_MOVE,
     UI_MOUSE1_PRESSED,
     UI_MOUSE1_RELEASED,
@@ -17,16 +17,16 @@ typedef enum MouseEventType {
     UI_MOUSE3_RELEASED,
     UI_MWHEEL_UP,
     UI_MWHEEL_DOWN,
-} MouseEventType;
+} UIMouseEventType;
 
-typedef enum DragType {
-    DRAG_NONE = 0,
-    DRAG_PANEL,
-    DRAG_SEPARATOR,
-} DragType;
+typedef enum UIDragType {
+    UI_DRAG_NONE = 0,
+    UI_DRAG_PANEL,
+    UI_DRAG_SEPARATOR,
+} UIDragType;
 
-typedef struct DragState {
-    DragType type;
+typedef struct UIDragState {
+    UIDragType type;
     bool capture;  // panel capture
     union {
         Separator separator;
@@ -34,10 +34,10 @@ typedef struct DragState {
     };
     int start_x;
     int start_y;
-} DragState;
+} UIDragState;
 
-typedef struct MouseState {
-    MouseEventType type;
+typedef struct UIMouseState {
+    UIMouseEventType type;
     int x;
     int y;
 
@@ -45,22 +45,28 @@ typedef struct MouseState {
     int64_t last_click_time;
     int click_count;
 
-    DragState drag;
-} MouseState;
+    UIDragState drag;
+} UIMouseState;
 
-typedef struct MouseEvent {
-    const MouseState* state;
+typedef struct UIMouseEvent {
+    const UIMouseState* state;
     int x, y;  // local coordinates
-} MouseEvent;
+} UIMouseEvent;
+
+typedef struct UICursor {
+    bool visible;
+    int x;
+    int y;
+} UICursor;
 
 typedef struct UI {
     LayoutNode* root;
     VecSeparator separators;
     Panel* focused_panel;
-    MouseState mouse;
+    UIMouseState mouse;
 } UI;
 
-typedef bool (*GlobalInputHandler)(EditorInput input);
+typedef bool (*UIGlobalInputHandler)(EditorInput input);
 
 static inline void uiInit(UI* ui) {
     memset(ui, 0, sizeof(UI));
@@ -69,9 +75,10 @@ static inline void uiInit(UI* ui) {
 void uiFree(UI* ui);
 
 void uiComposite(UI* ui, Surface s, ScreenStyle sep_style);
+bool uiGetCursor(UI* ui, UICursor* out);
 void uiProcessInput(UI* ui,
                     EditorInput input,
-                    GlobalInputHandler global_input_handler);
+                    UIGlobalInputHandler global_input_handler);
 void uiClosePanel(UI* ui, Panel* panel);
 
 #endif
