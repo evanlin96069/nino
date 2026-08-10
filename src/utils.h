@@ -29,10 +29,14 @@ typedef VECTOR(void) _Vector;
 
 void _vector_make_room(_Vector* _vec, size_t item_size);
 
+// To suppress sizeof warning
+#define _VECTOR_ITEM_SIZE(vec) \
+    sizeof((vec).data[0]) /* NOLINT(bugprone-sizeof-expression) */
+
 // Use __VA_ARGS__ so we can pass in compound literal
 #define vector_push(vec, ...)                                       \
     do {                                                            \
-        _vector_make_room((_Vector*)&(vec), sizeof((vec).data[0])); \
+        _vector_make_room((_Vector*)&(vec), _VECTOR_ITEM_SIZE(vec)); \
         (vec).data[(vec).size++] = (__VA_ARGS__);                   \
     } while (0)
 
@@ -42,9 +46,9 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
     do {                                                            \
         if ((index) > (vec).size)                                   \
             break;                                                  \
-        _vector_make_room((_Vector*)&(vec), sizeof((vec).data[0])); \
+        _vector_make_room((_Vector*)&(vec), _VECTOR_ITEM_SIZE(vec)); \
         memmove(&(vec).data[(index) + 1], &(vec).data[index],       \
-                sizeof((vec).data[0]) * ((vec).size - (index)));    \
+                _VECTOR_ITEM_SIZE(vec) * ((vec).size - (index)));   \
         (vec).data[index] = (__VA_ARGS__);                          \
         (vec).size++;                                               \
     } while (0)
@@ -53,7 +57,7 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
     do {                                                                 \
         if ((index) < (vec).size) {                                      \
             memmove(&(vec).data[index], &(vec).data[(index) + 1],        \
-                    sizeof((vec).data[0]) * ((vec).size - (index) - 1)); \
+                    _VECTOR_ITEM_SIZE(vec) * ((vec).size - (index) - 1)); \
             (vec).size--;                                                \
         }                                                                \
     } while (0)
@@ -61,7 +65,7 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
 #define vector_shrink(vec)                                             \
     do {                                                               \
         (vec).data =                                                   \
-            realloc_s((vec).data, sizeof((vec).data[0]) * (vec).size); \
+            realloc_s((vec).data, _VECTOR_ITEM_SIZE(vec) * (vec).size); \
         (vec).capacity = (vec).size;                                   \
     } while (0)
 
