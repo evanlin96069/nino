@@ -2,6 +2,8 @@
 
 #include "editor.h"
 
+#include "panels/edit.h"
+
 static int editorPosCmp(int x1, int y1, int x2, int y2) {
     if (y1 < y2)
         return -1;
@@ -51,16 +53,59 @@ static void editorPosUpdate(int* x,
     }
 }
 
+typedef struct FileUpdateUserData {
+    EditorTab* tab;
+    EditorSelectRange delete_range;
+    EditorSelectRange insert_range;
+} FileUpdateUserData;
+
+static void splitFileUpdateCallback(Panel* panel, void* user_data) {
+    if (panel->kind != PANEL_KIND_EDIT)
+        return;
+
+    EditPanel* split = (EditPanel*)panel;
+    FileUpdateUserData* data = (FileUpdateUserData*)user_data;
+    EditorTab* tab = data->tab;
+    EditorSelectRange delete_range = data->delete_range;
+    EditorSelectRange insert_range = data->insert_range;
+
+    for (uint32_t i = 0; i < split->tabs.size; i++) {
+        EditorTab* t = &split->tabs.data[i];
+        if (t->file_index != tab->file_index)
+            continue;
+
+        if (t == tab) {
+            t->cursor.x = insert_range.end_x;
+            t->cursor.y = insert_range.end_y;
+            t->cursor.is_selected = false;
+            editorUpdateSx(t);
+            continue;
+        }
+
+        editorPosUpdate(&t->cursor.x, &t->cursor.y, delete_range, insert_range);
+
+        if (t->cursor.is_selected) {
+            editorPosUpdate(&t->cursor.select_x, &t->cursor.select_y,
+                            delete_range, insert_range);
+            if (t->cursor.x == t->cursor.select_x &&
+                t->cursor.y == t->cursor.select_y) {
+                t->cursor.is_selected = false;
+            }
+        }
+        editorUpdateSx(t);
+    }
+}
+
 void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
     EditorFile* file = editorTabGetFile(tab);
 
     EditorSelectRange delete_range;
     EditorClipboard* to_add;
     if (undo) {
-        delete_range = getClipboardRange(edit->x, edit->y, &edit->after);
+        delete_range = editorGetClipboardRange(edit->x, edit->y, &edit->after);
         to_add = &edit->before;
     } else {
-        delete_range = getClipboardRange(edit->x, edit->y, &edit->before);
+        delete_range = editorGetClipboardRange(edit->x, edit->y, &edit->before);
         to_add = &edit->after;
     }
 
@@ -68,38 +113,15 @@ void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
     editorPasteText(file, to_add, edit->x, edit->y);
 
     EditorSelectRange insert_range =
-        getClipboardRange(edit->x, edit->y, to_add);
+        editorGetClipboardRange(edit->x, edit->y, to_add);
 
     // Update all tabs referencing this file
-    for (int i = 0; i < gEditor.split_count; i++) {
-        EditorSplit* split = &gEditor.splits[i];
-        for (int j = 0; j < split->tab_count; j++) {
-            EditorTab* t = &split->tabs[j];
-            if (t->file_index != tab->file_index)
-                continue;
-
-            if (t == tab) {
-                t->cursor.x = insert_range.end_x;
-                t->cursor.y = insert_range.end_y;
-                t->cursor.is_selected = false;
-                editorUpdateSx(t);
-                continue;
-            }
-
-            editorPosUpdate(&t->cursor.x, &t->cursor.y, delete_range,
-                            insert_range);
-
-            if (t->cursor.is_selected) {
-                editorPosUpdate(&t->cursor.select_x, &t->cursor.select_y,
-                                delete_range, insert_range);
-                if (t->cursor.x == t->cursor.select_x &&
-                    t->cursor.y == t->cursor.select_y) {
-                    t->cursor.is_selected = false;
-                }
-            }
-            editorUpdateSx(t);
-        }
-    }
+    FileUpdateUserData data = {
+        .tab = tab,
+        .delete_range = delete_range,
+        .insert_range = insert_range,
+    };
+    uiPanelWalk(&gEditor.ui, splitFileUpdateCallback, &data);
 }
 
 bool editorUndo(EditorTab* tab) {

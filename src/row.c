@@ -136,6 +136,13 @@ void editorRowInsertString(EditorFile* file,
     editorUpdateRow(file, row);
 }
 
+void editorRowEnsureNull(EditorRow* row) {
+    if (row->capacity <= (size_t)row->size || row->data[row->size] != '\0') {
+        editorRowEnsureCapacity(row, row->size + 1);
+        row->data[row->size] = '\0';
+    }
+}
+
 int editorRowNextUTF8(const EditorRow* row, int cx) {
     if (cx < 0)
         return 0;

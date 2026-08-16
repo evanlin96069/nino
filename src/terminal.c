@@ -334,8 +334,11 @@ EditorInput editorReadEvent(void) {
                 return result;
             }
 
-            if (motion && btn == 0) {
-                result.type = MOUSE_MOVE;
+            if (motion) {
+                if (btn == 0) {
+                    result.type = MOUSE_MOVE;
+                }
+                // TODO: Add mouse2, mouse3 move
                 return result;
             }
 
@@ -454,15 +457,9 @@ void setWindowSize(int rows, int cols, bool force_redraw) {
 
     if (gEditor.screen_rows != rows || gEditor.screen_cols != cols ||
         force_redraw) {
-        if (!gEditor.screen_size_updated) {
-            gEditor.old_screen_rows = gEditor.screen_rows;
-            gEditor.old_screen_cols = gEditor.screen_cols;
-        }
         gEditor.screen_rows = rows;
         gEditor.screen_cols = cols;
         gEditor.screen_size_updated = true;
-        // TODO: Don't hard coding rows
-        gEditor.display_rows = (rows < 2) ? 0 : rows - 2;
         editorRefreshScreen();
     }
 }

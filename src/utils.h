@@ -34,39 +34,39 @@ void _vector_make_room(_Vector* _vec, size_t item_size);
     sizeof((vec).data[0]) /* NOLINT(bugprone-sizeof-expression) */
 
 // Use __VA_ARGS__ so we can pass in compound literal
-#define vector_push(vec, ...)                                       \
-    do {                                                            \
+#define vector_push(vec, ...)                                        \
+    do {                                                             \
         _vector_make_room((_Vector*)&(vec), _VECTOR_ITEM_SIZE(vec)); \
-        (vec).data[(vec).size++] = (__VA_ARGS__);                   \
+        (vec).data[(vec).size++] = (__VA_ARGS__);                    \
     } while (0)
 
 #define vector_pop(vec) ((vec).data[--(vec).size])
 
-#define vector_insert(vec, index, ...)                              \
-    do {                                                            \
-        if ((index) > (vec).size)                                   \
-            break;                                                  \
+#define vector_insert(vec, index, ...)                               \
+    do {                                                             \
+        if ((index) > (vec).size)                                    \
+            break;                                                   \
         _vector_make_room((_Vector*)&(vec), _VECTOR_ITEM_SIZE(vec)); \
-        memmove(&(vec).data[(index) + 1], &(vec).data[index],       \
-                _VECTOR_ITEM_SIZE(vec) * ((vec).size - (index)));   \
-        (vec).data[index] = (__VA_ARGS__);                          \
-        (vec).size++;                                               \
+        memmove(&(vec).data[(index) + 1], &(vec).data[index],        \
+                _VECTOR_ITEM_SIZE(vec) * ((vec).size - (index)));    \
+        (vec).data[index] = (__VA_ARGS__);                           \
+        (vec).size++;                                                \
     } while (0)
 
-#define vector_erase(vec, index)                                         \
-    do {                                                                 \
-        if ((index) < (vec).size) {                                      \
-            memmove(&(vec).data[index], &(vec).data[(index) + 1],        \
+#define vector_erase(vec, index)                                          \
+    do {                                                                  \
+        if ((index) < (vec).size) {                                       \
+            memmove(&(vec).data[index], &(vec).data[(index) + 1],         \
                     _VECTOR_ITEM_SIZE(vec) * ((vec).size - (index) - 1)); \
-            (vec).size--;                                                \
-        }                                                                \
+            (vec).size--;                                                 \
+        }                                                                 \
     } while (0)
 
-#define vector_shrink(vec)                                             \
-    do {                                                               \
-        (vec).data =                                                   \
+#define vector_shrink(vec)                                              \
+    do {                                                                \
+        (vec).data =                                                    \
             realloc_s((vec).data, _VECTOR_ITEM_SIZE(vec) * (vec).size); \
-        (vec).capacity = (vec).size;                                   \
+        (vec).capacity = (vec).size;                                    \
     } while (0)
 
 #define vector_clear(vec) \
@@ -89,20 +89,31 @@ typedef struct Str {
 } Str;
 
 // Abuf
-#define ABUF_GROWTH_RATE 1.5f
-#define ABUF_INIT \
-    { NULL, 0, 0 }
-
 typedef struct {
     char* buf;
     size_t len;
     size_t capacity;
 } abuf;
 
+#define ABUF_GROWTH_RATE 1.5f
+#define ABUF_INIT  \
+    (abuf) {       \
+        NULL, 0, 0 \
+    }
+
 void abufAppendN(abuf* ab, const char* s, size_t n);
 #define abufAppendStr(ab, s) abufAppendN((ab), (s), strlen(s))
-void abufFree(abuf* ab);
-#define abufReset abufFree
+
+static inline void abufFree(abuf* ab) {
+    free(ab->buf);
+    ab->buf = NULL;
+    ab->len = 0;
+    ab->capacity = 0;
+}
+
+static inline void abufReset(abuf* ab) {
+    ab->len = 0;
+}
 
 // Color
 

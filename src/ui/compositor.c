@@ -56,14 +56,22 @@ void uiComposite(UI* ui, Surface s, ScreenStyle sep_style) {
 
 bool uiGetCursor(UI* ui, UICursor* out) {
     Panel* panel = ui->focused_panel;
-    if (!panel) {
+    if (!panel || !panelIsEnabled(panel) || !panel->vt->getCursor(panel, out)) {
         out->visible = false;
         out->x = 0;
         out->y = 0;
         return false;
     }
 
-    panel->vt->getCursor(panel, out);
+    // Make sure the cursor is within the panel
+    if (out->x < 0 || out->x >= panel->layout->rect.w || out->y < 0 ||
+        out->y >= panel->layout->rect.h) {
+        out->visible = false;
+        out->x = 0;
+        out->y = 0;
+        return false;
+    }
+
     rectToGlobal(panel->layout->rect, out->x, out->y, &out->x, &out->y);
     return true;
 }
@@ -89,9 +97,7 @@ static inline UIMouseEventType inputTypeToMouseEventType(int type) {
     }
 }
 
-void uiProcessInput(UI* ui,
-                    EditorInput input,
-                    UIGlobalInputHandler global_input_handler) {
+void uiProcessInput(UI* ui, EditorInput input) {
     switch (input.type) {
         case MOUSE_MOVE:
         case MOUSE_PRESSED:
@@ -121,8 +127,8 @@ void uiProcessInput(UI* ui,
 
                         UIMouseEvent event;
                         event.state = &ui->mouse;
-                        rectToLocal(panel->layout->rect, x, y, &event.x,
-                                    &event.y);
+                        rectToLocal(panel->layout->rect, x, y, &event.local_x,
+                                    &event.local_y);
 
                         panel->vt->mouseEvent(panel, event);
                     } else if (ui->mouse.drag.type == UI_DRAG_SEPARATOR) {
@@ -131,8 +137,11 @@ void uiProcessInput(UI* ui,
                 } break;
 
                 case UI_MOUSE1_PRESSED: {
-                    if (input.timestamp_ms - ui->mouse.last_click_time <
-                        UI_MOUSE_DOUBLE_CLICK_TIME) {
+                    int prev_x = ui->mouse.drag.start_x;
+                    int prev_y = ui->mouse.drag.start_y;
+                    if (x == prev_x && y == prev_y &&
+                        input.timestamp_ms - ui->mouse.last_click_time <
+                            UI_MOUSE_DOUBLE_CLICK_TIME) {
                         ui->mouse.click_count++;
                     } else {
                         ui->mouse.click_count = 1;
@@ -158,13 +167,12 @@ void uiProcessInput(UI* ui,
                     ui->mouse.drag.type = UI_DRAG_PANEL;
                     ui->mouse.drag.panel = panel;
 
-                    ui->focused_panel->vt->onFocus(ui->focused_panel, false);
-                    ui->focused_panel = panel;
-                    ui->focused_panel->vt->onFocus(ui->focused_panel, true);
+                    uiPanelSetFocused(ui, panel);
 
                     UIMouseEvent event;
                     event.state = &ui->mouse;
-                    rectToLocal(node->rect, x, y, &event.x, &event.y);
+                    rectToLocal(node->rect, x, y, &event.local_x,
+                                &event.local_y);
 
                     ui->mouse.drag.capture =
                         panel->vt->mouseEvent(panel, event);
@@ -184,8 +192,8 @@ void uiProcessInput(UI* ui,
 
                         UIMouseEvent event;
                         event.state = &ui->mouse;
-                        rectToLocal(panel->layout->rect, x, y, &event.x,
-                                    &event.y);
+                        rectToLocal(panel->layout->rect, x, y, &event.local_x,
+                                    &event.local_y);
 
                         ui->mouse.drag.type = UI_DRAG_NONE;
                         panel->vt->mouseEvent(panel, event);
@@ -204,7 +212,8 @@ void uiProcessInput(UI* ui,
 
                     UIMouseEvent event;
                     event.state = &ui->mouse;
-                    rectToLocal(node->rect, x, y, &event.x, &event.y);
+                    rectToLocal(node->rect, x, y, &event.local_x,
+                                &event.local_y);
 
                     node->panel->vt->mouseEvent(node->panel, event);
                 } break;
@@ -215,8 +224,6 @@ void uiProcessInput(UI* ui,
         } break;
 
         default:
-            if (global_input_handler(input))
-                break;
             if (ui->focused_panel) {
                 ui->focused_panel->vt->keyEvent(ui->focused_panel, input);
             }
@@ -224,12 +231,24 @@ void uiProcessInput(UI* ui,
     }
 }
 
+void uiAddPanel(UI* ui, Panel* relative_to, Panel* new_panel, bool leftright) {
+    if (!relative_to || !relative_to->layout || !new_panel)
+        return;
+
+    if (!new_panel->layout) {
+        new_panel->layout = layoutNodeCreateLeaf(new_panel);
+    }
+
+    layoutSplit(&ui->root, relative_to->layout, new_panel->layout, leftright);
+}
+
 void uiClosePanel(UI* ui, Panel* panel) {
     if (!panel || !panel->layout)
         return;
 
     // Move focused panel
-    if (ui->focused_panel == panel) {
+    bool was_focused = (ui->focused_panel == panel);
+    if (was_focused) {
         ui->focused_panel->vt->onFocus(ui->focused_panel, false);
         LayoutNode* node = layoutFindNextFocusNode(panel->layout, true);
         if (node && node->kind == LAYOUT_LEAF) {
@@ -239,9 +258,67 @@ void uiClosePanel(UI* ui, Panel* panel) {
         }
     }
 
+    // layoutRemove will call panel->vt->destroy
     layoutRemove(&ui->root, panel->layout);
+
+    if (was_focused && ui->focused_panel) {
+        ui->focused_panel->vt->onFocus(ui->focused_panel, true);
+    }
+}
+
+void uiPanelSetEnabled(UI* ui, Panel* panel, bool enabled) {
+    if (!panel || !panel->layout)
+        return;
+    panel->layout->enabled = enabled;
+    layoutUpdate(ui->root);
+}
+
+void uiPanelSetFocused(UI* ui, Panel* panel) {
+    if (ui->focused_panel == panel)
+        return;
+
+    if (ui->focused_panel) {
+        ui->focused_panel->vt->onFocus(ui->focused_panel, false);
+    }
+
+    ui->last_focused_panel = ui->focused_panel;
+    ui->focused_panel = panel;
 
     if (ui->focused_panel) {
         ui->focused_panel->vt->onFocus(ui->focused_panel, true);
     }
+}
+
+void uiPanelNavigate(UI* ui, LayoutDirection dir) {
+    if (!ui->focused_panel)
+        return;
+
+    LayoutNode* next = layoutNavigate(ui->focused_panel->layout, dir);
+    if (next && next->kind == LAYOUT_LEAF) {
+        uiPanelSetFocused(ui, next->panel);
+    }
+}
+
+typedef struct UIPanelWalkUserData {
+    UIWalkCallback callback;
+    void* user_data;
+} UIPanelWalkUserData;
+
+static void layoutWalkCallback(LayoutNode* node, void* user_data) {
+    if (!node || node->kind != LAYOUT_LEAF)
+        return;
+
+    UIPanelWalkUserData* walk_data = (UIPanelWalkUserData*)user_data;
+    walk_data->callback(node->panel, walk_data->user_data);
+}
+
+void uiPanelWalk(UI* ui, UIWalkCallback callback, void* user_data) {
+    if (!ui || !callback)
+        return;
+
+    UIPanelWalkUserData walk_data = {
+        .callback = callback,
+        .user_data = user_data,
+    };
+    layoutWalk(ui->root, layoutWalkCallback, &walk_data);
 }

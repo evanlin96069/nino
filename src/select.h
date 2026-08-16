@@ -18,11 +18,11 @@ typedef struct EditorSelectRange {
     int end_y;
 } EditorSelectRange;
 
-void getSelectStartEnd(const EditorCursor* cursor, EditorSelectRange* range);
-bool isPosSelected(int row, int col, EditorSelectRange range);
-EditorSelectRange getClipboardRange(int x,
-                                    int y,
-                                    const EditorClipboard* clipboard);
+void editorGetSelectRange(const EditorCursor* cursor, EditorSelectRange* range);
+bool editorIsPosSelected(int row, int col, EditorSelectRange range);
+EditorSelectRange editorGetClipboardRange(int x,
+                                          int y,
+                                          const EditorClipboard* clipboard);
 
 void editorDeleteText(EditorFile* file, EditorSelectRange range);
 void editorCopyText(EditorFile* file,

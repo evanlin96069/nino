@@ -7,7 +7,8 @@
 #include "unicode.h"
 #include "utils.h"
 
-void getSelectStartEnd(const EditorCursor* cursor, EditorSelectRange* range) {
+void editorGetSelectRange(const EditorCursor* cursor,
+                          EditorSelectRange* range) {
     if (!cursor->is_selected) {
         range->start_x = range->end_x = cursor->x;
         range->start_y = range->end_y = cursor->y;
@@ -34,7 +35,7 @@ void getSelectStartEnd(const EditorCursor* cursor, EditorSelectRange* range) {
     }
 }
 
-bool isPosSelected(int row, int col, EditorSelectRange range) {
+bool editorIsPosSelected(int row, int col, EditorSelectRange range) {
     if (range.start_y < row && row < range.end_y)
         return true;
 
@@ -50,9 +51,9 @@ bool isPosSelected(int row, int col, EditorSelectRange range) {
     return false;
 }
 
-EditorSelectRange getClipboardRange(int x,
-                                    int y,
-                                    const EditorClipboard* clipboard) {
+EditorSelectRange editorGetClipboardRange(int x,
+                                          int y,
+                                          const EditorClipboard* clipboard) {
     EditorSelectRange range = {
         .start_x = x,
         .start_y = y,

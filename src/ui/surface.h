@@ -30,6 +30,7 @@ typedef struct Surface {
 } Surface;
 
 #define SURFACE_AT(s, x, y) ((s).cells[(y) * (s).stride + (x)])
+#define SURFACE_ROW(s, y) &SURFACE_AT(s, 0, y)
 
 // Surface
 void surfaceInit(Surface* s, int w, int h);

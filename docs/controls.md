@@ -11,13 +11,15 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Save All | `Alt+S` |
 | Save As | `Alt+A` |
 | New Tab | `Ctrl+N` |
-| Previous Tab | `Ctrl+[` |
 | Next Tab | `Ctrl+]` |
 | Focus Explorer | `Ctrl+e` |
 | Toggle Explorer | `Ctrl+b` |
-| New Split | `Ctrl+\` |
+| Split Left Right | `Ctrl+\` |
+| Split Top Bottom | `Ctrl+_` |
 | Focus Right Split | `Ctrl+Alt+Right` |
 | Focus Left Split | `Ctrl+Alt+Left` |
+| Focus Upper Split | `Ctrl+Alt+Up` |
+| Focus Lower Split | `Ctrl+Alt+Down` |
 
 ## Prompt
 | Action | Keybinding |
@@ -27,20 +29,20 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 ## Edit
 | Action | Keybinding |
 | - | - |
-| Find | `Ctrl+F` |
 | Copy | `Ctrl+C` |
 | Paste | `Ctrl+V` |
 | Cut | `Ctrl+X` |
 | Undo | `Ctrl+Z` |
 | Redo | `Ctrl+Y` |
-| Copy Line Up | `Shift+Alt+Up` |
-| Copy Line Down | `Shift+Alt+Down` |
+| Duplicate Line Up | `Shift+Alt+Up` |
+| Duplicate Line Down | `Shift+Alt+Down` |
 | Move Line Up | `Alt+Up` |
 | Move Line Down | `Alt+Down` |
 
 ## Navigation
 | Action | Keybinding |
 | - | - |
+| Find | `Ctrl+F` |
 | Go To Line | `Ctrl+G` |
 | Move Up | `Up` |
 | Move Down | `Down` |
@@ -59,7 +61,7 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Scroll Line Up | `Ctrl+Up` |
 | Scroll Line Down | `Ctrl+Down` |
 
-## Select
+## Selection
 | Action | Keybinding |
 | - | - |
 | Select All | `Ctrl+A` |

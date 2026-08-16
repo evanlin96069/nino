@@ -4,11 +4,14 @@
 #include <fcntl.h>
 
 #include "config.h"
+#include "console.h"
 #include "editor.h"
 #include "highlight.h"
-#include "input.h"
-#include "prompt.h"
 #include "row.h"
+
+#include "panels/edit.h"
+#include "panels/explorer.h"
+#include "panels/prompt.h"
 
 static int isFileOpened(FileInfo info) {
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
@@ -21,7 +24,7 @@ static int isFileOpened(FileInfo info) {
     return -1;
 }
 
-static char* editroRowsToString(EditorFile* file, size_t* len) {
+static char* editorRowsToString(EditorFile* file, size_t* len) {
     size_t total_len = 0;
     int nl_len = (file->newline == NL_UNIX) ? 1 : 2;
     for (int i = 0; i < file->num_rows; i++) {
@@ -49,27 +52,6 @@ static char* editroRowsToString(EditorFile* file, size_t* len) {
     }
 
     return buf;
-}
-
-static void editorExplorerFreeNode(EditorExplorerNode* node) {
-    if (!node)
-        return;
-
-    if (node->is_directory) {
-        for (size_t i = 0; i < node->dir.count; i++) {
-            editorExplorerFreeNode(node->dir.nodes[i]);
-        }
-
-        for (size_t i = 0; i < node->file.count; i++) {
-            editorExplorerFreeNode(node->file.nodes[i]);
-        }
-
-        free(node->dir.nodes);
-        free(node->file.nodes);
-    }
-
-    free(node->filename);
-    free(node);
 }
 
 static void editorLoadRowsFromStream(EditorFile* file, FILE* fp) {
@@ -134,27 +116,27 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path, bool reload) {
 
             if (open_index != -1 && !reload) {
                 int tab_index = editorFindTabByFileIndex(
-                    gEditor.split_active_index, open_index);
+                    gEditor.active_edit_panel, open_index);
                 if (tab_index != -1) {
-                    editorChangeToFile(gEditor.split_active_index, tab_index);
+                    editorChangeToFile(gEditor.active_edit_panel, tab_index);
                 } else {
-                    editorAddTab(gEditor.split_active_index, open_index);
+                    editorAddTab(gEditor.active_edit_panel, open_index);
                 }
                 return OPEN_OPENED;
             }
         } break;
 
         case FT_DIR:
-            if (gEditor.explorer.node) {
-                editorExplorerFreeNode(gEditor.explorer.node);
+            if (gEditor.explorer_panel->node) {
+                editorExplorerFreeNode(gEditor.explorer_panel->node);
             }
             changeDir(path);
-            gEditor.explorer.node = editorExplorerCreate(".");
-            gEditor.explorer.node->is_open = true;
+            gEditor.explorer_panel->node = editorExplorerCreate(".");
+            gEditor.explorer_panel->node->is_open = true;
             editorExplorerRefresh();
 
-            gEditor.explorer.offset = 0;
-            gEditor.explorer.selected_index = 0;
+            gEditor.explorer_panel->offset = 0;
+            gEditor.explorer_panel->selected_index = 0;
             return OPEN_DIR;
 
         case FT_ACCESS_DENIED:
@@ -214,44 +196,13 @@ OpenStatus editorLoadFile(EditorFile* file, const char* path, bool reload) {
     return OPEN_FILE;
 }
 
-bool editorSave(EditorFile* file, int save_as) {
-    if (!file->filename || save_as) {
-        char prompt_buf[64];
-        const char* prompt;
-        if (file->filename) {
-            prompt = "Save as: ";
-        } else {
-            snprintf(prompt_buf, sizeof(prompt_buf),
-                     "Save Untitled-%d as: ", file->new_id + 1);
-            prompt = prompt_buf;
-        }
-
-        char* path = editorPrompt(prompt, STATE_SAVE_AS_PROMPT, NULL);
-        if (!path) {
-            editorMsg("Save canceled.");
-            return false;
-        }
-
-        // Check path is valid
-        FILE* fp = openFile(path, "wb");
-        if (!fp) {
-            editorMsg("Can't save \"%s\"! %s", path, strerror(errno));
-            return false;
-        }
-        fclose(fp);
-
-        const char* full_path = getFullPath(path);
-        size_t path_len = strlen(full_path) + 1;
-        free(file->filename);
-        file->filename = malloc_s(path_len);
-        memcpy(file->filename, full_path, path_len);
-        free(path);
-
-        editorSelectSyntaxHighlight(file);
+bool editorSave(EditorFile* file, const char* path) {
+    if (!path || path[0] == '\0') {
+        return false;
     }
 
     size_t len;
-    char* buf = editroRowsToString(file, &len);
+    char* buf = editorRowsToString(file, &len);
 
     OsError err;
     if (shouldSaveInPlace(file->filename)) {
@@ -281,8 +232,53 @@ bool editorSave(EditorFile* file, int save_as) {
     if (!file_info.error) {
         file->file_info = file_info;
     }
-
     return true;
+}
+
+static void saveAsCallback(PromptEvent event, void* user_data) {
+    UNUSED(user_data);
+    if (event.type == PROMPT_EVENT_SUBMIT) {
+        EditorFile* file = (EditorFile*)user_data;
+        const char* path = event.query;
+
+        // Check path is valid
+        FILE* fp = openFile(path, "wb");
+        if (!fp) {
+            editorMsg("Can't save \"%s\"! %s", path, strerror(errno));
+            return;
+        }
+        fclose(fp);
+
+        // TODO: Check if save overwrites existing file
+
+        const char* full_path = getFullPath(path);
+        size_t path_len = strlen(full_path) + 1;
+        free(file->filename);
+        file->filename = malloc_s(path_len);
+        memcpy(file->filename, full_path, path_len);
+
+        editorSelectSyntaxHighlight(file);
+
+        editorSave(file, file->filename);
+        editorHelpRestoreMsg();
+    } else if (event.type == PROMPT_EVENT_CANCEL) {
+        editorMsg("Save canceled.");
+        editorHelpRestoreMsg();
+    }
+}
+
+void editorPromptSaveAs(EditorFile* file) {
+    static char prompt_buf[64];
+    if (file->filename) {
+        snprintf(prompt_buf, sizeof(prompt_buf),
+                 "Save %s as: ", getBaseName(file->filename));
+    } else {
+        snprintf(prompt_buf, sizeof(prompt_buf),
+                 "Save Untitled-%d as: ", file->new_id + 1);
+    }
+
+    editorHelpSetMsg(HELP_SAVE_AS_PROMPT);
+    editorPrompt(prompt_buf, saveAsCallback, file);
 }
 
 bool editorIsDangerousSave(const EditorFile* file, bool verbose) {
@@ -313,14 +309,14 @@ bool editorIsDangerousSave(const EditorFile* file, bool verbose) {
 }
 
 static int findAvailableUntitledId(void) {
-    for (int id = 0;; id++) {
-        int used = 0;
+    for (int id = 0; id < EDITOR_FILE_MAX_SLOT; id++) {
+        bool used = false;
         for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
             const EditorFile* open_file = &gEditor.files[i];
             if (open_file->reference_count == 0)
                 continue;
             if (!open_file->filename && open_file->new_id == id) {
-                used = 1;
+                used = true;
                 break;
             }
         }
@@ -328,6 +324,8 @@ static int findAvailableUntitledId(void) {
             return id;
         }
     }
+
+    return -1;
 }
 
 void editorNewUntitledFile(EditorFile* file) {
@@ -348,125 +346,30 @@ void editorNewUntitledFileFromStdin(EditorFile* file) {
     }
 }
 
-void editorOpenFilePrompt(void) {
-    char* path = editorPrompt("Open: ", STATE_OPEN_PROMPT, NULL);
-    if (!path)
-        return;
-
-    EditorFile file;
-    OpenStatus result = editorLoadFile(&file, path, false);
-    if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
-        if (editorAddFileToActiveSplit(&file) != -1) {
-            gEditor.state = STATE_EDIT;
+static void fileOpenCallback(PromptEvent event, void* user_data) {
+    UNUSED(user_data);
+    if (event.type == PROMPT_EVENT_SUBMIT) {
+        EditorFile file;
+        OpenStatus result = editorLoadFile(&file, event.query, false);
+        if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
+            if (editorAddFileToActiveSplit(&file) != -1) {
+                // TODO: focus the tab that has the file opened
+            }
+        } else if (result == OPEN_OPENED) {
+            // TODO: focus the tab that has the file opened
+        } else if (result == OPEN_DIR) {
+            if (!panelIsEnabled((Panel*)gEditor.explorer_panel))
+                uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.explorer_panel,
+                                  true);
+            uiPanelSetFocused(&gEditor.ui, (Panel*)gEditor.explorer_panel);
         }
-    } else if (result == OPEN_OPENED) {
-        gEditor.state = STATE_EDIT;
-    } else if (result == OPEN_DIR) {
-        gEditor.state = STATE_EXPLORER;
-        editorExplorerShow();
-    }
-
-    free(path);
-}
-
-static void insertExplorerNode(EditorExplorerNode* node,
-                               EditorExplorerNodeData* data) {
-    size_t i;
-    data->nodes =
-        realloc_s(data->nodes, (data->count + 1) * sizeof(EditorExplorerNode*));
-
-    for (i = 0; i < data->count; i++) {
-        if (strcmp(data->nodes[i]->filename, node->filename) > 0) {
-            memmove(&data->nodes[i + 1], &data->nodes[i],
-                    (data->count - i) * sizeof(EditorExplorerNode*));
-            break;
-        }
-    }
-
-    data->nodes[i] = node;
-    data->count++;
-}
-
-EditorExplorerNode* editorExplorerCreate(const char* path) {
-    EditorExplorerNode* node = malloc_s(sizeof(EditorExplorerNode));
-
-    int len = strlen(path);
-    node->filename = malloc_s(len + 1);
-    snprintf(node->filename, len + 1, "%s", path);
-
-    node->is_directory = (getFileType(path) == FT_DIR);
-    node->is_open = false;
-    node->loaded = false;
-    node->depth = 0;
-    node->dir.count = 0;
-    node->dir.nodes = NULL;
-    node->file.count = 0;
-    node->file.nodes = NULL;
-
-    return node;
-}
-
-void editorExplorerLoadNode(EditorExplorerNode* node) {
-    if (!node->is_directory)
-        return;
-
-    DirIter iter = dirFindFirst(node->filename);
-    if (iter.error)
-        return;
-
-    do {
-        const char* filename = dirGetName(&iter);
-        if (ex_show_hidden.int_value == 0 && filename[0] == '.')
-            continue;
-        if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0)
-            continue;
-
-        char entry_path[EDITOR_PATH_MAX];
-        snprintf(entry_path, sizeof(entry_path), PATH_CAT("%s", "%s"),
-                 node->filename, filename);
-
-        EditorExplorerNode* child = editorExplorerCreate(entry_path);
-        if (!child)
-            continue;
-
-        child->depth = node->depth + 1;
-
-        if (child->is_directory) {
-            insertExplorerNode(child, &node->dir);
-        } else {
-            insertExplorerNode(child, &node->file);
-        }
-    } while (dirNext(&iter));
-    dirClose(&iter);
-
-    node->loaded = true;
-}
-
-static void flattenNode(EditorExplorerNode* node) {
-    if (node != gEditor.explorer.node)
-        vector_push(gEditor.explorer.flatten, node);
-
-    if (node->is_directory && node->is_open) {
-        if (!node->loaded)
-            editorExplorerLoadNode(node);
-
-        for (size_t i = 0; i < node->dir.count; i++) {
-            flattenNode(node->dir.nodes[i]);
-        }
-
-        for (size_t i = 0; i < node->file.count; i++) {
-            flattenNode(node->file.nodes[i]);
-        }
+        editorHelpRestoreMsg();
+    } else if (event.type == PROMPT_EVENT_CANCEL) {
+        editorHelpRestoreMsg();
     }
 }
 
-void editorExplorerRefresh(void) {
-    vector_clear(gEditor.explorer.flatten);
-    flattenNode(gEditor.explorer.node);
-}
-
-void editorExplorerFree(void) {
-    editorExplorerFreeNode(gEditor.explorer.node);
-    vector_free(gEditor.explorer.flatten);
-    gEditor.explorer.node = NULL;
+void editorPromptFileOpen(void) {
+    editorHelpSetMsg(HELP_OPEN_PROMPT);
+    editorPrompt("Open: ", fileOpenCallback, NULL);
 }

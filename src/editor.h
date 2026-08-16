@@ -5,66 +5,36 @@
 #include "config.h"
 #include "file_io.h"
 #include "os.h"
-#include "output.h"
 #include "row.h"
 #include "select.h"
-#include "terminal.h"
+
+#include "ui/compositor.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
-#define EDITOR_SPLIT_MAX 4
 
 #define EDITOR_CON_COUNT 16
 #define EDITOR_CON_LENGTH 255
 
-#define EDITOR_PROMPT_LENGTH 255
-#define EDITOR_RIGHT_PROMPT_LENGTH 32
-
-enum EditorState {
+typedef enum EditorState {
     STATE_EXIT = -1,
     STATE_LOADING,
-    STATE_EDIT,
-    STATE_EXPLORER,
-    STATE_FIND_PROMPT,
-    STATE_GOTO_PROMPT,
-    STATE_OPEN_PROMPT,
-    STATE_CONFIG_PROMPT,
-    STATE_SAVE_AS_PROMPT,
-};
+    STATE_RUNNING,
+} EditorState;
+
+typedef enum EditorHelpMsg {
+    HELP_NONE,
+    HELP_GLOBAL,
+    HELP_EDIT,
+    HELP_FIND_PROMPT,
+    HELP_GOTO_PROMPT,
+    HELP_OPEN_PROMPT,
+    HELP_CONFIG_PROMPT,
+    HELP_SAVE_AS_PROMPT,
+
+    HELP_COUNT,
+} EditorHelpMsg;
 
 typedef struct EditorSyntax EditorSyntax;
-
-typedef struct EditorTab {
-    // File
-    int file_index;
-
-    // Cursor position
-    EditorCursor cursor;
-
-    // Hidden cursor x position
-    int sx;
-
-    // bracket complete level
-    int bracket_autocomplete;
-
-    // Editor offsets
-    int row_offset;
-    int col_offset;
-
-    // Find
-    bool has_match;
-    int match_row;
-    uint32_t match_col;
-    uint32_t match_len;
-} EditorTab;
-
-typedef struct EditorSplit {
-    EditorTab tabs[EDITOR_FILE_MAX_SLOT];
-    int tab_count;
-    int tab_active_index;
-    int tab_offset;
-    int tab_displayed;
-    float ratio;
-} EditorSplit;
 
 typedef struct EditorFile {
     int reference_count;
@@ -97,25 +67,33 @@ typedef struct EditorFile {
     EditorActionList* action_current;
 } EditorFile;
 
+typedef struct ExplorerPanel ExplorerPanel;
+typedef struct WelcomePanel WelcomePanel;
+typedef struct PromptPanel PromptPanel;
+typedef struct EditPanel EditPanel;
+
 typedef struct Editor {
+    bool pending_quit_confirm;
+
     // Screen
-    ScreenCell** screen;
-    ScreenCell** prev_screen;
+    bool screen_size_updated;
     int screen_rows;
     int screen_cols;
-    int old_screen_rows;
-    int old_screen_cols;
-    bool screen_size_updated;
 
-    // Text field size
-    int display_rows;
+    Surface screen;
+    Surface old_screen;
+    abuf render_buffer;
+
+    UI ui;
+    ExplorerPanel* explorer_panel;
+    WelcomePanel* welcome_panel;
+    PromptPanel* prompt_panel;
+    EditPanel* active_edit_panel;
+    int split_count;
 
     // Editor mode
-    int state;
+    EditorState state;
     bool mouse_mode;
-
-    // Cursor position for prompt
-    int px;
 
     // Copy paste
     EditorClipboard clipboard;
@@ -131,80 +109,37 @@ typedef struct Editor {
     EditorFile files[EDITOR_FILE_MAX_SLOT];
     int file_count;
 
-    // Splits
-    EditorSplit splits[EDITOR_SPLIT_MAX];
-    int split_count;
-    int split_active_index;
-
     // Syntax highlight
     EditorSyntax* HLDB;
-
-    // File explorer
-    EditorExplorer explorer;
 
     // Console
     int con_front;
     int con_rear;
     int con_size;
+    bool con_keep_msg;
     char con_msg[EDITOR_CON_COUNT][EDITOR_CON_LENGTH];
 
-    // Prompt
-    char prompt_prefix[EDITOR_PROMPT_LENGTH];
-    char prompt_right[EDITOR_RIGHT_PROMPT_LENGTH];
-    EditorRow prompt_row;
-    int prompt_select_start_rx;  // -1 if not selected
-    int prompt_select_end_rx;
-
-    // Input
-    EditorInput pending_input;
+    // Help
+    EditorHelpMsg help_msg;
+    EditorHelpMsg help_msg_prev;
 } Editor;
 
 // Text editor
 extern Editor gEditor;
 
-static inline EditorFile* editorTabGetFile(const EditorTab* tab) {
-    return &gEditor.files[tab->file_index];
-}
-
-static inline EditorTab* editorSplitGetTab(int split_index) {
-    EditorSplit* split = &gEditor.splits[split_index];
-    return &split->tabs[split->tab_active_index];
-}
-
-static inline EditorSplit* editorGetActiveSplit(void) {
-    return &gEditor.splits[gEditor.split_active_index];
-}
-
-static inline EditorTab* editorGetActiveTab(void) {
-    EditorSplit* split = editorGetActiveSplit();
-    return &split->tabs[split->tab_active_index];
-}
-
-static inline EditorFile* editorGetActiveFile(void) {
-    return editorTabGetFile(editorGetActiveTab());
-}
-
-static inline void editorUpdateSx(EditorTab* tab) {
-    const EditorFile* file = editorTabGetFile(tab);
-    tab->sx = editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x);
-}
-
 void editorInit(void);
 void editorFree(void);
+
+// File
 void editorInitFile(EditorFile* file);
 void editorFreeFile(EditorFile* file);
-
-// Multiple files control
-int editorAddFileToActiveSplit(EditorFile* file);
 int editorAddFile(EditorFile* file);
 void editorRemoveFile(int file_index);
+int editorGetDirtyFileCount(void);
 
-int editorAddTab(int split_index, int file_index);
-void editorRemoveTab(int split_index, int tab_index);
-int editorFindTabByFileIndex(int split_index, int file_index);
-void editorChangeToFile(int split_index, int tab_index);
-
-int editorAddSplit(void);
-void editorRemoveSplit(int split_index);
+// Help
+const char* editorHelpMsgToString(EditorHelpMsg msg);
+void editorHelpSetMsg(EditorHelpMsg msg);
+void editorHelpRestoreMsg(void);
 
 #endif

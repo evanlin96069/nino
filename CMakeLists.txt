@@ -39,12 +39,30 @@ else()
 endif()
 
 set (CORE_SOURCES
+    src/panels/edit.c
+    src/panels/edit.h
+    src/panels/explorer.c
+    src/panels/explorer.h
+    src/panels/prompt.c
+    src/panels/prompt.h
+    src/panels/welcome.c
+    src/panels/welcome.h
+    src/ui/compositor.c
+    src/ui/compositor.h
+    src/ui/layout.c
+    src/ui/layout.h
+    src/ui/panel.h
+    src/ui/rect.h
+    src/ui/surface.c
+    src/ui/surface.h
     src/action.c
     src/action.h
     src/buildnum.c
     src/buildnum.h
     src/config.c
     src/config.h
+    src/console.c
+    src/console.h
     src/common.h
     src/editor.c
     src/editor.h
@@ -60,10 +78,10 @@ set (CORE_SOURCES
     src/os.h
     src/output.c
     src/output.h
-    src/prompt.c
-    src/prompt.h
     src/row.c
     src/row.h
+    src/search.c
+    src/search.h
     src/select.c
     src/select.h
     src/terminal.c
@@ -87,7 +105,7 @@ else()
 endif()
 
 add_executable(${PROJECT_NAME} ${CORE_SOURCES} ${BUNDLED_FILE})
-target_include_directories(${PROJECT_NAME} PUBLIC src)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_custom_target(file_toucher
     COMMAND ${CMAKE_COMMAND} -E touch_nocreate

@@ -50,7 +50,7 @@ typedef struct UIMouseState {
 
 typedef struct UIMouseEvent {
     const UIMouseState* state;
-    int x, y;  // local coordinates
+    int local_x, local_y;
 } UIMouseEvent;
 
 typedef struct UICursor {
@@ -63,10 +63,9 @@ typedef struct UI {
     LayoutNode* root;
     VecSeparator separators;
     Panel* focused_panel;
+    Panel* last_focused_panel;
     UIMouseState mouse;
 } UI;
-
-typedef bool (*UIGlobalInputHandler)(EditorInput input);
 
 static inline void uiInit(UI* ui) {
     memset(ui, 0, sizeof(UI));
@@ -76,9 +75,15 @@ void uiFree(UI* ui);
 
 void uiComposite(UI* ui, Surface s, ScreenStyle sep_style);
 bool uiGetCursor(UI* ui, UICursor* out);
-void uiProcessInput(UI* ui,
-                    EditorInput input,
-                    UIGlobalInputHandler global_input_handler);
+void uiProcessInput(UI* ui, EditorInput input);
+void uiAddPanel(UI* ui, Panel* relative_to, Panel* new_panel, bool leftright);
 void uiClosePanel(UI* ui, Panel* panel);
+
+void uiPanelSetEnabled(UI* ui, Panel* panel, bool enabled);
+void uiPanelSetFocused(UI* ui, Panel* panel);
+void uiPanelNavigate(UI* ui, LayoutDirection dir);
+
+typedef void (*UIWalkCallback)(Panel* panel, void* user_data);
+void uiPanelWalk(UI* ui, UIWalkCallback callback, void* user_data);
 
 #endif

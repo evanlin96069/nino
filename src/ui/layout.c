@@ -17,6 +17,7 @@ LayoutNode* layoutNodeCreate(LayoutNodeKind kind) {
 LayoutNode* layoutNodeCreateLeaf(Panel* panel) {
     LayoutNode* result = layoutNodeCreate(LAYOUT_LEAF);
     result->panel = panel;
+    panel->layout = result;
     return result;
 }
 
@@ -24,6 +25,26 @@ LayoutNode* layoutNodeCreateSplit(bool leftright) {
     LayoutNode* result =
         layoutNodeCreate(leftright ? LAYOUT_LEFTRIGHT : LAYOUT_TOPBOTTOM);
     return result;
+}
+
+bool layoutAppendChild(LayoutNode* parent, LayoutNode* child) {
+    if (!parent || !child || parent->kind == LAYOUT_LEAF)
+        return false;
+
+    child->parent = parent;
+    vector_push(parent->children, child);
+    return true;
+}
+
+bool layoutInsertChild(LayoutNode* parent, uint32_t index, LayoutNode* child) {
+    if (!parent || !child || parent->kind == LAYOUT_LEAF)
+        return false;
+    if (index > parent->children.size)
+        return false;
+
+    child->parent = parent;
+    vector_insert(parent->children, index, child);
+    return true;
 }
 
 static void layoutComputeEnabledCache(LayoutNode* node) {
@@ -43,8 +64,9 @@ static void layoutComputeEnabledCache(LayoutNode* node) {
     }
 }
 
-void layoutUpdateEnabledCache(LayoutNode* root) {
+void layoutUpdate(LayoutNode* root) {
     layoutComputeEnabledCache(root);
+    layoutCompute(root, root->rect, NULL);
 }
 
 static int layoutFindFirstEnabledChildIndex(LayoutNode* node) {
@@ -89,6 +111,28 @@ static inline LayoutNode* layoutFindLastEnabledChild(LayoutNode* node) {
     return node->children.data[index];
 }
 
+static bool layoutCanPlaceSeparator(LayoutNode* node, int index, int last) {
+    if (!node || node->kind == LAYOUT_LEAF)
+        return false;
+    if (index < 0 || index == last)
+        return false;
+    if ((uint32_t)index >= node->children.size)
+        return false;
+
+    LayoutNode* current = node->children.data[index];
+    if (!current->has_enabled_content || !current->resizable)
+        return false;
+
+    for (uint32_t i = (uint32_t)index + 1; i < node->children.size; i++) {
+        LayoutNode* next = node->children.data[i];
+        if (!next->has_enabled_content)
+            continue;
+        return next->resizable;
+    }
+
+    return false;
+}
+
 static bool layoutComputeSizing(LayoutNode* node,
                                 int last,
                                 int total_size,
@@ -114,7 +158,7 @@ static bool layoutComputeSizing(LayoutNode* node,
         }
 
         // Separator
-        if (child->resizable && (int)i != last) {
+        if (layoutCanPlaceSeparator(node, (int)i, last)) {
             size--;
         }
     }
@@ -163,6 +207,8 @@ void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators) {
         if (offset < total_size) {
             if (child->size_type == LAYOUT_SIZE_FIXED) {
                 size = child->fixed_size;
+            } else if ((int)i == last) {
+                size = total_size - offset;
             } else {
                 size = (int)((child->ratio / total_ratio) * content_size);
             }
@@ -189,7 +235,8 @@ void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators) {
         offset += size;
 
         // Separator
-        if (offset < total_size && child->resizable && (int)i != last) {
+        if (offset < total_size &&
+            layoutCanPlaceSeparator(node, (int)i, last)) {
             Separator sep;
             sep.parent = node;
             sep.index = i;
@@ -205,7 +252,8 @@ void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators) {
                 sep.rect.h = 1;
             }
 
-            vector_push(*separators, sep);
+            if (separators)
+                vector_push(*separators, sep);
             offset++;
         }
     }
@@ -222,10 +270,10 @@ void layoutRender(LayoutNode* node, Surface s) {
         Panel* p = node->panel;
         p->vt->render(p, surfaceSub(s, node->rect));
         return;
-    }
-
-    for (uint32_t i = 0; i < node->children.size; i++) {
-        layoutRender(node->children.data[i], s);
+    } else {
+        for (uint32_t i = 0; i < node->children.size; i++) {
+            layoutRender(node->children.data[i], s);
+        }
     }
 }
 
@@ -234,7 +282,10 @@ void layoutFree(LayoutNode* node) {
         return;
     if (node->kind == LAYOUT_LEAF) {
         Panel* p = node->panel;
-        p->vt->destroy(p);
+        if (p) {
+            p->vt->destroy(p);
+            free(p);
+        }
     } else {
         for (uint32_t i = 0; i < node->children.size; i++) {
             layoutFree(node->children.data[i]);
@@ -253,15 +304,14 @@ void layoutSplit(LayoutNode** root,
 
     LayoutNode* parent = node->parent;
     if (parent &&
-        (parent->kind != (leftright ? LAYOUT_LEFTRIGHT : LAYOUT_TOPBOTTOM))) {
-        new_node->parent = parent;
+        (parent->kind == (leftright ? LAYOUT_LEFTRIGHT : LAYOUT_TOPBOTTOM))) {
         for (uint32_t i = 0; i < parent->children.size; i++) {
             if (parent->children.data[i] == node) {
-                vector_insert(parent->children, i + 1, new_node);
+                layoutInsertChild(parent, i + 1, new_node);
                 break;
             }
         }
-        layoutUpdateEnabledCache(*root);
+        layoutUpdate(*root);
         return;
     }
 
@@ -278,9 +328,8 @@ void layoutSplit(LayoutNode** root,
     split_node->enabled = node->enabled;
     split_node->resizable = node->resizable;
 
-    vector_push(split_node->children, node);
-    vector_push(split_node->children, new_node);
-    new_node->parent = split_node;
+    layoutAppendChild(split_node, node);
+    layoutAppendChild(split_node, new_node);
 
     if (parent) {
         for (uint32_t i = 0; i < parent->children.size; i++) {
@@ -293,7 +342,7 @@ void layoutSplit(LayoutNode** root,
         *root = split_node;
     }
 
-    layoutUpdateEnabledCache(*root);
+    layoutUpdate(*root);
 }
 
 void layoutRemove(LayoutNode** root, LayoutNode* node) {
@@ -332,7 +381,7 @@ void layoutRemove(LayoutNode** root, LayoutNode* node) {
         layoutFree(parent);
     }
 
-    layoutUpdateEnabledCache(*root);
+    layoutUpdate(*root);
 }
 
 static LayoutNode* layoutFindNextEnabledSibling(LayoutNode* node) {
@@ -482,16 +531,22 @@ void layoutSeparatorDrag(Separator* sep, int x, int y) {
     }
 
     // Ratio
-    int total_size = (leftright ? parent->rect.w : parent->rect.h);
-    int content_size;
-    float total_ratio;
-    if (!layoutComputeSizing(parent, last, total_size, &content_size,
-                             &total_ratio))
-        return;
-    if (content_size <= 0)
+    if (next->size_type == LAYOUT_SIZE_FIXED)
         return;
 
-    node->ratio = total_ratio * ((float)desired_size / (float)content_size);
+    int next_end =
+        (leftright ? next->rect.x + next->rect.w : next->rect.y + next->rect.h);
+    int new_size_next = next_end - desired_pos - 1;
+    if (desired_size < 0 || new_size_next < 0)
+        return;
+
+    float total_new = (float)(desired_size + new_size_next);
+    if (total_new <= 0)
+        return;
+
+    float combined_ratio = node->ratio + next->ratio;
+    node->ratio = combined_ratio * (float)desired_size / total_new;
+    next->ratio = combined_ratio * (float)new_size_next / total_new;
 }
 
 LayoutNode* layoutFindAt(LayoutNode* node, int x, int y) {
@@ -521,4 +576,19 @@ Separator* layoutFindSeparatorAt(VecSeparator* separators, int x, int y) {
         }
     }
     return NULL;
+}
+
+void layoutWalk(LayoutNode* node,
+                LayoutWalkCallback callback,
+                void* user_data) {
+    if (!node || !callback)
+        return;
+
+    callback(node, user_data);
+
+    if (node->kind != LAYOUT_LEAF) {
+        for (uint32_t i = 0; i < node->children.size; i++) {
+            layoutWalk(node->children.data[i], callback, user_data);
+        }
+    }
 }

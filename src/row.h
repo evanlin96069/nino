@@ -38,6 +38,7 @@ void editorRowInsertString(EditorFile* file,
                            int at,
                            const char* s,
                            size_t len);
+void editorRowEnsureNull(EditorRow* row);
 
 // UTF-8
 int editorRowPreviousUTF8(const EditorRow* row, int cx);

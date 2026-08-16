@@ -9,6 +9,13 @@
 typedef struct LayoutNode LayoutNode;
 typedef struct Panel Panel;
 
+typedef enum PanelKind {
+    PANEL_KIND_EDIT,
+    PANEL_KIND_EXPLORER,
+    PANEL_KIND_PROMPT,
+    PANEL_KIND_WELCOME,
+} PanelKind;
+
 typedef struct PanelVtable {
     void (*destroy)(Panel* self);
     void (*render)(Panel* self, Surface s);
@@ -22,6 +29,11 @@ typedef struct PanelVtable {
 typedef struct Panel {
     const PanelVtable* vt;
     LayoutNode* layout;
+    PanelKind kind;
 } Panel;
+
+static inline bool panelIsEnabled(Panel* panel) {
+    return panel && panel->layout && panel->layout->enabled;
+}
 
 #endif

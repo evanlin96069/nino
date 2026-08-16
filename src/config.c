@@ -1,10 +1,14 @@
 #include "config.h"
 
 #include "buildnum.h"
+#include "console.h"
 #include "editor.h"
 #include "os.h"
-#include "prompt.h"
 #include "terminal.h"
+
+#include "panels/edit.h"
+#include "panels/explorer.h"
+#include "panels/prompt.h"
 
 CCommand args;
 
@@ -82,13 +86,13 @@ static void reloadSyntax(void) {
 }
 
 static void reloadExplorer(void) {
-    if (gEditor.explorer.node) {
-        gEditor.explorer.node = editorExplorerCreate(".");
-        gEditor.explorer.node->is_open = true;
+    if (gEditor.explorer_panel->node) {
+        gEditor.explorer_panel->node = editorExplorerCreate(".");
+        gEditor.explorer_panel->node->is_open = true;
         editorExplorerRefresh();
 
-        gEditor.explorer.offset = 0;
-        gEditor.explorer.selected_index = 0;
+        gEditor.explorer_panel->offset = 0;
+        gEditor.explorer_panel->selected_index = 0;
     }
 }
 
@@ -376,6 +380,34 @@ CON_COMMAND(unlock, "Allow editing a read-only file.") {
     editorMsg("File unlocked. Note: file is still read-only on disk.");
 }
 
+typedef struct ReloadUserData {
+    int file_index;
+    int max_y;
+} ReloadUserData;
+static void reloadCallback(Panel* panel, void* user_data) {
+    if (panel->kind != PANEL_KIND_EDIT)
+        return;
+
+    EditPanel* split = (EditPanel*)panel;
+    ReloadUserData* data = (ReloadUserData*)user_data;
+    int file_index = data->file_index;
+    int max_y = data->max_y;
+
+    for (uint32_t i = 0; i < split->tabs.size; i++) {
+        EditorTab* tab = &split->tabs.data[i];
+        if (tab->file_index == file_index) {
+            tab->cursor.x = 0;
+            if (tab->cursor.y > max_y)
+                tab->cursor.y = max_y;
+            if (tab->row_offset > max_y)
+                tab->row_offset = max_y;
+            tab->cursor.is_selected = false;
+            tab->sx = 0;
+            tab->col_offset = 0;
+        }
+    }
+}
+
 CON_COMMAND(reload, "Reload the current file from disk.") {
     if (gEditor.file_count == 0) {
         editorMsg("reload: No file opened");
@@ -408,23 +440,12 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
             curr_file->reference_count = reference_count;
 
             int max_y = curr_file->num_rows > 0 ? curr_file->num_rows - 1 : 0;
-            for (int i = 0; i < gEditor.split_count; i++) {
-                EditorSplit* split = &gEditor.splits[i];
-                for (int j = 0; j < split->tab_count; j++) {
-                    EditorTab* tab = &split->tabs[j];
-                    if (tab->file_index == file_index) {
-                        tab->cursor.x = 0;
-                        if (tab->cursor.y > max_y)
-                            tab->cursor.y = max_y;
-                        if (tab->row_offset > max_y)
-                            tab->row_offset = max_y;
-                        tab->cursor.is_selected = false;
-                        tab->sx = 0;
-                        tab->col_offset = 0;
-                    }
-                }
-            }
 
+            ReloadUserData data = {
+                .file_index = file_index,
+                .max_y = max_y,
+            };
+            uiPanelWalk(&gEditor.ui, reloadCallback, &data);
             editorMsg("File reloaded from disk.");
         } break;
 
@@ -1094,15 +1115,20 @@ void editorCmd(const char* command) {
     parseLine(command, 0);
 }
 
-void editorOpenConfigPrompt(void) {
-    char* query = editorPrompt("Prompt: ", STATE_CONFIG_PROMPT, NULL);
-    if (query == NULL)
-        return;
+static void promptCallback(PromptEvent event, void* user_data) {
+    UNUSED(user_data);
+    if (event.type == PROMPT_EVENT_SUBMIT) {
+        editorMsg("] %s", event.query);
+        editorCmd(event.query);
+        editorHelpRestoreMsg();
+    } else if (event.type == PROMPT_EVENT_CANCEL) {
+        editorHelpRestoreMsg();
+    }
+}
 
-    editorMsg("] %s", query);
-    editorCmd(query);
-
-    free(query);
+void editorPromptConfig(void) {
+    editorHelpSetMsg(HELP_CONFIG_PROMPT);
+    editorPrompt("Prompt: ", promptCallback, NULL);
 }
 
 void editorSetConVar(ConVar* thisptr, const char* s, bool trigger_cb) {
@@ -1164,8 +1190,4 @@ ConCommandBase* editorFindCmd(const char* name) {
         curr = curr->next;
     }
     return result;
-}
-
-int editorGetLinenoWidth(const EditorFile* file) {
-    return (lineno.int_value ? file->lineno_width : 0);
 }

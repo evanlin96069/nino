@@ -211,7 +211,7 @@ void editorUnregisterCommands(void);
 bool editorLoadConfig(const char* path);
 void editorLoadInitConfig(void);
 void editorCmd(const char* command);
-void editorOpenConfigPrompt(void);
+void editorPromptConfig(void);
 
 void editorSetConVar(ConVar* thisptr, const char* string_val, bool trigger_cb);
 void editorSetConVarInt(ConVar* thisptr, int int_val, bool trigger_cb);
@@ -220,6 +220,5 @@ void editorInitConVar(ConVar* thisptr);
 ConCommandBase* editorFindCmd(const char* name);
 
 int editorGetDefaultNewline(void);
-int editorGetLinenoWidth(const EditorFile* file);
 
 #endif

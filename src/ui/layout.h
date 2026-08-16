@@ -60,6 +60,8 @@ typedef enum LayoutDirection {
 LayoutNode* layoutNodeCreate(LayoutNodeKind kind);
 LayoutNode* layoutNodeCreateLeaf(Panel* panel);
 LayoutNode* layoutNodeCreateSplit(bool leftright);
+bool layoutAppendChild(LayoutNode* parent, LayoutNode* child);
+bool layoutInsertChild(LayoutNode* parent, uint32_t index, LayoutNode* child);
 
 void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators);
 void layoutRender(LayoutNode* node, Surface s);
@@ -83,6 +85,9 @@ Separator* layoutFindSeparatorAt(VecSeparator* separators, int x, int y);
 
 // Update the enabled content cache
 // Call this after changing node->enabled
-void layoutUpdateEnabledCache(LayoutNode* root);
+void layoutUpdate(LayoutNode* root);
+
+typedef void (*LayoutWalkCallback)(LayoutNode* node, void* user_data);
+void layoutWalk(LayoutNode* node, LayoutWalkCallback callback, void* user_data);
 
 #endif

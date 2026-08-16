@@ -78,13 +78,6 @@ void abufAppendN(abuf* ab, const char* s, size_t n) {
     ab->len += n;
 }
 
-void abufFree(abuf* ab) {
-    free(ab->buf);
-    ab->buf = NULL;
-    ab->len = 0;
-    ab->capacity = 0;
-}
-
 typedef struct {
     const char* name;
     int value;

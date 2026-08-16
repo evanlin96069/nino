@@ -1,14 +1,17 @@
 #include "buildnum.h"
 #include "config.h"
+#include "console.h"
 #include "editor.h"
 #include "file_io.h"
 #include "input.h"
 #include "opt.h"
 #include "os.h"
 #include "output.h"
-#include "prompt.h"
 #include "row.h"
 #include "terminal.h"
+
+#include "panels/edit.h"
+#include "panels/explorer.h"
 
 static char* copyArg(const char* arg) {
     size_t len = strlen(arg) + 1;
@@ -69,6 +72,7 @@ int main(int argc, char* argv[]) {
             goto DONE;
     }
 
+    // Load config
     if (!config_path) {
         editorLoadInitConfig();
     } else if (strcmp(config_path, "NONE") != 0) {
@@ -84,10 +88,19 @@ int main(int argc, char* argv[]) {
     }
     free(startup_cmds);
 
+    // Post-config setup
     if (readonly_mode) {
         readonly.setInt(1);
     }
 
+    if (gEditor.explorer_panel->base.layout->fixed_size !=
+        ex_default_width.int_value) {
+        gEditor.explorer_panel->base.layout->fixed_size =
+            ex_default_width.int_value;
+        layoutUpdate(gEditor.ui.root);
+    }
+
+    // Load files
     EditorFile file;
     bool stdin_piped = false;
     bool is_tty = isStdinTty();
@@ -101,6 +114,7 @@ int main(int argc, char* argv[]) {
         editorAddFileToActiveSplit(&file);
     }
 
+    // Setup terminal
     editorInitTerminal();
 
     if (!stdin_piped) {
@@ -116,27 +130,31 @@ int main(int argc, char* argv[]) {
 
     argsFree(argc_utf8, argv_utf8);
 
+    // Setup panel states
+    if (gEditor.explorer_panel->node) {
+        uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.explorer_panel, true);
+    }
+
     if (gEditor.file_count == 0) {
-        gEditor.state = STATE_EXPLORER;
-        if (start_new_file.int_value && !gEditor.explorer.node) {
+        if (start_new_file.int_value && !gEditor.explorer_panel->node) {
             editorNewUntitledFile(&file);
             editorAddFileToActiveSplit(&file);
-            gEditor.state = STATE_EDIT;
+            uiPanelSetFocused(&gEditor.ui, (Panel*)gEditor.active_edit_panel);
+        } else if (gEditor.explorer_panel->node) {
+            uiPanelSetFocused(&gEditor.ui, (Panel*)gEditor.explorer_panel);
+        } else {
+            uiPanelSetFocused(&gEditor.ui, (Panel*)gEditor.welcome_panel);
         }
     } else {
-        gEditor.state = STATE_EDIT;
+        uiPanelSetFocused(&gEditor.ui, (Panel*)gEditor.active_edit_panel);
     }
 
-    gEditor.explorer.prefered_width = ex_default_width.int_value;
-    if (gEditor.explorer.node == NULL) {
-        gEditor.explorer.width = 0;
-    } else {
-        gEditor.explorer.width = gEditor.explorer.prefered_width;
-    }
+    gEditor.state = STATE_RUNNING;
 
+    // Main loop
     while (gEditor.state != STATE_EXIT) {
         editorRefreshScreen();
-        editorProcessKeypress();
+        editorProcessInput();
     }
 
 DONE:

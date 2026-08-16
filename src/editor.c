@@ -4,12 +4,55 @@
 #include <string.h>
 
 #include "config.h"
+#include "console.h"
 #include "highlight.h"
 #include "os.h"
 #include "output.h"
-#include "prompt.h"
+
+#include "panels/explorer.h"
+#include "panels/prompt.h"
+#include "panels/welcome.h"
 
 Editor gEditor;
+
+static void editorLayoutInit(void) {
+    gEditor.ui.root = layoutNodeCreate(LAYOUT_TOPBOTTOM);
+    gEditor.ui.root->resizable = false;
+
+    // Root top
+    LayoutNode* top_node = layoutNodeCreate(LAYOUT_LEFTRIGHT);
+
+    ExplorerPanel* explorer_panel = panelExplorerCreate();
+    LayoutNode* explorer_node = layoutNodeCreateLeaf((Panel*)explorer_panel);
+    explorer_node->size_type = LAYOUT_SIZE_FIXED;
+    explorer_node->fixed_size = ex_default_width.int_value;
+    explorer_node->enabled = false;
+
+    WelcomePanel* welcome_panel = panelWelcomeCreate();
+    LayoutNode* welcome_node = layoutNodeCreateLeaf((Panel*)welcome_panel);
+
+    layoutAppendChild(top_node, explorer_node);
+    layoutAppendChild(top_node, welcome_node);
+    // Edit panels will be created on file open
+
+    // Root bottom
+    PromptPanel* prompt_panel = panelPromptCreate();
+    LayoutNode* prompt_node = layoutNodeCreateLeaf((Panel*)prompt_panel);
+    prompt_node->size_type = LAYOUT_SIZE_FIXED;
+    prompt_node->fixed_size = 1;
+    prompt_node->resizable = false;
+    prompt_node->enabled = false;
+
+    layoutAppendChild(gEditor.ui.root, top_node);
+    layoutAppendChild(gEditor.ui.root, prompt_node);
+
+    layoutUpdate(gEditor.ui.root);
+
+    gEditor.explorer_panel = explorer_panel;
+    gEditor.welcome_panel = welcome_panel;
+    gEditor.prompt_panel = prompt_panel;
+    gEditor.active_edit_panel = NULL;
+}
 
 void editorInit(void) {
     memset(&gEditor, 0, sizeof(Editor));
@@ -17,29 +60,38 @@ void editorInit(void) {
     gEditor.mouse_mode = true;
     memcpy(gEditor.color_cfg, color_default, sizeof(gEditor.color_cfg));
     gEditor.con_front = -1;
-    gEditor.pending_input.type = UNKNOWN;
 
     osInit();
+
+    editorOutputInit();
 
     editorRegisterCommands();
     editorInitHLDB();
 
-    memset(&gEditor.files[0], 0, sizeof(EditorFile));
+    uiInit(&gEditor.ui);
+    editorLayoutInit();
 }
 
 void editorFree(void) {
+    uiFree(&gEditor.ui);
+
+#ifndef NDEBUG
+    // Check if any files are somehow not associated with any splits
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
         if (gEditor.files[i].reference_count > 0) {
-            editorFreeFile(&gEditor.files[i]);
-            gEditor.files[i].reference_count = 0;
+            PANIC(
+                "File(s) still open after uiFree. This indicates a memory "
+                "leak.");
         }
     }
-    editorFreeScreen(gEditor.screen_rows);
+#endif
+
     editorFreeClipboardContent(&gEditor.clipboard);
-    editorFreeRow(&gEditor.prompt_row);
-    editorExplorerFree();
     editorFreeHLDB();
     editorUnregisterCommands();
+
+    editorOutputFree();
+
     osDeinit();
 }
 
@@ -55,22 +107,6 @@ void editorFreeFile(EditorFile* file) {
     editorFreeActionList(file->action_head);
     free(file->row);
     free(file->filename);
-}
-
-int editorAddFileToActiveSplit(EditorFile* file) {
-    int file_index = editorAddFile(file);
-    if (file_index != -1) {
-        if (gEditor.split_count == 0) {
-            editorAddSplit();
-        }
-
-        int tab_index = editorAddTab(gEditor.split_active_index, file_index);
-        if (tab_index != -1) {
-            return file_index;
-        }
-        editorRemoveFile(file_index);
-    }
-    return -1;
 }
 
 int editorAddFile(EditorFile* file) {
@@ -120,150 +156,49 @@ void editorRemoveFile(int file_index) {
     }
 }
 
-int editorAddTab(int split_index, int file_index) {
-    if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
-        return -1;
-    if (split_index < 0 || split_index >= gEditor.split_count)
-        return -1;
-
-    EditorSplit* split = &gEditor.splits[split_index];
-
-    if (split->tab_count >= EDITOR_FILE_MAX_SLOT) {
-        editorMsg("Already opened too many tabs!");
-        return -1;
-    }
-
-    EditorFile* file = &gEditor.files[file_index];
-    EditorTab* tab = &split->tabs[split->tab_count];
-    memset(tab, 0, sizeof(EditorTab));
-    tab->file_index = file_index;
-
-    if (file->reference_count == 0) {
-        gEditor.file_count++;
-    }
-    file->reference_count++;
-
-    split->tab_active_index = split->tab_count;
-    split->tab_count++;
-
-    int index = split->tab_count - 1;
-    if (gEditor.state != STATE_LOADING) {
-        // hack: refresh screen to update tab_displayed
-        editorRefreshScreen();
-        editorChangeToFile(split_index, index);
-    }
-
-    return index;
-}
-
-// Won't update tab_active_index
-void editorRemoveTab(int split_index, int tab_index) {
-    if (split_index < 0 || split_index >= gEditor.split_count)
-        return;
-
-    EditorSplit* split = &gEditor.splits[split_index];
-
-    if (tab_index < 0 || tab_index >= split->tab_count)
-        return;
-
-    int file_index = split->tabs[tab_index].file_index;
-    editorRemoveFile(file_index);
-
-    if (tab_index != split->tab_count - 1) {
-        // Move the later tabs forward
-        memmove(&split->tabs[tab_index], &split->tabs[tab_index + 1],
-                sizeof(EditorTab) * (split->tab_count - tab_index - 1));
-    }
-
-    split->tab_count--;
-
-    // Close split if no file in the tab
-    if (split->tab_count == 0) {
-        editorRemoveSplit(split_index);
-    }
-}
-
-int editorFindTabByFileIndex(int split_index, int file_index) {
-    if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT)
-        return -1;
-    if (split_index < 0 || split_index >= gEditor.split_count)
-        return -1;
-
-    EditorSplit* split = &gEditor.splits[split_index];
-
-    for (int i = 0; i < split->tab_count; i++) {
-        if (split->tabs[i].file_index == file_index) {
-            return i;
+int editorGetDirtyFileCount(void) {
+    int count = 0;
+    for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+        if (gEditor.files[i].reference_count > 0 && gEditor.files[i].dirty) {
+            count++;
         }
     }
-    return -1;
+    return count;
 }
 
-void editorChangeToFile(int split_index, int tab_index) {
-    if (split_index < 0 || split_index >= gEditor.split_count)
-        return;
+const char* editorHelpMsgToString(EditorHelpMsg msg) {
+    switch (msg) {
+        case HELP_GLOBAL:
+            if (panelIsEnabled((Panel*)gEditor.welcome_panel) &&
+                intro.int_value) {
+                // Intro already shows the help message
+                return "";
+            }
+            return " ^Q: Quit  ^O: Open  ^P: Prompt";
 
-    EditorSplit* split = &gEditor.splits[split_index];
+        case HELP_EDIT:
+            return " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: "
+                   "Goto";
 
-    if (tab_index < 0 || tab_index >= split->tab_count)
-        return;
+        case HELP_FIND_PROMPT:
+            return " ^Q: Cancel  Up: Back  Down: Next";
 
-    split->tab_active_index = tab_index;
+        case HELP_GOTO_PROMPT:
+        case HELP_OPEN_PROMPT:
+        case HELP_CONFIG_PROMPT:
+        case HELP_SAVE_AS_PROMPT:
+            return " ^Q: Cancel";
 
-    if (split->tab_offset > tab_index ||
-        split->tab_offset + split->tab_displayed <= tab_index) {
-        split->tab_offset = tab_index;
+        default:
+            return "";
     }
 }
 
-int editorAddSplit(void) {
-    if (gEditor.split_count >= EDITOR_SPLIT_MAX)
-        return -1;
-
-    int index;
-    if (gEditor.split_count == 0) {
-        index = 0;
-        gEditor.split_active_index = index;
-    } else {
-        index = gEditor.split_active_index + 1;
-        memmove(&gEditor.splits[index + 1], &gEditor.splits[index],
-                sizeof(EditorSplit) * (gEditor.split_count - index));
-    }
-
-    memset(&gEditor.splits[index], 0, sizeof(EditorSplit));
-    gEditor.splits[index].ratio = 1.0f;
-    gEditor.split_count++;
-
-    return index;
+void editorHelpSetMsg(EditorHelpMsg msg) {
+    gEditor.help_msg_prev = gEditor.help_msg;
+    gEditor.help_msg = msg;
 }
 
-void editorRemoveSplit(int split_index) {
-    if (split_index < 0 || split_index >= gEditor.split_count)
-        return;
-
-    EditorSplit* split = &gEditor.splits[split_index];
-    for (int i = 0; i < split->tab_count; i++) {
-        editorRemoveFile(split->tabs[i].file_index);
-    }
-
-    if (gEditor.split_count == 1) {
-        gEditor.split_count = 0;
-        gEditor.split_active_index = 0;
-        return;
-    }
-
-    memmove(&gEditor.splits[split_index], &gEditor.splits[split_index + 1],
-            sizeof(EditorSplit) * (gEditor.split_count - split_index - 1));
-    gEditor.split_count--;
-
-    // Adjust active index
-    int active_index = gEditor.split_active_index;
-    if (active_index == split_index) {
-        if (active_index > 0) {
-            active_index--;
-        }
-    } else if (active_index > split_index) {
-        active_index--;
-    }
-    gEditor.split_active_index = active_index;
+void editorHelpRestoreMsg(void) {
+    gEditor.help_msg = gEditor.help_msg_prev;
 }

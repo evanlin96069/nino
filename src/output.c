@@ -9,6 +9,10 @@
 #include "unicode.h"
 #include "utils.h"
 
+#include "panels/edit.h"
+#include "ui/panel.h"
+#include "ui/surface.h"
+
 static inline bool styleEql(const ScreenStyle* a, const ScreenStyle* b) {
     return colorEql(a->fg, b->fg) && colorEql(a->bg, b->bg);
 }
@@ -38,10 +42,10 @@ static bool cellEql(const ScreenCell* a, const ScreenCell* b) {
 }
 
 static bool editorScreenRowUpdated(int index) {
-    const ScreenCell* row = gEditor.screen[index];
-    const ScreenCell* prev_row = gEditor.prev_screen[index];
+    const ScreenCell* row = &SURFACE_AT(gEditor.screen, 0, index);
+    const ScreenCell* old_row = &SURFACE_AT(gEditor.old_screen, 0, index);
     for (int i = 0; i < gEditor.screen_cols; i++) {
-        if (!cellEql(&row[i], &prev_row[i])) {
+        if (!cellEql(&row[i], &old_row[i])) {
             return true;
         }
     }
@@ -72,7 +76,7 @@ static Grapheme grapheme_space = {
 };
 
 static void editorRenderRow(abuf* ab, int row_index) {
-    ScreenCell* row = gEditor.screen[row_index];
+    ScreenCell* row = &SURFACE_AT(gEditor.screen, 0, row_index);
 
     const ScreenStyle* old_style = NULL;
 
@@ -134,371 +138,24 @@ static void editorRenderRow(abuf* ab, int row_index) {
     }
 }
 
-static void screenClearCells(ScreenCell* row,
-                             int max_width,
-                             int x,
-                             int count,
-                             ScreenStyle style) {
-    if (x >= max_width)
-        return;
+void editorOutputInit(void) {
+    gEditor.render_buffer = ABUF_INIT;
 
-    int to_clear = count;
-    if (x + count > max_width) {
-        to_clear = max_width - x;
-    }
+    gEditor.screen_size_updated = true;
+    gEditor.screen_rows = 0;
+    gEditor.screen_cols = 0;
 
-    for (int i = 0; i < to_clear; i++) {
-        row[x + i].continuation = false;
-        row[x + i].grapheme = grapheme_space;
-        row[x + i].style = style;
-    }
+    surfaceInit(&gEditor.screen, 0, 0);
+    surfaceInit(&gEditor.old_screen, 0, 0);
 }
 
-// Put a grapheme in a cell
-// Marks the cells occupied by the grapheme as continuation
-// Returns the number of cells used (grapheme width)
-static int screenPutGrapheme(ScreenCell* row,
-                             int max_width,
-                             int x,
-                             const Grapheme* grapheme,
-                             const ScreenStyle* style) {
-    if (x >= max_width || grapheme->width <= 0)
-        return 0;
-
-    int width = grapheme->width;
-    if (x + width > max_width)
-        width = max_width - x;
-
-    // Set the first cell
-    row[x].continuation = false;
-    row[x].grapheme = *grapheme;
-    row[x].style = *style;
-
-    // Mark continuation cells
-    for (int i = 1; i < width; i++) {
-        row[x + i].continuation = true;
-        row[x + i].style = *style;
-    }
-
-    return width;
+void editorOutputFree(void) {
+    surfaceFree(&gEditor.screen);
+    surfaceFree(&gEditor.old_screen);
+    abufFree(&gEditor.render_buffer);
 }
 
-static int screenPutChar(ScreenCell* row,
-                         int max_width,
-                         int x,
-                         uint32_t code_point,
-                         const ScreenStyle* style) {
-    int width = unicodeWidth(code_point);
-    if (width < 0 || x >= max_width)
-        return 0;
-
-    Grapheme grapheme = {0};
-    grapheme.cluster[0] = code_point;
-    grapheme.size = 1;
-    grapheme.width = width;
-
-    return screenPutGrapheme(row, max_width, x, &grapheme, style);
-}
-
-static int screenPutUtf8(ScreenCell* row,
-                         int max_width,
-                         int x,
-                         const char* s,
-                         const ScreenStyle style) {
-    if (!s)
-        return 0;
-
-    int start_x = x;
-    size_t len = strlen(s);
-    const char* p = s;
-
-    while (*p != '\0' && x < max_width) {
-        // Skip zero-width characters until we find a base character (width > 0)
-        size_t byte_size;
-        uint32_t code_point = decodeUTF8(p, len, &byte_size);
-
-        if (byte_size == 0)
-            break;
-
-        int width = unicodeWidth(code_point);
-        if (width <= 0) {
-            // Invalid or zero-width character
-            p += byte_size;
-            len -= byte_size;
-            continue;
-        }
-
-        if (x + width > max_width)
-            break;
-
-        // Build grapheme cluster
-        Grapheme grapheme = {0};
-        grapheme.cluster[0] = code_point;
-        grapheme.size = 1;
-        grapheme.width = width;
-
-        p += byte_size;
-        len -= byte_size;
-
-        // Add following zero-width characters
-        while (grapheme.size < MAX_CLUSTER_SIZE && *p != '\0' && len > 0) {
-            size_t comb_byte_size;
-            uint32_t comb_code_point = decodeUTF8(p, len, &comb_byte_size);
-
-            if (comb_byte_size == 0)
-                break;
-
-            int comb_width = unicodeWidth(comb_code_point);
-            if (comb_width < 0) {
-                // Invalid character
-                p += comb_byte_size;
-                len -= comb_byte_size;
-                break;
-            }
-
-            if (comb_width > 0)
-                break;
-
-            grapheme.cluster[grapheme.size] = comb_code_point;
-            grapheme.size++;
-
-            p += comb_byte_size;
-            len -= comb_byte_size;
-        }
-
-        x += screenPutGrapheme(row, max_width, x, &grapheme, &style);
-    }
-
-    return x - start_x;
-}
-
-static int screenPutAscii(ScreenCell* row,
-                          int max_width,
-                          int x,
-                          const char* s,
-                          const ScreenStyle style) {
-    if (!s)
-        return 0;
-
-    int start_x = x;
-    const char* p = s;
-
-    while (*p != '\0' && x < max_width) {
-        unsigned char c = (unsigned char)*p;
-
-        // Fast path: ASCII characters are always width 1
-        Grapheme grapheme = {0};
-        grapheme.cluster[0] = c;
-        grapheme.size = 1;
-        grapheme.width = 1;
-
-        x += screenPutGrapheme(row, max_width, x, &grapheme, &style);
-        p++;
-    }
-
-    return x - start_x;
-}
-
-void editorGetSplitScreenCols(int split_index,
-                              int* left_cols,
-                              int* right_cols) {
-    if (left_cols)
-        *left_cols = 0;
-    if (right_cols)
-        *right_cols = 0;
-
-    if (split_index < 0 || split_index >= gEditor.split_count)
-        return;
-
-    // Reserve 1 column between each pair of adjacent splits for separators
-    int separators = gEditor.split_count - 1;
-    int available = gEditor.screen_cols - gEditor.explorer.width - separators;
-    if (available < 0)
-        available = 0;
-
-    float total_ratio = 0;
-    for (int i = 0; i < gEditor.split_count; i++) {
-        total_ratio += gEditor.splits[i].ratio;
-    }
-
-    if (total_ratio <= 0)
-        total_ratio = 1.0f;
-
-    int left = gEditor.explorer.width;
-    for (int i = 0; i < split_index; i++) {
-        int w = (int)(gEditor.splits[i].ratio / total_ratio * available);
-        left += w + 1;  // +1 for separator
-    }
-
-    int right;
-    if (split_index == gEditor.split_count - 1) {
-        // Last split takes remaining columns
-        right = gEditor.screen_cols;
-    } else {
-        int w =
-            (int)(gEditor.splits[split_index].ratio / total_ratio * available);
-        right = left + w;
-    }
-    if (right > gEditor.screen_cols) {
-        right = gEditor.screen_cols;
-    }
-
-    if (left_cols)
-        *left_cols = left;
-    if (right_cols)
-        *right_cols = right;
-}
-
-static void editorDrawTopStatusBar(void) {
-    if (gEditor.explorer.width >= gEditor.screen_cols) {
-        return;
-    }
-
-    ScreenCell* row = gEditor.screen[0];
-    const ScreenStyle default_style = {
-        .fg = gEditor.color_cfg[UI_COLOR_TOP_FG],
-        .bg = gEditor.color_cfg[UI_COLOR_TOP_BG],
-    };
-    const ScreenStyle tab_default_style = {
-        .fg = gEditor.color_cfg[UI_COLOR_TOP_TABS_FG],
-        .bg = gEditor.color_cfg[UI_COLOR_TOP_TABS_BG],
-    };
-    // Active split active tab style
-    const ScreenStyle tab_active_style1 = {
-        .fg = gEditor.color_cfg[UI_COLOR_TOP_SELECT_FG],
-        .bg = gEditor.color_cfg[UI_COLOR_TOP_SELECT_BG],
-    };
-    // Non-active split active tab style
-    const ScreenStyle tab_active_style2 = {
-        .fg = gEditor.color_cfg[UI_COLOR_TOP_SELECT_FG],
-        .bg = gEditor.color_cfg[UI_COLOR_TOP_TABS_BG],
-    };
-
-    screenClearCells(row, gEditor.screen_cols, gEditor.explorer.width,
-                     gEditor.screen_cols - gEditor.explorer.width,
-                     default_style);
-
-    const char* right_buf = "  " EDITOR_NAME " v" EDITOR_VERSION " ";
-    int rlen = strlen(right_buf);
-
-    int x = gEditor.explorer.width;
-    if (gEditor.state == STATE_LOADING) {
-        const char* loading_text = "Loading...";
-        x += screenPutAscii(row, gEditor.screen_cols, x, loading_text,
-                            default_style);
-
-        if (gEditor.screen_cols - x >= rlen && rlen > 0) {
-            screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
-                           right_buf, default_style);
-        }
-        return;
-    }
-
-    for (int i = 0; i < gEditor.split_count; i++) {
-        EditorSplit* split = &gEditor.splits[i];
-        int start, end;
-        editorGetSplitScreenCols(i, &start, &end);
-
-        ScreenStyle style = default_style;
-
-        if (split->tab_count == 0)
-            continue;
-
-        x = start;
-        if (split->tab_offset != 0) {
-            screenPutAscii(row, gEditor.screen_cols, x, "<", style);
-            x++;
-        }
-
-        split->tab_displayed = 0;
-        for (int j = split->tab_offset; j < split->tab_count; j++) {
-            int remaining_width = end - x;
-            if (remaining_width < 0)
-                break;
-
-            const EditorTab* tab = &split->tabs[j];
-            const EditorFile* file = editorTabGetFile(tab);
-
-            if (j == split->tab_active_index) {
-                if (i == gEditor.split_active_index) {
-                    style = tab_active_style1;
-                } else {
-                    style = tab_active_style2;
-                }
-            } else {
-                style = tab_default_style;
-            }
-
-            char buf[EDITOR_PATH_MAX] = {0};
-            if (file->filename) {
-                const char* basename = getBaseName(file->filename);
-                snprintf(buf, sizeof(buf), " %s%s%s ",
-                         file->read_only ? "[RO]" : "", file->dirty ? "*" : "",
-                         basename);
-            } else {
-                snprintf(buf, sizeof(buf), " %s%sUntitled-%d ",
-                         file->read_only ? "[RO]" : "", file->dirty ? "*" : "",
-                         file->new_id + 1);
-            }
-
-            int tab_width = strUTF8Width(buf);
-
-            if (remaining_width < tab_width ||
-                (j != split->tab_count - 1 && remaining_width == tab_width)) {
-                if (split->tab_displayed == 0) {
-                    // Display at least one tab (truncated if needed)
-                    if (remaining_width > 1) {
-                        x += screenPutUtf8(row, gEditor.screen_cols, x, buf,
-                                           style);
-                        split->tab_displayed++;
-                    }
-                } else {
-                    break;
-                }
-            } else {
-                // Not enough space to even show one tab
-                if (remaining_width <= 0)
-                    break;
-
-                x += screenPutUtf8(row, gEditor.screen_cols, x, buf, style);
-                split->tab_displayed++;
-            }
-        }
-
-        style = default_style;
-
-        if (split->tab_offset + split->tab_displayed < split->tab_count) {
-            if (x >= end) {
-                screenPutAscii(row, gEditor.screen_cols, end - 1, ">", style);
-                x = end;
-            } else {
-                screenPutAscii(row, gEditor.screen_cols, x, ">", style);
-                x++;
-            }
-        }
-    }
-
-    if (gEditor.screen_cols - x >= rlen && rlen > 0) {
-        screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
-                       right_buf, default_style);
-    }
-}
-
-static inline bool editorShouldDrawPrompt(void) {
-    switch (gEditor.state) {
-        case STATE_FIND_PROMPT:
-        case STATE_GOTO_PROMPT:
-        case STATE_OPEN_PROMPT:
-        case STATE_CONFIG_PROMPT:
-        case STATE_SAVE_AS_PROMPT:
-            return (gEditor.screen_rows > 2);
-
-        default:
-            return false;
-    }
-}
-
-static void editorDrawConMsg(void) {
+static void editorDrawConMsg(Surface surface) {
     if (gEditor.con_size == 0) {
         return;
     }
@@ -509,188 +166,49 @@ static void editorDrawConMsg(void) {
     };
 
     // con_size + status bar
-    int draw_row = gEditor.screen_rows - (gEditor.con_size + 1);
-    if (editorShouldDrawPrompt()) {
-        draw_row--;
+    int draw_row = surface.h - (gEditor.con_size + 1);
+    if (panelIsEnabled((Panel*)gEditor.prompt_panel)) {
+        draw_row--;  // TODO: Adjust for prompt panel height if needed
     }
 
     int index = gEditor.con_front;
     for (int i = 0; i < gEditor.con_size; i++) {
-        ScreenCell* row = gEditor.screen[draw_row];
-        screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols,
-                         style);
+        ScreenCell* row = SURFACE_ROW(surface, draw_row);
+        screenClearCells(row, surface.w, 0, surface.w, style);
 
         const char* buf = gEditor.con_msg[index];
         index = (index + 1) % EDITOR_CON_COUNT;
 
-        screenPutUtf8(row, gEditor.screen_cols, 0, buf, style);
+        screenPutUtf8(row, surface.w, 0, buf, style);
 
         draw_row++;
     }
 }
 
-static void editorDrawPrompt(void) {
-    if (!editorShouldDrawPrompt()) {
+static void editorDrawStatusBar(Surface surface) {
+    if (surface.h != 1 || surface.w <= 0) {
         return;
     }
 
-    ScreenCell* row =
-        gEditor.screen[gEditor.screen_rows - 2];  // prompt + status bar
-    ScreenStyle style = {
-        .fg = gEditor.color_cfg[UI_COLOR_PROMPT_FG],
-        .bg = gEditor.color_cfg[UI_COLOR_PROMPT_BG],
-    };
-
-    screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols, style);
-
-    const char* prefix = gEditor.prompt_prefix;
-    const char* right = gEditor.prompt_right;
-
-    // Right prompt is currently only used by find mode, assume it's ASCII
-    int rlen = strlen(right);
-    if (rlen > gEditor.screen_cols) {
-        rlen = 0;
-    }
-
-    // Draw prefix (ASCII-only)
-    int x = screenPutAscii(row, gEditor.screen_cols, 0, prefix, style);
-
-    // Draw prompt
-    const EditorRow* prompt_row = &gEditor.prompt_row;
-    if (prompt_row->data && prompt_row->size > 0) {
-        const char* p = prompt_row->data;
-        int remaining = prompt_row->size;
-        int rx = 0;  // relative to prompt row start (for tabs)
-
-        while (remaining > 0 && x < gEditor.screen_cols) {
-            if (*p == '\t') {
-                int tab_size = tabsize.int_value;
-                int spaces = tab_size - (rx % tab_size);
-                for (int i = 0; i < spaces && x < gEditor.screen_cols; i++) {
-                    x +=
-                        screenPutChar(row, gEditor.screen_cols, x, ' ', &style);
-                    rx++;
-                }
-                p++;
-                remaining--;
-            } else {
-                size_t byte_size;
-                uint32_t code_point = decodeUTF8(p, remaining, &byte_size);
-
-                if (byte_size == 0)
-                    break;
-
-                int width = unicodeWidth(code_point);
-                if (width <= 0) {
-                    // Skip zero-width or invalid characters
-                    p += byte_size;
-                    remaining -= byte_size;
-                    continue;
-                }
-
-                if (x + width > gEditor.screen_cols)
-                    break;
-
-                // Build grapheme cluster
-                Grapheme grapheme = {0};
-                grapheme.cluster[0] = code_point;
-                grapheme.size = 1;
-                grapheme.width = width;
-
-                p += byte_size;
-                remaining -= byte_size;
-
-                // Gather trailing zero-width characters
-                while (grapheme.size < MAX_CLUSTER_SIZE && remaining > 0) {
-                    size_t comb_byte_size;
-                    uint32_t comb_code_point =
-                        decodeUTF8(p, remaining, &comb_byte_size);
-
-                    int comb_width = unicodeWidth(comb_code_point);
-                    if (comb_width != 0)
-                        break;
-
-                    grapheme.cluster[grapheme.size] = comb_code_point;
-                    grapheme.size++;
-
-                    p += comb_byte_size;
-                    remaining -= comb_byte_size;
-                }
-
-                x += screenPutGrapheme(row, gEditor.screen_cols, x, &grapheme,
-                                       &style);
-                rx += width;
-            }
-        }
-    }
-
-    // Selection highlight
-    if (gEditor.prompt_select_start_rx >= 0 &&
-        gEditor.prompt_select_end_rx > gEditor.prompt_select_start_rx) {
-        ScreenStyle select_style = {
-            .fg = style.fg,
-            .bg = gEditor.color_cfg[UI_COLOR_HL_SELECT],
-        };
-        int select_start = gEditor.prompt_select_start_rx;
-        int select_end = gEditor.prompt_select_end_rx;
-        if (select_end > gEditor.screen_cols)
-            select_end = gEditor.screen_cols;
-        for (int i = select_start; i < select_end; i++) {
-            if (!row[i].continuation)
-                row[i].style.bg = select_style.bg;
-        }
-    }
-
-    if (x < gEditor.screen_cols - rlen) {
-        screenPutAscii(row, gEditor.screen_cols, gEditor.screen_cols - rlen,
-                       right, style);
-    }
-}
-
-static void editorDrawStatusBar(void) {
-    ScreenCell* row = gEditor.screen[gEditor.screen_rows - 1];
+    int w = surface.w;
+    ScreenCell* row = surface.cells;
     ScreenStyle default_style = {
         .fg = gEditor.color_cfg[UI_COLOR_STATUS_FG],
         .bg = gEditor.color_cfg[UI_COLOR_STATUS_BG],
     };
 
-    screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols,
-                     default_style);
+    screenClearCells(row, w, 0, w, default_style);
 
-    const char* help_str = "";
-    if (helpinfo.int_value) {
-        switch (gEditor.state) {
-            case STATE_EDIT:
-                help_str =
-                    " ^Q: Quit  ^O: Open  ^P: Prompt  ^S: Save  ^F: Find  ^G: "
-                    "Goto";
-                break;
-            case STATE_EXPLORER:
-                help_str = " ^Q: Quit  ^O: Open  ^P: Prompt";
-                break;
-            case STATE_FIND_PROMPT:
-                help_str = " ^Q: Cancel  Up: Back  Down: Next";
-                break;
-            case STATE_GOTO_PROMPT:
-            case STATE_OPEN_PROMPT:
-            case STATE_CONFIG_PROMPT:
-            case STATE_SAVE_AS_PROMPT:
-                help_str = " ^Q: Cancel";
-                break;
-            default:
-                break;
-        }
-    }
+    EditorHelpMsg help_msg = helpinfo.int_value ? gEditor.help_msg : HELP_NONE;
+    const char* help_str = editorHelpMsgToString(help_msg);
 
     char lang[16];
     char pos[64];
-    int rlen;
-    if (gEditor.split_count == 0) {
-        rlen = 0;
-    } else {
-        const EditorTab* tab = editorGetActiveTab();
-        const EditorFile* file = editorTabGetFile(tab);
+    int rlen = 0;
 
+    EditorTab* tab = editorGetActiveTab();
+    const EditorFile* file = editorTabGetFile(tab);
+    if (file) {
         const char* file_type =
             file->syntax ? file->syntax->file_type : "Plain Text";
         int row_num = tab->cursor.y + 1;
@@ -708,565 +226,88 @@ static void editorDrawStatusBar(void) {
         rlen = strUTF8Width(lang) + strUTF8Width(pos);
     }
 
-    if (rlen > gEditor.screen_cols)
+    if (rlen > w)
         rlen = 0;
 
     int x = 0;
     ScreenStyle style = default_style;
 
-    int max_help_width =
-        (rlen > 0) ? gEditor.screen_cols - rlen : gEditor.screen_cols;
+    int max_help_width = (rlen > 0) ? w - rlen : w;
     if (max_help_width > 0) {
         x += screenPutAscii(row, max_help_width, 0, help_str, style);
     }
 
-    if (rlen > 0 && gEditor.screen_cols - x >= rlen) {
-        int right_x = gEditor.screen_cols - rlen;
+    if (rlen > 0 && surface.w - x >= rlen) {
+        int right_x = surface.w - rlen;
         style.fg = gEditor.color_cfg[UI_COLOR_STATUS_LANG_FG];
         style.bg = gEditor.color_cfg[UI_COLOR_STATUS_LANG_BG];
         int lang_width = strUTF8Width(lang);
-        screenPutAscii(row, gEditor.screen_cols, right_x, lang, style);
+        screenPutAscii(row, surface.w, right_x, lang, style);
         style.fg = gEditor.color_cfg[UI_COLOR_STATUS_POS_FG];
         style.bg = gEditor.color_cfg[UI_COLOR_STATUS_POS_BG];
-        screenPutAscii(row, gEditor.screen_cols, right_x + lang_width, pos,
-                       style);
-    }
-}
-
-static void editorDrawBackground(void) {
-    ScreenStyle style = {
-        .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
-        .bg = gEditor.color_cfg[UI_COLOR_BG],
-    };
-
-    for (int i = 0; i < gEditor.screen_rows; i++) {
-        ScreenCell* row = gEditor.screen[i];
-        screenClearCells(row, gEditor.screen_cols, 0, gEditor.screen_cols,
-                         style);
-    }
-}
-
-static void editorDrawIntroMessages(void) {
-    static int max_width = -1;
-
-    const char* lines[] = {
-        (EDITOR_NAME " v" EDITOR_VERSION),
-        "",
-        "by Evan Lin (evanline96069)",
-        "https://github.com/evanlin96069/nino",
-        "",
-        "Save poor takos in the void!",
-        "",
-        "Ctrl+N  New Tab    Ctrl+O  Open",
-        "Ctrl+P  Prompt     Ctrl+Q  Quit",
-    };
-    static int widths[sizeof(lines) / sizeof(lines[0])] = {0};
-
-    int line_count = (int)(sizeof(lines) / sizeof(lines[0]));
-    int hint_count = 2;
-
-    if (max_width == -1) {
-        max_width = 0;
-        for (int i = 0; i < line_count; i++) {
-            int width = strUTF8Width(lines[i]);
-            widths[i] = width;
-            if (width > max_width) {
-                max_width = width;
-            }
-        }
-    }
-
-    int left = gEditor.explorer.width;
-    if (left < 0)
-        left = 0;
-    if (left >= gEditor.screen_cols)
-        return;
-
-    int top = 1;
-    int rows = gEditor.display_rows;
-    int cols = gEditor.screen_cols - left;
-
-    if (rows < line_count)
-        return;
-
-    if (cols < max_width)
-        return;
-
-    ScreenStyle text_style = {
-        .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
-        .bg = gEditor.color_cfg[UI_COLOR_BG],
-    };
-    ScreenStyle hint_style = {
-        .fg = gEditor.color_cfg[UI_COLOR_HL_COMMENT],
-        .bg = gEditor.color_cfg[UI_COLOR_BG],
-    };
-
-    int start_row = top + (rows - line_count) / 2;
-    if (start_row + line_count > rows)
-        return;
-
-    for (int i = 0; i < line_count; i++) {
-        const char* line = lines[i];
-        int width = widths[i];
-        int start_col = left + (cols - width) / 2;
-
-        ScreenStyle style;
-        if (i < line_count - hint_count) {
-            style = text_style;
-        } else {
-            style = hint_style;
-        }
-
-        screenPutUtf8(gEditor.screen[start_row + i], gEditor.screen_cols,
-                      start_col, line, style);
-    }
-}
-
-static void editorDrawSplit(int split_index) {
-    if (gEditor.explorer.width >= gEditor.screen_cols) {
-        return;
-    }
-
-    int start, end;
-    editorGetSplitScreenCols(split_index, &start, &end);
-
-    EditorTab* tab = editorSplitGetTab(split_index);
-    EditorFile* file = editorTabGetFile(tab);
-
-    EditorSelectRange range = {0};
-    if (tab->cursor.is_selected)
-        getSelectStartEnd(&tab->cursor, &range);
-
-    int lineno_width = editorGetLinenoWidth(file);
-    int content_start_col = start + lineno_width;
-    int content_cols = end - content_start_col;
-
-    for (int i = tab->row_offset, s_row = 1;
-         i < tab->row_offset + gEditor.display_rows; i++, s_row++) {
-        ScreenCell* row = gEditor.screen[s_row];
-
-        // Clear the entire row
-        EditorUIColorType bg_color =
-            (i == tab->cursor.y && !tab->cursor.is_selected)
-                ? UI_COLOR_CURSORLINE
-                : UI_COLOR_BG;
-        screenClearCells(row, gEditor.screen_cols, start, end - start,
-                         (ScreenStyle){
-                             .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
-                             .bg = gEditor.color_cfg[bg_color],
-                         });
-
-        if (i < file->num_rows) {
-            int x = start;
-
-            // Draw line number
-            if (lineno.int_value) {
-                ScreenStyle lineno_style;
-                lineno_style.fg = (i == tab->cursor.y)
-                                      ? gEditor.color_cfg[UI_COLOR_LINENO_BG]
-                                      : gEditor.color_cfg[UI_COLOR_LINENO_FG];
-                lineno_style.bg = (i == tab->cursor.y)
-                                      ? gEditor.color_cfg[UI_COLOR_LINENO_FG]
-                                      : gEditor.color_cfg[UI_COLOR_LINENO_BG];
-
-                char line_number[16];
-                snprintf(line_number, sizeof(line_number), " %*d ",
-                         file->lineno_width - 2, i + 1);
-                x += screenPutAscii(row, gEditor.screen_cols, x, line_number,
-                                    lineno_style);
-            }
-
-            EditorRow* row_data = &file->row[i];
-            if (!row_data->hl_updated) {
-                // Do full single line syntax update
-                editorUpdateSyntax(file, row_data, HL_UPDATE_SINGLE_LINE);
-            }
-
-            // Draw content
-            int col_offset = editorRowRxToCx(row_data, tab->col_offset);
-            int data_len = row_data->size - col_offset;
-            if (data_len < 0) {
-                data_len = 0;
-            }
-
-            int rlen = row_data->rsize - tab->col_offset;
-            if (rlen > content_cols) {
-                rlen = content_cols;
-            }
-            rlen += tab->col_offset;
-
-            // Highlight span index
-            uint32_t hls_index = 0;
-            const EditorHLSpanVector hl_spans = row_data->hl_spans;
-
-            char* c = &row_data->data[col_offset];
-
-            int j = 0;
-            int rx = tab->col_offset;
-            int screen_x = content_start_col;
-
-            Grapheme* curr_grapheme = NULL;
-
-            while (rx < rlen && screen_x < end) {
-                uint32_t cx = j + col_offset;
-
-                EditorUIColorType fg = UI_COLOR_HL_NORMAL;
-                EditorUIColorType bg = bg_color;
-
-                // We assume the span is sorted and not overlapping
-                while (hls_index < hl_spans.size &&
-                       hl_spans.data[hls_index].start +
-                               hl_spans.data[hls_index].len <=
-                           cx) {
-                    hls_index++;
-                }
-
-                if (hls_index < hl_spans.size) {
-                    const EditorHLSpan* span = &hl_spans.data[hls_index];
-                    uint32_t span_start = span->start;
-                    uint32_t span_end = span->start + span->len;
-                    if (span_start <= cx && cx < span_end) {
-                        EditorUIColorType hl_color =
-                            editorHL2UIColor(span->type);
-                        fg = hl_color;
-                    }
-                }
-
-                if (tab->cursor.is_selected && isPosSelected(i, cx, range)) {
-                    bg = UI_COLOR_HL_SELECT;
-                } else if (tab->has_match && i == tab->match_row &&
-                           cx >= tab->match_col &&
-                           cx < tab->match_col + tab->match_len) {
-                    bg = UI_COLOR_HL_MATCH;
-                } else if (row_data->size - row_data->trailing_spaces <= cx) {
-                    bg = UI_COLOR_HL_TRAILING;
-                }
-
-                ScreenStyle style = {0};
-
-                if (isCntrl(c[j]) && c[j] != '\t') {
-                    // Control character (show inverted)
-                    style.fg = gEditor.color_cfg[fg];
-                    style.bg = gEditor.color_cfg[bg];
-
-                    uint32_t sym = (c[j] <= 26) ? '@' + c[j] : '?';
-                    Color tmp = style.fg;
-                    style.fg = style.bg;
-                    style.bg = tmp;
-
-                    screen_x += screenPutChar(row, gEditor.screen_cols,
-                                              screen_x, sym, &style);
-                    curr_grapheme = NULL;
-                    rx++;
-                    j++;
-                } else {
-                    if (drawspace.int_value && (c[j] == ' ' || c[j] == '\t')) {
-                        fg = UI_COLOR_HL_SPACE;
-                    }
-                    if (bg == UI_COLOR_HL_TRAILING && !trailing.int_value) {
-                        bg = bg_color;
-                    }
-
-                    style.fg = gEditor.color_cfg[fg];
-                    style.bg = gEditor.color_cfg[bg];
-
-                    if (c[j] == '\t') {
-                        char tab_char = drawspace.int_value ? '|' : ' ';
-                        screen_x += screenPutChar(row, gEditor.screen_cols,
-                                                  screen_x, tab_char, &style);
-                        rx++;
-                        while (rx % tabsize.int_value != 0 && rx < rlen &&
-                               screen_x < end) {
-                            screen_x += screenPutChar(row, gEditor.screen_cols,
-                                                      screen_x, ' ', &style);
-                            rx++;
-                        }
-                        curr_grapheme = NULL;
-                        j++;
-                    } else if (c[j] == ' ') {
-                        char space_char = drawspace.int_value ? '.' : ' ';
-                        screen_x += screenPutChar(row, gEditor.screen_cols,
-                                                  screen_x, space_char, &style);
-                        curr_grapheme = NULL;
-                        rx++;
-                        j++;
-                    } else {
-                        size_t byte_size;
-                        uint32_t unicode =
-                            decodeUTF8(&c[j], data_len - j, &byte_size);
-                        int width = unicodeWidth(unicode);
-                        if (width < 0) {
-                            unicode = 0xFFFD;
-                            width = 1;
-                        }
-
-                        if (width == 0) {
-                            if (curr_grapheme &&
-                                curr_grapheme->size < MAX_CLUSTER_SIZE) {
-                                curr_grapheme->cluster[curr_grapheme->size] =
-                                    unicode;
-                                curr_grapheme->size++;
-                            }
-                        } else {
-                            curr_grapheme = &row[screen_x].grapheme;
-                            screen_x +=
-                                screenPutChar(row, gEditor.screen_cols,
-                                              screen_x, unicode, &style);
-                            rx += width;
-                        }
-                        j += byte_size;
-                    }
-                }
-
-                // Gather trailing zero-width characters
-                while (data_len - j > 0) {
-                    size_t byte_size;
-                    uint32_t unicode =
-                        decodeUTF8(&c[j], data_len - j, &byte_size);
-                    int width = unicodeWidth(unicode);
-                    if (width != 0)
-                        break;
-                    if (curr_grapheme &&
-                        curr_grapheme->size < MAX_CLUSTER_SIZE) {
-                        curr_grapheme->cluster[curr_grapheme->size] = unicode;
-                        curr_grapheme->size++;
-                    }
-                    j += byte_size;
-                }
-            }
-
-            // Add newline character when selected
-            if (tab->cursor.is_selected && range.end_y > i &&
-                i >= range.start_y &&
-                row_data->rsize - tab->col_offset < content_cols &&
-                screen_x < end) {
-                ScreenStyle select_style = {
-                    .fg = gEditor.color_cfg[UI_COLOR_HL_NORMAL],
-                    .bg = gEditor.color_cfg[UI_COLOR_HL_SELECT],
-                };
-                screenPutChar(row, gEditor.screen_cols, screen_x, ' ',
-                              &select_style);
-            }
-        }
-    }
-}
-
-static void editorDrawFileExplorer(void) {
-    if (gEditor.explorer.width == 0) {
-        return;
-    }
-
-    int explorer_width = gEditor.explorer.width;
-    if (explorer_width > gEditor.screen_cols) {
-        explorer_width = gEditor.screen_cols;
-    }
-
-    // Draw header
-    ScreenCell* header_row = gEditor.screen[0];
-    ScreenStyle header_style = {
-        .fg = gEditor.color_cfg[UI_COLOR_EXPLORER_FILE],
-        .bg = (gEditor.state == STATE_EXPLORER)
-                  ? gEditor.color_cfg[UI_COLOR_EXPLORER_FOCUS]
-                  : gEditor.color_cfg[UI_COLOR_EXPLORER_BG],
-    };
-
-    screenClearCells(header_row, gEditor.screen_cols, 0, explorer_width,
-                     header_style);
-    screenPutAscii(header_row, explorer_width, 0, " EXPLORER", header_style);
-
-    int lines = gEditor.explorer.flatten.size - gEditor.explorer.offset;
-    if (lines < 0) {
-        lines = 0;
-    } else if (lines > gEditor.display_rows) {
-        lines = gEditor.display_rows;
-    }
-
-    ScreenStyle default_style = {
-        .fg = gEditor.color_cfg[UI_COLOR_EXPLORER_FILE],
-        .bg = gEditor.color_cfg[UI_COLOR_EXPLORER_BG],
-    };
-    ScreenStyle directory_style = {
-        .fg = gEditor.color_cfg[UI_COLOR_EXPLORER_DIRECTORY],
-        .bg = gEditor.color_cfg[UI_COLOR_EXPLORER_BG],
-    };
-
-    for (int i = 0; i < lines; i++) {
-        ScreenCell* row = gEditor.screen[i + 1];  // Row 1 to display_rows+1
-        int index = gEditor.explorer.offset + i;
-        EditorExplorerNode* node = gEditor.explorer.flatten.data[index];
-
-        ScreenStyle row_style =
-            (node->is_directory) ? directory_style : default_style;
-        if (index == gEditor.explorer.selected_index) {
-            row_style.bg = gEditor.color_cfg[UI_COLOR_EXPLORER_SELECT];
-        }
-
-        screenClearCells(row, gEditor.screen_cols, 0, explorer_width,
-                         row_style);
-
-        // Indentation
-        int x = node->depth * 2;
-
-        if (node->is_directory) {
-            const char* icon = node->is_open ? "v " : "> ";
-            x += screenPutAscii(row, explorer_width, x, icon, row_style);
-        }
-
-        const char* filename = getBaseName(node->filename);
-        screenPutUtf8(row, explorer_width, x, filename, row_style);
-    }
-
-    // Draw blank lines
-    for (int i = 0; i < gEditor.display_rows - lines; i++) {
-        ScreenCell* row = gEditor.screen[lines + i + 1];
-        screenClearCells(row, gEditor.screen_cols, 0, explorer_width,
-                         default_style);
-    }
-}
-
-static void editorDrawSplitSeparators(void) {
-    if (gEditor.split_count <= 1)
-        return;
-
-    ScreenStyle style = {
-        .fg = gEditor.color_cfg[UI_COLOR_TOP_BG],
-        .bg = gEditor.color_cfg[UI_COLOR_BG],
-    };
-
-    for (int i = 0; i < gEditor.split_count - 1; i++) {
-        int start, end;
-        editorGetSplitScreenCols(i, &start, &end);
-
-        int sep_col = end;
-        if (sep_col < 0 || sep_col >= gEditor.screen_cols)
-            continue;
-
-        for (int r = 0; r < gEditor.screen_rows - 1; r++) {
-            ScreenCell* row = gEditor.screen[r];
-            screenPutChar(row, gEditor.screen_cols, sep_col, '|', &style);
-        }
-    }
-}
-
-void editorFreeScreen(int screen_rows) {
-    if (gEditor.screen) {
-        for (int i = 0; i < screen_rows; i++) {
-            free(gEditor.screen[i]);
-        }
-        free(gEditor.screen);
-    }
-    if (gEditor.prev_screen) {
-        for (int i = 0; i < screen_rows; i++) {
-            free(gEditor.prev_screen[i]);
-        }
-        free(gEditor.prev_screen);
+        screenPutAscii(row, surface.w, right_x + lang_width, pos, style);
     }
 }
 
 void editorRefreshScreen(void) {
+    if (gEditor.screen_rows <= 0 || gEditor.screen_cols <= 0) {
+        return;
+    }
+
     if (gEditor.screen_size_updated) {
-        editorFreeScreen(gEditor.old_screen_rows);
+        surfaceFree(&gEditor.screen);
+        surfaceFree(&gEditor.old_screen);
 
-        gEditor.screen = malloc_s(gEditor.screen_rows * sizeof(ScreenCell*));
-        for (int i = 0; i < gEditor.screen_rows; i++) {
-            gEditor.screen[i] =
-                malloc_s(gEditor.screen_cols * sizeof(ScreenCell));
-        }
-        gEditor.prev_screen =
-            malloc_s(gEditor.screen_rows * sizeof(ScreenCell*));
-        for (int i = 0; i < gEditor.screen_rows; i++) {
-            gEditor.prev_screen[i] =
-                malloc_s(gEditor.screen_cols * sizeof(ScreenCell));
-        }
+        surfaceInit(&gEditor.screen, gEditor.screen_cols, gEditor.screen_rows);
+        surfaceInit(&gEditor.old_screen, gEditor.screen_cols,
+                    gEditor.screen_rows);
+
+        gEditor.screen_size_updated = false;
     }
 
-    abuf ab = ABUF_INIT;
+    abuf* ab = &gEditor.render_buffer;
 
-    abufAppendStr(&ab, ANSI_CURSOR_HIDE ANSI_CURSOR_RESET_POS);
+    abufAppendStr(ab, ANSI_CURSOR_HIDE ANSI_CURSOR_RESET_POS);
 
-    const EditorTab* tab = editorGetActiveTab();
-    const EditorFile* file = editorTabGetFile(tab);
+    // One row for status bar
+    Rect ui_rect = {0, 0, gEditor.screen_cols, gEditor.screen_rows - 1};
+    Rect status_rect = {0, gEditor.screen_rows - 1, gEditor.screen_cols, 1};
 
-    // Draw screen
-    bool draw_top_status = true;
+    // TODO: Make a separate color for separators
+    ScreenStyle sep_style = {
+        .bg = gEditor.color_cfg[UI_COLOR_BG],
+        .fg = gEditor.color_cfg[UI_COLOR_TOP_TABS_FG],
+    };
+    uiComposite(&gEditor.ui, surfaceSub(gEditor.screen, ui_rect), sep_style);
 
-    if (gEditor.split_count == 0) {
-        editorDrawBackground();
-        if (gEditor.state != STATE_LOADING && intro.int_value) {
-            draw_top_status = false;
-            editorDrawIntroMessages();
-        }
-    } else {
-        for (int i = 0; i < gEditor.split_count; i++) {
-            editorDrawSplit(i);
-        }
-    }
-
-    if (draw_top_status) {
-        editorDrawTopStatusBar();
-    }
-
-    editorDrawFileExplorer();
-    editorDrawSplitSeparators();
-
-    editorDrawConMsg();
-    editorDrawPrompt();
-
-    editorDrawStatusBar();
+    // TODO: Refactor these into the new UI API
+    editorDrawStatusBar(surfaceSub(gEditor.screen, status_rect));
+    editorDrawConMsg(gEditor.screen);
 
     // Render sreen
     for (int i = 0; i < gEditor.screen_rows; i++) {
         if (gEditor.screen_size_updated || editorScreenRowUpdated(i)) {
-            editorRenderRow(&ab, i);
+            editorRenderRow(ab, i);
             // Save current screen
-            memcpy(gEditor.prev_screen[i], gEditor.screen[i],
+            memcpy(&SURFACE_AT(gEditor.old_screen, 0, i),
+                   &SURFACE_AT(gEditor.screen, 0, i),
                    sizeof(ScreenCell) * gEditor.screen_cols);
         }
     }
-    gEditor.screen_size_updated = false;
 
     // Crosshair
-    bool should_show_cursor = false;
-    switch (gEditor.state) {
-        case STATE_EDIT: {
-            int split_start, split_end;
-            editorGetSplitScreenCols(gEditor.split_active_index, &split_start,
-                                     &split_end);
-
-            int row = (tab->cursor.y - tab->row_offset) + 2;
-            int col =
-                (editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x) -
-                 tab->col_offset) +
-                1 + editorGetLinenoWidth(file);
-            if (row <= 1 || row > gEditor.screen_rows - 1 || col <= 0 ||
-                col > split_end - split_start ||
-                row >= gEditor.screen_rows - gEditor.con_size) {
-                should_show_cursor = false;
-            } else {
-                should_show_cursor = true;
-                gotoXY(&ab, row, col + split_start);
-            }
-        } break;
-
-        case STATE_LOADING:
-        case STATE_EXPLORER:
-            should_show_cursor = false;
-            break;
-
-        default:
-            // prompt
-            if (editorShouldDrawPrompt()) {
-                should_show_cursor = true;
-                gotoXY(&ab, gEditor.screen_rows - 1, gEditor.px + 1);
-            }
+    UICursor cursor;
+    if (uiGetCursor(&gEditor.ui, &cursor)) {
+        // Make sure the cursor is within the screen
+        if (cursor.x >= 0 && cursor.x < gEditor.screen_cols && cursor.y >= 0 &&
+            cursor.y < gEditor.screen_rows) {
+            gotoXY(ab, cursor.y + 1, cursor.x + 1);
+            abufAppendStr(ab, ANSI_CURSOR_SHOW);
+        }
     }
 
-    if (should_show_cursor) {
-        abufAppendStr(&ab, ANSI_CURSOR_SHOW);
-    }
+    abufAppendStr(ab, ANSI_CLEAR);
 
-    abufAppendStr(&ab, ANSI_CLEAR);
-
-    writeConsoleAll(ab.buf, ab.len);
-    abufFree(&ab);
+    writeConsoleAll(ab->buf, ab->len);
+    abufReset(ab);
 }
