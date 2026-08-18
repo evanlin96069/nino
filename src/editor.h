@@ -34,6 +34,12 @@ typedef enum EditorHelpMsg {
     HELP_COUNT,
 } EditorHelpMsg;
 
+typedef enum EditorWaitState {
+    EDITOR_WAIT_NONE,
+    EDITOR_WAIT_QUIT,
+    EDITOR_WAIT_CLOSE,
+} EditorWaitState;
+
 typedef struct EditorSyntax EditorSyntax;
 
 typedef struct EditorFile {
@@ -73,8 +79,6 @@ typedef struct PromptPanel PromptPanel;
 typedef struct EditPanel EditPanel;
 
 typedef struct Editor {
-    bool pending_quit_confirm;
-
     // Screen
     bool screen_size_updated;
     int screen_rows;
@@ -94,6 +98,7 @@ typedef struct Editor {
 
     // Editor mode
     EditorState state;
+    EditorWaitState wait_state;  // quit/close protect
     bool mouse_mode;
 
     // Copy paste

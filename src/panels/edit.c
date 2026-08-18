@@ -784,42 +784,6 @@ static void keyEvent(Panel* self, EditorInput input) {
             editorPromptSaveAs(file);
             break;
 
-        // Close tab
-        case CTRL_KEY('w'): {
-            keep_bracket_autocomplete = true;
-            keep_selection = true;
-
-            if (wait_state == EDIT_WAIT_CLOSE) {
-                // Handle tab close confirmation
-                if (p->wait_tab_index != -1) {
-                    editorCloseTab(p, p->wait_tab_index);
-                    tab = NULL;
-                    file = NULL;
-
-                    p->wait_tab_index = -1;
-                    break;
-                }
-            }
-
-            if (p->tab_active_index == -1) {
-                break;
-            }
-
-            if (file->dirty && file->reference_count == 1) {
-                p->wait_state = EDIT_WAIT_CLOSE;
-                p->wait_tab_index = p->tab_active_index;
-                gEditor.pending_edit_panel = p;
-
-                editorMsgClear();
-                editorMsg("File has unsaved changes.");
-                editorMsg("Press close again to close file anyway.");
-            } else {
-                editorCloseTab(p, p->tab_active_index);
-                tab = NULL;
-                file = NULL;
-            }
-        } break;
-
         // Next file
         case CTRL_KEY(']'):
             keep_bracket_autocomplete = true;
@@ -2244,6 +2208,9 @@ void editorScrollToCursorCenter(EditPanel* split) {
 void editorCancelPendingWait(EditPanel* split) {
     if (!split)
         return;
+
+    if (split == gEditor.pending_edit_panel)
+        gEditor.pending_edit_panel = NULL;
 
     split->wait_state = EDIT_WAIT_NONE;
     split->wait_tab_index = -1;

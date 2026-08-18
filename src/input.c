@@ -11,27 +11,28 @@
 #include "ui/compositor.h"
 
 static bool globalKeyEvent(Panel* panel, EditorInput input) {
+    EditorWaitState wait_state = gEditor.wait_state;
+    gEditor.wait_state = EDITOR_WAIT_NONE;
+
     if (gEditor.ui.focused_panel == (Panel*)gEditor.prompt_panel) {
         // Let the prompt handle the input
         return false;
     }
-
-    bool pending_quit_confirm = gEditor.pending_quit_confirm;
-    gEditor.pending_quit_confirm = false;
 
     bool handled = true;
 
     switch (input.type) {
         // Quit
         case CTRL_KEY('q'): {
-            if (pending_quit_confirm) {
+            // Handle quit confirmation
+            if (wait_state == EDITOR_WAIT_QUIT) {
                 gEditor.state = STATE_EXIT;
                 break;
             }
 
             int dirty_count = editorGetDirtyFileCount();
             if (dirty_count > 0) {
-                gEditor.pending_quit_confirm = true;
+                gEditor.wait_state = EDITOR_WAIT_QUIT;
 
                 editorMsgClear();
                 if (dirty_count == 1) {
@@ -43,6 +44,31 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
                 gEditor.con_keep_msg = true;
             } else {
                 gEditor.state = STATE_EXIT;
+            }
+        } break;
+
+        // Close tab
+        case CTRL_KEY('w'): {
+            EditPanel* split = gEditor.active_edit_panel;
+            if (!split || split->tab_active_index == -1)
+                break;
+
+            // Handle tab close confirmation
+            if (wait_state == EDITOR_WAIT_CLOSE) {
+                editorCloseTab(split, split->tab_active_index);
+                break;
+            }
+
+            EditorTab* tab = editorSplitGetTab(split);
+            EditorFile* file = editorTabGetFile(tab);
+            if (file->dirty && file->reference_count == 1) {
+                gEditor.wait_state = EDITOR_WAIT_CLOSE;
+
+                editorMsgClear();
+                editorMsg("File has unsaved changes.");
+                editorMsg("Press close again to close file anyway.");
+            } else {
+                editorCloseTab(split, split->tab_active_index);
             }
         } break;
 
@@ -124,7 +150,6 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
     if (gEditor.pending_edit_panel) {
         if (handled || panel != (Panel*)gEditor.pending_edit_panel) {
             editorCancelPendingWait(gEditor.pending_edit_panel);
-            gEditor.pending_edit_panel = NULL;
         }
     }
 
@@ -153,7 +178,6 @@ static bool globalMouseEvent(Panel* panel, UIMouseEvent mouse_event) {
     if (gEditor.pending_edit_panel) {
         if (panel != (Panel*)gEditor.pending_edit_panel) {
             editorCancelPendingWait(gEditor.pending_edit_panel);
-            gEditor.pending_edit_panel = NULL;
         }
     }
 
