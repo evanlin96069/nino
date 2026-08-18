@@ -10,28 +10,30 @@
 #include "panels/edit.h"
 #include "ui/compositor.h"
 
-static bool editorGlobalInputHandler(EditorInput input) {
+static bool globalKeyEvent(Panel* panel, EditorInput input) {
     if (gEditor.ui.focused_panel == (Panel*)gEditor.prompt_panel) {
         // Let the prompt handle the input
         return false;
     }
 
-    if (gEditor.pending_quit_confirm) {
-        if (input.type == CTRL_KEY('q')) {
-            gEditor.state = STATE_EXIT;
-            return true;
-        }
-        gEditor.pending_quit_confirm = false;
-        editorMsgClear();
-    }
+    bool pending_quit_confirm = gEditor.pending_quit_confirm;
+    gEditor.pending_quit_confirm = false;
 
     bool handled = true;
+
     switch (input.type) {
         // Quit
         case CTRL_KEY('q'): {
+            if (pending_quit_confirm) {
+                gEditor.state = STATE_EXIT;
+                break;
+            }
+
             int dirty_count = editorGetDirtyFileCount();
             if (dirty_count > 0) {
                 gEditor.pending_quit_confirm = true;
+
+                editorMsgClear();
                 if (dirty_count == 1) {
                     editorMsg("File has unsaved changes.");
                 } else {
@@ -39,9 +41,9 @@ static bool editorGlobalInputHandler(EditorInput input) {
                 }
                 editorMsg("Press quit again to quit anyway.");
                 gEditor.con_keep_msg = true;
-                return true;
+            } else {
+                gEditor.state = STATE_EXIT;
             }
-            gEditor.state = STATE_EXIT;
         } break;
 
         // Prompt
@@ -119,13 +121,54 @@ static bool editorGlobalInputHandler(EditorInput input) {
         gEditor.con_keep_msg = false;
     }
 
+    if (gEditor.pending_edit_panel) {
+        if (handled || panel != (Panel*)gEditor.pending_edit_panel) {
+            editorCancelPendingWait(gEditor.pending_edit_panel);
+            gEditor.pending_edit_panel = NULL;
+        }
+    }
+
     return handled;
 }
 
+static bool globalMouseEvent(Panel* panel, UIMouseEvent mouse_event) {
+    switch (mouse_event.state->type) {
+        case UI_MOUSE1_PRESSED:
+        case UI_MWHEEL_UP:
+        case UI_MWHEEL_DOWN:
+            // Only clear console for these events
+            break;
+
+        default:
+            gEditor.con_keep_msg = true;
+            break;
+    }
+
+    if (!gEditor.con_keep_msg) {
+        editorMsgClear();
+    } else {
+        gEditor.con_keep_msg = false;
+    }
+
+    if (gEditor.pending_edit_panel) {
+        if (panel != (Panel*)gEditor.pending_edit_panel) {
+            editorCancelPendingWait(gEditor.pending_edit_panel);
+            gEditor.pending_edit_panel = NULL;
+        }
+    }
+
+    return false;
+}
+
+UIProcessInputHooks global_input_hooks = {
+    .preKeyEvent = globalKeyEvent,
+    .preMouseEvent = globalMouseEvent,
+};
+
 void editorProcessInput(void) {
     EditorInput input = editorReadKey();  // TODO: Add record/replay feature
-    if (!editorGlobalInputHandler(input)) {
-        uiProcessInput(&gEditor.ui, input);
+    if (input.type != UNKNOWN) {
+        uiProcessInput(&gEditor.ui, input, global_input_hooks);
     }
     editorFreeInput(&input);
 }

@@ -463,8 +463,7 @@ static bool getCursor(Panel* self, UICursor* out) {
 static void onFocus(Panel* self, bool focused) {
     EditPanel* p = (EditPanel*)self;
 
-    p->wait_state = EDIT_WAIT_NONE;
-    p->wait_tab_index = -1;
+    editorCancelPendingWait(p);
 
     if (focused) {
         gEditor.active_edit_panel = p;
@@ -706,6 +705,8 @@ static void keyEvent(Panel* self, EditorInput input) {
                 break;
             }
 
+            editorMsgClear();
+
             bool warn = editorIsDangerousSave(file, true);
             if (!warn && file->read_only && file->unlocked) {
                 // File was read-only at open but permissions may have since
@@ -716,6 +717,7 @@ static void keyEvent(Panel* self, EditorInput input) {
             if (warn) {
                 editorMsg("Press save again to save anyway.");
                 p->wait_state = EDIT_WAIT_SAVE;
+                gEditor.pending_edit_panel = p;
                 break;
             }
 
@@ -754,6 +756,9 @@ static void keyEvent(Panel* self, EditorInput input) {
                     editorSave(f, f->filename);
                 }
             }
+
+            editorMsgClear();
+
             if (has_untitled) {
                 // TODO: Show prompts to save untitled files
                 editorMsg("Some files were skipped (untitled).");
@@ -803,6 +808,9 @@ static void keyEvent(Panel* self, EditorInput input) {
             if (file->dirty && file->reference_count == 1) {
                 p->wait_state = EDIT_WAIT_CLOSE;
                 p->wait_tab_index = p->tab_active_index;
+                gEditor.pending_edit_panel = p;
+
+                editorMsgClear();
                 editorMsg("File has unsaved changes.");
                 editorMsg("Press close again to close file anyway.");
             } else {
@@ -1639,7 +1647,9 @@ static void keyEvent(Panel* self, EditorInput input) {
         return;
 
     if (has_edit && file->read_only && !file->unlocked) {
+        editorMsgClear();
         editorMsg("File is read-only.");
+
         editorFreeClipboardContent(&edit.before);
         editorFreeClipboardContent(&edit.after);
         has_edit = false;
@@ -1801,14 +1811,14 @@ static void handleTabBarClose(EditPanel* split,
                 if (pressed) {
                     split->wait_state = EDIT_WAIT_CLOSE_RELEASE1;
                     split->wait_tab_index = tab_index;
+                    gEditor.pending_edit_panel = split;
                 }
                 break;
 
             case EDIT_WAIT_CLOSE_RELEASE1:
                 if (!pressed) {
                     if (split->wait_tab_index != tab_index) {
-                        split->wait_state = EDIT_WAIT_NONE;
-                        split->wait_tab_index = -1;
+                        editorCancelPendingWait(split);
                         break;
                     }
 
@@ -1816,12 +1826,13 @@ static void handleTabBarClose(EditPanel* split,
                         editorTabGetFileConst(&split->tabs.data[tab_index]);
                     if (file->dirty && file->reference_count == 1) {
                         split->wait_state = EDIT_WAIT_CLOSE_PRESS2;
+
+                        editorMsgClear();
                         editorMsg("File has unsaved changes.");
                         editorMsg("Press close again to close file anyway.");
                     } else {
                         editorCloseTab(split, tab_index);
-                        split->wait_state = EDIT_WAIT_NONE;
-                        split->wait_tab_index = -1;
+                        editorCancelPendingWait(split);
                     }
                 }
                 break;
@@ -1829,26 +1840,26 @@ static void handleTabBarClose(EditPanel* split,
             case EDIT_WAIT_CLOSE_PRESS2:
                 if (pressed) {
                     if (split->wait_tab_index != tab_index) {
-                        split->wait_state = EDIT_WAIT_NONE;
-                        split->wait_tab_index = -1;
+                        editorCancelPendingWait(split);
                         break;
                     }
 
+                    gEditor.con_keep_msg = true;
                     split->wait_state = EDIT_WAIT_CLOSE_RELEASE2;
                 }
                 break;
 
             case EDIT_WAIT_CLOSE_RELEASE2:
                 if (!pressed) {
+                    editorMsgClear();
+
                     if (split->wait_tab_index != tab_index) {
-                        split->wait_state = EDIT_WAIT_NONE;
-                        split->wait_tab_index = -1;
+                        editorCancelPendingWait(split);
                         break;
                     }
 
                     editorCloseTab(split, tab_index);
-                    split->wait_state = EDIT_WAIT_NONE;
-                    split->wait_tab_index = -1;
+                    editorCancelPendingWait(split);
                 }
                 break;
 
@@ -2228,4 +2239,12 @@ void editorScrollToCursorCenter(EditPanel* split) {
     if (tab->row_offset < 0) {
         tab->row_offset = 0;
     }
+}
+
+void editorCancelPendingWait(EditPanel* split) {
+    if (!split)
+        return;
+
+    split->wait_state = EDIT_WAIT_NONE;
+    split->wait_tab_index = -1;
 }

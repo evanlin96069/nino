@@ -89,6 +89,7 @@ typedef struct Editor {
     WelcomePanel* welcome_panel;
     PromptPanel* prompt_panel;
     EditPanel* active_edit_panel;
+    EditPanel* pending_edit_panel;  // EditWaitState
     int split_count;
 
     // Editor mode

@@ -145,4 +145,6 @@ void editorScroll(EditPanel* split, int dist);
 void editorScrollToCursor(EditPanel* split);
 void editorScrollToCursorCenter(EditPanel* split);
 
+void editorCancelPendingWait(EditPanel* split);
+
 #endif

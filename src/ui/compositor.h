@@ -75,7 +75,14 @@ void uiFree(UI* ui);
 
 void uiComposite(UI* ui, Surface s, ScreenStyle sep_style);
 bool uiGetCursor(UI* ui, UICursor* out);
-void uiProcessInput(UI* ui, EditorInput input);
+
+typedef struct UIProcessInputHooks {
+    // Return true to handle this input
+    bool (*preKeyEvent)(Panel* panel, EditorInput input);
+    bool (*preMouseEvent)(Panel* panel, UIMouseEvent mouse_event);
+} UIProcessInputHooks;
+void uiProcessInput(UI* ui, EditorInput input, UIProcessInputHooks hooks);
+
 void uiAddPanel(UI* ui, Panel* relative_to, Panel* new_panel, bool leftright);
 void uiClosePanel(UI* ui, Panel* panel);
 
