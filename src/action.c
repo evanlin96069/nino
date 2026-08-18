@@ -78,6 +78,8 @@ static void splitFileUpdateCallback(Panel* panel, void* user_data) {
             t->cursor.x = insert_range.end_x;
             t->cursor.y = insert_range.end_y;
             t->cursor.is_selected = false;
+            t->cursor.select_x = tab->cursor.x;
+            t->cursor.select_y = tab->cursor.y;
             editorUpdateSx(t);
             continue;
         }
@@ -90,6 +92,8 @@ static void splitFileUpdateCallback(Panel* panel, void* user_data) {
             if (t->cursor.x == t->cursor.select_x &&
                 t->cursor.y == t->cursor.select_y) {
                 t->cursor.is_selected = false;
+                t->cursor.select_x = tab->cursor.x;
+                t->cursor.select_y = tab->cursor.y;
             }
         }
         editorUpdateSx(t);

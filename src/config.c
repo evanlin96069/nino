@@ -402,6 +402,8 @@ static void reloadCallback(Panel* panel, void* user_data) {
             if (tab->row_offset > max_y)
                 tab->row_offset = max_y;
             tab->cursor.is_selected = false;
+            tab->cursor.select_x = tab->cursor.x;
+            tab->cursor.select_y = tab->cursor.y;
             tab->sx = 0;
             tab->col_offset = 0;
         }

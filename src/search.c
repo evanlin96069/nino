@@ -305,9 +305,11 @@ static void findCallback(PromptEvent event, void* user_data) {
 
     int match_col = matches->data[state->match].col;
     int match_row = matches->data[state->match].row;
-    tab->cursor.is_selected = false;
     tab->cursor.x = match_col;
     tab->cursor.y = match_row;
+    tab->cursor.is_selected = false;
+    tab->cursor.select_x = tab->cursor.x;
+    tab->cursor.select_y = tab->cursor.y;
     editorScrollToCursorCenter(gEditor.active_edit_panel);
 
     tab->has_match = true;
@@ -362,10 +364,12 @@ static void gotoCallback(PromptEvent event, void* user_data) {
     }
 
     if (line > 0 && line <= file->num_rows) {
-        tab->cursor.is_selected = false;
-        tab->cursor.x = 0;
         tab->sx = 0;
+        tab->cursor.x = 0;
         tab->cursor.y = line - 1;
+        tab->cursor.is_selected = false;
+        tab->cursor.select_x = tab->cursor.x;
+        tab->cursor.select_y = tab->cursor.y;
         editorScrollToCursorCenter(split);
     } else {
         editorMsg("Type a line number between 1 to %d (negative too).",
