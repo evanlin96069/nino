@@ -75,8 +75,8 @@ void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
     for (uint32_t i = 0; i < gEditor.recent_splits.size; i++) {
         EditPanel* split = gEditor.recent_splits.data[i];
 
-        for (uint32_t i = 0; i < split->tabs.size; i++) {
-            EditorTab* t = &split->tabs.data[i];
+        for (uint32_t j = 0; j < split->tabs.size; j++) {
+            EditorTab* t = &split->tabs.data[j];
             if (t->file_index != tab->file_index)
                 continue;
 

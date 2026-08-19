@@ -416,8 +416,8 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
             for (uint32_t i = 0; i < gEditor.recent_splits.size; i++) {
                 EditPanel* split = gEditor.recent_splits.data[i];
 
-                for (uint32_t i = 0; i < split->tabs.size; i++) {
-                    EditorTab* tab = &split->tabs.data[i];
+                for (uint32_t j = 0; j < split->tabs.size; j++) {
+                    EditorTab* tab = &split->tabs.data[j];
                     if (tab->file_index == file_index) {
                         tab->cursor.x = 0;
                         if (tab->cursor.y > max_y)

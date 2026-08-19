@@ -420,7 +420,7 @@ OsError saveFileInPlace(const char* path, const void* buf, size_t len) {
 
 #ifndef NO_FSYNC
     if (fsync(fd) < 0) {
-        int err = errno;
+        err = errno;
         close(fd);
         return err;
     }

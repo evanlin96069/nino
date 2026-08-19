@@ -124,7 +124,7 @@ set(COMMON_HEADER "${CMAKE_SOURCE_DIR}/src/common.h")
 if (MSVC)
   target_compile_options(${PROJECT_NAME} PRIVATE /W4 /wd4244 /wd4267 /wd4996 /FI "${COMMON_HEADER}")
 else()
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -include "${COMMON_HEADER}")
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Wshadow -include "${COMMON_HEADER}")
 endif()
 
 install(TARGETS ${PROJECT_NAME})

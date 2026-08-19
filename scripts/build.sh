@@ -6,7 +6,7 @@ set -eu
 : "${OUTPUT:=$EDITOR_NAME}"
 : "${HOST_CC:=cc}"
 : "${CC:=cc}"
-: "${CFLAGS:=-std=c11 -Wall -Wextra -pedantic}"
+: "${CFLAGS:=-std=c11 -Wall -Wextra -pedantic -Wshadow}"
 
 # Add command line arguments to CFLAGS
 for arg in "$@"; do
