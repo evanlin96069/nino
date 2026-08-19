@@ -380,36 +380,6 @@ CON_COMMAND(unlock, "Allow editing a read-only file.") {
     editorMsg("File unlocked. Note: file is still read-only on disk.");
 }
 
-typedef struct ReloadUserData {
-    int file_index;
-    int max_y;
-} ReloadUserData;
-static void reloadCallback(Panel* panel, void* user_data) {
-    if (panel->kind != PANEL_KIND_EDIT)
-        return;
-
-    EditPanel* split = (EditPanel*)panel;
-    ReloadUserData* data = (ReloadUserData*)user_data;
-    int file_index = data->file_index;
-    int max_y = data->max_y;
-
-    for (uint32_t i = 0; i < split->tabs.size; i++) {
-        EditorTab* tab = &split->tabs.data[i];
-        if (tab->file_index == file_index) {
-            tab->cursor.x = 0;
-            if (tab->cursor.y > max_y)
-                tab->cursor.y = max_y;
-            if (tab->row_offset > max_y)
-                tab->row_offset = max_y;
-            tab->cursor.is_selected = false;
-            tab->cursor.select_x = tab->cursor.x;
-            tab->cursor.select_y = tab->cursor.y;
-            tab->sx = 0;
-            tab->col_offset = 0;
-        }
-    }
-}
-
 CON_COMMAND(reload, "Reload the current file from disk.") {
     if (gEditor.file_count == 0) {
         editorMsg("reload: No file opened");
@@ -443,11 +413,25 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
 
             int max_y = curr_file->num_rows > 0 ? curr_file->num_rows - 1 : 0;
 
-            ReloadUserData data = {
-                .file_index = file_index,
-                .max_y = max_y,
-            };
-            uiPanelWalk(&gEditor.ui, reloadCallback, &data);
+            for (uint32_t i = 0; i < gEditor.recent_splits.size; i++) {
+                EditPanel* split = gEditor.recent_splits.data[i];
+
+                for (uint32_t i = 0; i < split->tabs.size; i++) {
+                    EditorTab* tab = &split->tabs.data[i];
+                    if (tab->file_index == file_index) {
+                        tab->cursor.x = 0;
+                        if (tab->cursor.y > max_y)
+                            tab->cursor.y = max_y;
+                        if (tab->row_offset > max_y)
+                            tab->row_offset = max_y;
+                        tab->cursor.is_selected = false;
+                        tab->cursor.select_x = tab->cursor.x;
+                        tab->cursor.select_y = tab->cursor.y;
+                        tab->sx = 0;
+                        tab->col_offset = 0;
+                    }
+                }
+            }
             editorMsg("File reloaded from disk.");
         } break;
 

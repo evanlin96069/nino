@@ -53,53 +53,6 @@ static void editorPosUpdate(int* x,
     }
 }
 
-typedef struct FileUpdateUserData {
-    EditorTab* tab;
-    EditorSelectRange delete_range;
-    EditorSelectRange insert_range;
-} FileUpdateUserData;
-
-static void splitFileUpdateCallback(Panel* panel, void* user_data) {
-    if (panel->kind != PANEL_KIND_EDIT)
-        return;
-
-    EditPanel* split = (EditPanel*)panel;
-    FileUpdateUserData* data = (FileUpdateUserData*)user_data;
-    EditorTab* tab = data->tab;
-    EditorSelectRange delete_range = data->delete_range;
-    EditorSelectRange insert_range = data->insert_range;
-
-    for (uint32_t i = 0; i < split->tabs.size; i++) {
-        EditorTab* t = &split->tabs.data[i];
-        if (t->file_index != tab->file_index)
-            continue;
-
-        if (t == tab) {
-            t->cursor.x = insert_range.end_x;
-            t->cursor.y = insert_range.end_y;
-            t->cursor.is_selected = false;
-            t->cursor.select_x = tab->cursor.x;
-            t->cursor.select_y = tab->cursor.y;
-            editorUpdateSx(t);
-            continue;
-        }
-
-        editorPosUpdate(&t->cursor.x, &t->cursor.y, delete_range, insert_range);
-
-        if (t->cursor.is_selected) {
-            editorPosUpdate(&t->cursor.select_x, &t->cursor.select_y,
-                            delete_range, insert_range);
-            if (t->cursor.x == t->cursor.select_x &&
-                t->cursor.y == t->cursor.select_y) {
-                t->cursor.is_selected = false;
-                t->cursor.select_x = tab->cursor.x;
-                t->cursor.select_y = tab->cursor.y;
-            }
-        }
-        editorUpdateSx(t);
-    }
-}
-
 void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
     EditorFile* file = editorTabGetFile(tab);
 
@@ -119,13 +72,40 @@ void editorApplyEdit(EditorTab* tab, Edit* edit, bool undo) {
     EditorSelectRange insert_range =
         editorGetClipboardRange(edit->x, edit->y, to_add);
 
-    // Update all tabs referencing this file
-    FileUpdateUserData data = {
-        .tab = tab,
-        .delete_range = delete_range,
-        .insert_range = insert_range,
-    };
-    uiPanelWalk(&gEditor.ui, splitFileUpdateCallback, &data);
+    for (uint32_t i = 0; i < gEditor.recent_splits.size; i++) {
+        EditPanel* split = gEditor.recent_splits.data[i];
+
+        for (uint32_t i = 0; i < split->tabs.size; i++) {
+            EditorTab* t = &split->tabs.data[i];
+            if (t->file_index != tab->file_index)
+                continue;
+
+            if (t == tab) {
+                t->cursor.x = insert_range.end_x;
+                t->cursor.y = insert_range.end_y;
+                t->cursor.is_selected = false;
+                t->cursor.select_x = tab->cursor.x;
+                t->cursor.select_y = tab->cursor.y;
+                editorUpdateSx(t);
+                continue;
+            }
+
+            editorPosUpdate(&t->cursor.x, &t->cursor.y, delete_range,
+                            insert_range);
+
+            if (t->cursor.is_selected) {
+                editorPosUpdate(&t->cursor.select_x, &t->cursor.select_y,
+                                delete_range, insert_range);
+                if (t->cursor.x == t->cursor.select_x &&
+                    t->cursor.y == t->cursor.select_y) {
+                    t->cursor.is_selected = false;
+                    t->cursor.select_x = tab->cursor.x;
+                    t->cursor.select_y = tab->cursor.y;
+                }
+            }
+            editorUpdateSx(t);
+        }
+    }
 }
 
 bool editorUndo(EditorTab* tab) {

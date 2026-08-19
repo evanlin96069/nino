@@ -584,6 +584,9 @@ void layoutWalk(LayoutNode* node,
     if (!node || !callback)
         return;
 
+    if (!node->has_enabled_content)
+        return;
+
     callback(node, user_data);
 
     if (node->kind != LAYOUT_LEAF) {
