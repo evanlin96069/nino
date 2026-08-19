@@ -42,10 +42,6 @@ static void destroy(Panel* self) {
         editorRemoveFile(p->tabs.data[i].file_index);
     }
     vector_free(p->tabs);
-
-    if (gEditor.active_edit_panel == p) {
-        gEditor.active_edit_panel = NULL;
-    }
 }
 
 static void getTabName(const EditorTab* tab, char* out_name, size_t out_size) {
@@ -460,12 +456,48 @@ static bool getCursor(Panel* self, UICursor* out) {
     return visible;
 }
 
+// -1 if not found
+static int editorSplitRecentListGetIndex(EditPanel* split) {
+    int index = (int)gEditor.recent_splits.size - 1;
+    while (index >= 0) {
+        if (gEditor.recent_splits.data[index] == split)
+            break;
+        index--;
+    }
+
+    return index;
+}
+
+static void editorSplitRecentListAdd(EditPanel* split) {
+    vector_push(gEditor.recent_splits, split);
+}
+
+static void editorSplitRecentListRemove(EditPanel* split) {
+    int index = editorSplitRecentListGetIndex(split);
+    if (index >= 0) {
+        vector_erase(gEditor.recent_splits, (uint32_t)index);
+    }
+}
+
+static void editorSplitRecentListTouch(EditPanel* split) {
+    editorSplitRecentListRemove(split);
+    editorSplitRecentListAdd(split);
+}
+
+static EditPanel* editorGetMostRecentSplit(void) {
+    uint32_t size = gEditor.recent_splits.size;
+    if (size == 0)
+        return NULL;
+    return gEditor.recent_splits.data[size - 1];
+}
+
 static void onFocus(Panel* self, bool focused) {
     EditPanel* p = (EditPanel*)self;
 
     editorCancelPendingWait(p);
 
     if (focused) {
+        editorSplitRecentListTouch(p);
         gEditor.active_edit_panel = p;
 
         EditorTab* tab = editorSplitGetTab(p);
@@ -805,14 +837,12 @@ static void keyEvent(Panel* self, EditorInput input) {
         case CTRL_KEY('\\'): {
             EditPanel* new_split = editorAddSplit(p, true);
             editorAddTab(new_split, editorSplitGetTab(p)->file_index);
-            uiPanelSetFocused(&gEditor.ui, (Panel*)new_split);
         } break;
 
         // Split top bottom
         case CTRL_KEY('_'): {
             EditPanel* new_split = editorAddSplit(p, false);
             editorAddTab(new_split, editorSplitGetTab(p)->file_index);
-            uiPanelSetFocused(&gEditor.ui, (Panel*)new_split);
         } break;
 
         // --- Navigation & Selection ---
@@ -2053,7 +2083,7 @@ void editorCloseTab(EditPanel* split, int tab_index) {
     // Close split if no file in the tab
     if (split->tabs.size == 0) {
         editorRemoveSplit(split);
-        if (gEditor.split_count == 0) {
+        if (!gEditor.active_edit_panel) {
             if (!gEditor.explorer_panel->node) {
                 gEditor.state = STATE_EXIT;
             } else {
@@ -2108,21 +2138,22 @@ void editorChangeToFile(EditPanel* split, int tab_index) {
     tab->bracket_autocomplete = 0;
 }
 
-// Do not focus the split
 EditPanel* editorAddSplit(EditPanel* relative_to, bool leftright) {
     EditPanel* new_split = panelEditCreate();
 
     if (!relative_to) {
         // Create a left-right layout with explorer and welcome panel
-        uiAddPanel(&gEditor.ui, ((Panel*)gEditor.welcome_panel),
+        uiAddPanel(&gEditor.ui, (Panel*)gEditor.welcome_panel,
                    (Panel*)new_split, true);
         uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.welcome_panel, false);
     } else {
-        uiAddPanel(&gEditor.ui, ((Panel*)relative_to), (Panel*)new_split,
+        uiAddPanel(&gEditor.ui, (Panel*)relative_to, (Panel*)new_split,
                    leftright);
     }
 
-    gEditor.split_count++;
+    editorSplitRecentListAdd(new_split);
+    uiPanelSetFocused(&gEditor.ui, (Panel*)new_split);
+
     return new_split;
 }
 
@@ -2130,16 +2161,23 @@ void editorRemoveSplit(EditPanel* split) {
     if (!split)
         return;
 
+    editorSplitRecentListRemove(split);
+    EditPanel* next = editorGetMostRecentSplit();
+
     if (gEditor.active_edit_panel == split) {
         gEditor.active_edit_panel = NULL;
+
+        if (next) {
+            uiPanelSetFocused(&gEditor.ui, (Panel*)next);
+        }
+    }
+
+    if (!next) {
+        uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.welcome_panel, true);
+        uiPanelSetFocused(&gEditor.ui, (Panel*)gEditor.welcome_panel);
     }
 
     uiClosePanel(&gEditor.ui, (Panel*)split);
-    gEditor.split_count--;
-
-    if (gEditor.split_count == 0) {
-        uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.welcome_panel, true);
-    }
 }
 
 void editorScroll(EditPanel* split, int dist) {

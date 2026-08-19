@@ -93,8 +93,8 @@ typedef struct Editor {
     WelcomePanel* welcome_panel;
     PromptPanel* prompt_panel;
     EditPanel* active_edit_panel;
-    EditPanel* pending_edit_panel;  // EditWaitState
-    int split_count;
+    EditPanel* pending_edit_panel;     // EditWaitState
+    VECTOR(EditPanel*) recent_splits;  // from least to most recent
 
     // Editor mode
     EditorState state;

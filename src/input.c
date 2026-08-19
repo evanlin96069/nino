@@ -184,7 +184,7 @@ static bool globalMouseEvent(Panel* panel, UIMouseEvent mouse_event) {
     return false;
 }
 
-UIProcessInputHooks global_input_hooks = {
+static UIProcessInputHooks global_input_hooks = {
     .preKeyEvent = globalKeyEvent,
     .preMouseEvent = globalMouseEvent,
 };

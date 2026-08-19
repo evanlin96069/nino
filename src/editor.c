@@ -55,7 +55,6 @@ static void editorLayoutInit(void) {
 }
 
 void editorInit(void) {
-    memset(&gEditor, 0, sizeof(Editor));
     gEditor.state = STATE_LOADING;
     gEditor.mouse_mode = true;
     memcpy(gEditor.color_cfg, color_default, sizeof(gEditor.color_cfg));
@@ -86,6 +85,7 @@ void editorFree(void) {
     }
 #endif
 
+    vector_free(gEditor.recent_splits);
     editorFreeClipboardContent(&gEditor.clipboard);
     editorFreeHLDB();
     editorUnregisterCommands();
