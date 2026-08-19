@@ -41,15 +41,35 @@ static bool cellEql(const ScreenCell* a, const ScreenCell* b) {
     return styleEql(&a->style, &b->style);
 }
 
-static bool editorScreenRowUpdated(int index) {
+static bool editorScreenRowUpdated(int index, int* start_col, int* end_col) {
     const ScreenCell* row = &SURFACE_AT(gEditor.screen, 0, index);
     const ScreenCell* old_row = &SURFACE_AT(gEditor.old_screen, 0, index);
+
+    int start = -1;
+    int end = -1;
+
     for (int i = 0; i < gEditor.screen_cols; i++) {
         if (!cellEql(&row[i], &old_row[i])) {
-            return true;
+            start = i;
+            break;
         }
     }
-    return false;
+    for (int i = gEditor.screen_cols - 1; i > start; i--) {
+        if (!cellEql(&row[i], &old_row[i])) {
+            end = i;
+            break;
+        }
+    }
+    if (end == -1) {
+        end = start;
+    }
+
+    if (start_col)
+        *start_col = start;
+    if (end_col)
+        *end_col = end;
+
+    return start != -1 && end != -1;
 }
 
 static void updateStyle(abuf* ab,
@@ -75,15 +95,18 @@ static Grapheme grapheme_space = {
     .width = 1,
 };
 
-static void editorRenderRow(abuf* ab, int row_index) {
+static void editorRenderRow(abuf* ab,
+                            int row_index,
+                            int start_col,
+                            int end_col) {
     ScreenCell* row = &SURFACE_AT(gEditor.screen, 0, row_index);
 
     const ScreenStyle* old_style = NULL;
 
-    gotoXY(ab, row_index + 1, 1);
+    gotoXY(ab, row_index + 1, start_col + 1);
 
-    int index = 0;
-    while (index < gEditor.screen_cols) {
+    int index = start_col;
+    while (index <= end_col) {
         ScreenCell* cell = &row[index];
         Grapheme grapheme = cell->grapheme;
 
@@ -261,13 +284,12 @@ void editorRefreshScreen(void) {
         surfaceInit(&gEditor.screen, gEditor.screen_cols, gEditor.screen_rows);
         surfaceInit(&gEditor.old_screen, gEditor.screen_cols,
                     gEditor.screen_rows);
-
-        gEditor.screen_size_updated = false;
     }
 
     abuf* ab = &gEditor.render_buffer;
+    abufReset(ab);
 
-    abufAppendStr(ab, ANSI_CURSOR_HIDE ANSI_CURSOR_RESET_POS);
+    abufAppendStr(ab, ANSI_SYNC_BEGIN ANSI_CURSOR_HIDE);
 
     // One row for status bar
     Rect ui_rect = {0, 0, gEditor.screen_cols, gEditor.screen_rows - 1};
@@ -286,13 +308,20 @@ void editorRefreshScreen(void) {
 
     // Render sreen
     for (int i = 0; i < gEditor.screen_rows; i++) {
-        if (gEditor.screen_size_updated || editorScreenRowUpdated(i)) {
-            editorRenderRow(ab, i);
+        int start_col = 0;
+        int end_col = gEditor.screen_cols - 1;
+        if (gEditor.screen_size_updated ||
+            editorScreenRowUpdated(i, &start_col, &end_col)) {
+            editorRenderRow(ab, i, start_col, end_col);
             // Save current screen
             memcpy(&SURFACE_AT(gEditor.old_screen, 0, i),
                    &SURFACE_AT(gEditor.screen, 0, i),
                    sizeof(ScreenCell) * gEditor.screen_cols);
         }
+    }
+
+    if (gEditor.screen_size_updated) {
+        gEditor.screen_size_updated = false;
     }
 
     // Crosshair
@@ -306,8 +335,7 @@ void editorRefreshScreen(void) {
         }
     }
 
-    abufAppendStr(ab, ANSI_CLEAR);
+    abufAppendStr(ab, ANSI_CLEAR_STYLE ANSI_SYNC_END);
 
     writeConsoleAll(ab->buf, ab->len);
-    abufReset(ab);
 }

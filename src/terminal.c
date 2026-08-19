@@ -427,19 +427,19 @@ static void SIGABRT_handler(int sig) {
     _exit(EXIT_FAILURE);
 }
 
-#define SWAP_ENABLE "\x1b[?1049h"
-#define SWAP_DISABLE "\x1b[?1049l"
-#define MOUSE_ENABLE "\x1b[?1000h\x1b[?1002h\x1b[?1006h"
-#define MOUSE_DISABLE "\x1b[?1007l\x1b[?1006l\x1b[?1002l\x1b[?1000l"
-#define BRACKETED_PASTE_ENABLE "\x1b[?2004h"
-#define BRACKETED_PASTE_DISABLE "\x1b[?2004l"
+#define ANSI_SWAP_ENABLE "\x1b[?1049h"
+#define ANSI_SWAP_DISABLE "\x1b[?1049l"
+#define ANSI_MOUSE_ENABLE "\x1b[?1000h\x1b[?1002h\x1b[?1006h"
+#define ANSI_MOUSE_DISABLE "\x1b[?1007l\x1b[?1006l\x1b[?1002l\x1b[?1000l"
+#define ANSI_BRACKETED_PASTE_ENABLE "\x1b[?2004h"
+#define ANSI_BRACKETED_PASTE_DISABLE "\x1b[?2004l"
 
 void enableMouse(void) {
-    writeConsoleStr(MOUSE_ENABLE);
+    writeConsoleStr(ANSI_MOUSE_ENABLE);
 }
 
 void disableMouse(void) {
-    writeConsoleStr(MOUSE_DISABLE);
+    writeConsoleStr(ANSI_MOUSE_DISABLE);
 }
 
 void resizeWindow(bool force_redraw) {
@@ -481,7 +481,7 @@ static bool terminal_active = false;
 void terminalStart(void) {
     terminal_active = true;
     enableRawMode();
-    writeConsoleStr(SWAP_ENABLE BRACKETED_PASTE_ENABLE);
+    writeConsoleStr(ANSI_SWAP_ENABLE ANSI_BRACKETED_PASTE_ENABLE);
     if (gEditor.mouse_mode) {
         enableMouse();
     } else {
@@ -495,7 +495,7 @@ void terminalExit(void) {
     if (!terminal_active)
         return;
     terminal_active = false;
-    writeConsoleStr(MOUSE_DISABLE BRACKETED_PASTE_DISABLE SWAP_DISABLE
-                        ANSI_CLEAR ANSI_CURSOR_SHOW);
+    writeConsoleStr(ANSI_MOUSE_DISABLE ANSI_BRACKETED_PASTE_DISABLE
+                        ANSI_SWAP_DISABLE ANSI_CLEAR_STYLE ANSI_CURSOR_SHOW);
     disableRawMode();
 }
