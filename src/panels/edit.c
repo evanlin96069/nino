@@ -828,10 +828,8 @@ static void keyEvent(Panel* self, EditorInput input) {
             } else {
                 editorChangeToFile(p, p->tab_active_index + 1);
             }
-
-            tab = NULL;
-            file = NULL;
-            break;
+            // Tab changed, tab and file no longer valid
+            return;
 
         // Split left right
         case CTRL_KEY('\\'): {
@@ -1636,10 +1634,6 @@ static void keyEvent(Panel* self, EditorInput input) {
             return;
     }
 
-    // File may have been closed or changed
-    if (!tab || !file)
-        return;
-
     if (has_edit && file->read_only && !file->unlocked) {
         editorMsgClear();
         editorMsg("File is read-only.");
@@ -1825,8 +1819,8 @@ static void handleTabBarClose(EditPanel* split,
                         editorMsg("File has unsaved changes.");
                         editorMsg("Press close again to close file anyway.");
                     } else {
-                        editorCloseTab(split, tab_index);
                         editorCancelPendingWait(split);
+                        editorCloseTab(split, tab_index);
                     }
                 }
                 break;
@@ -1852,8 +1846,8 @@ static void handleTabBarClose(EditPanel* split,
                         break;
                     }
 
-                    editorCloseTab(split, tab_index);
                     editorCancelPendingWait(split);
+                    editorCloseTab(split, tab_index);
                 }
                 break;
 
