@@ -134,7 +134,7 @@ static void onFocus(Panel* self, bool focused) {
 
 static void keyEvent(Panel* self, EditorInput input) {
     UNUSED(self);
-    UNUSED(input.type);
+    UNUSED(input);
 }
 
 static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {

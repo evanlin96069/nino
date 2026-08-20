@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define UNUSED(x) (void)!(x)
+#define UNUSED(x) (void)(x)
 
 // Panic
 #define PANIC(s) panic(__FILE__, __LINE__, s)

@@ -309,8 +309,6 @@ CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
 }
 
 CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
-    UNUSED(args.argc);
-
     editorFreeHLDB();
     editorInitHLDB();
     reloadSyntax();
@@ -485,13 +483,10 @@ CON_COMMAND(echo, "Echo text to console.") {
 }
 
 CON_COMMAND(clear, "Clear all console output.") {
-    UNUSED(args.argc);
     editorMsgClear();
 }
 
 CON_COMMAND(version, "Print version info string.") {
-    UNUSED(args.argc);
-
     editorMsg("Exe version %s (%s)", EDITOR_VERSION, EDITOR_NAME);
     editorMsg("Exe build: %s %s (%d)", editor_build_time, editor_build_date,
               editorGetBuildNumber());
