@@ -21,7 +21,7 @@ color status.pos.bg 196e6c
 color lineno.fg 999999
 color lineno.bg 002b36
 color cursorline 073642
-color hl.normal 93a1a1
+color hl.normal 268bd2
 color hl.comment 586e75
 color hl.keyword1 859900
 color hl.keyword2 93a1a1
