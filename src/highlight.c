@@ -5,8 +5,6 @@
 #include "editor.h"
 #include "os.h"
 
-#define JSON_IMPLEMENTATION
-#define JSON_MALLOC malloc_s
 #include "json.h"
 
 static uint32_t editorRowCountTrailingSpaces(const EditorRow* row) {

@@ -72,6 +72,7 @@ set (CORE_SOURCES
     src/highlight.h
     src/input.c
     src/input.h
+    src/json.c
     src/json.h
     src/nino.c
     src/opt.h
