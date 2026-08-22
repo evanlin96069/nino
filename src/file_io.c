@@ -230,6 +230,7 @@ bool editorSave(EditorFile* file, const char* path) {
     // Since we save by replacing the file, we need to refresh file info
     FileInfo file_info = getFileInfo(file->filename);
     if (!file_info.error) {
+        file->has_file_info = true;
         file->file_info = file_info;
     }
     return true;
