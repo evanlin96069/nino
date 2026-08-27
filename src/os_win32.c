@@ -177,7 +177,7 @@ static inline bool isLowSurrogate(WCHAR u) {
 }
 
 ConsoleEvent readConsoleEvent(int timeout_ms) {
-    ConsoleEvent ev = {.type = CONSOLE_EVENT_NONE};
+    ConsoleEvent ev = {.type = CONSOLE_EVENT_ERROR};
 
     if (has_pending_resize) {
         has_pending_resize = false;
@@ -192,7 +192,9 @@ ConsoleEvent readConsoleEvent(int timeout_ms) {
             has_pending_resize = false;
             ev.type = CONSOLE_EVENT_RESIZE;
             ev.data.resize = pending_resize;
+            return ev;
         }
+        ev.type = CONSOLE_EVENT_TIMEOUT;
         return ev;
     }
 

@@ -5,7 +5,6 @@
 #include "config.h"
 #include "editor.h"
 #include "os.h"
-#include "output.h"
 #include "unicode.h"
 #include "utils.h"
 
@@ -15,21 +14,21 @@ typedef struct {
 } StrIntPair;
 
 static const StrIntPair sequence_lookup[] = {
-    {"[1~", HOME_KEY},
-    // {"[2~", INSERT_KEY},
-    {"[3~", DEL_KEY},
-    {"[4~", END_KEY},
-    {"[5~", PAGE_UP},
-    {"[6~", PAGE_DOWN},
-    {"[7~", HOME_KEY},
-    {"[8~", END_KEY},
+    {"[1~", KEY_EVENT(KEY_HOME)},
+    {"[2~", KEY_EVENT(KEY_INSERT)},
+    {"[3~", KEY_EVENT(KEY_DELETE)},
+    {"[4~", KEY_EVENT(KEY_END)},
+    {"[5~", KEY_EVENT(KEY_PAGE_UP)},
+    {"[6~", KEY_EVENT(KEY_PAGE_DOWN)},
+    {"[7~", KEY_EVENT(KEY_HOME)},
+    {"[8~", KEY_EVENT(KEY_END)},
 
-    {"[A", ARROW_UP},
-    {"[B", ARROW_DOWN},
-    {"[C", ARROW_RIGHT},
-    {"[D", ARROW_LEFT},
-    {"[F", END_KEY},
-    {"[H", HOME_KEY},
+    {"[A", KEY_EVENT(KEY_UP)},
+    {"[B", KEY_EVENT(KEY_DOWN)},
+    {"[C", KEY_EVENT(KEY_RIGHT)},
+    {"[D", KEY_EVENT(KEY_LEFT)},
+    {"[F", KEY_EVENT(KEY_END)},
+    {"[H", KEY_EVENT(KEY_HOME)},
 
     /*
       Code     Modifiers
@@ -53,60 +52,60 @@ static const StrIntPair sequence_lookup[] = {
     */
 
     // Shift
-    {"[1;2A", SHIFT_UP},
-    {"[1;2B", SHIFT_DOWN},
-    {"[1;2C", SHIFT_RIGHT},
-    {"[1;2D", SHIFT_LEFT},
-    {"[1;2F", SHIFT_END},
-    {"[1;2H", SHIFT_HOME},
+    {"[1;2A", KEY_EVENT(KEY_MOD_SHIFT, KEY_UP)},
+    {"[1;2B", KEY_EVENT(KEY_MOD_SHIFT, KEY_DOWN)},
+    {"[1;2C", KEY_EVENT(KEY_MOD_SHIFT, KEY_RIGHT)},
+    {"[1;2D", KEY_EVENT(KEY_MOD_SHIFT, KEY_LEFT)},
+    {"[1;2F", KEY_EVENT(KEY_MOD_SHIFT, KEY_END)},
+    {"[1;2H", KEY_EVENT(KEY_MOD_SHIFT, KEY_HOME)},
 
     // Alt
-    {"[1;3A", ALT_UP},
-    {"[1;3B", ALT_DOWN},
-    {"[1;3C", ALT_RIGHT},
-    {"[1;3D", ALT_LEFT},
-    {"[1;3F", ALT_END},
-    {"[1;3H", ALT_HOME},
+    {"[1;3A", KEY_EVENT(KEY_MOD_ALT, KEY_UP)},
+    {"[1;3B", KEY_EVENT(KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;3C", KEY_EVENT(KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;3D", KEY_EVENT(KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;3F", KEY_EVENT(KEY_MOD_ALT, KEY_END)},
+    {"[1;3H", KEY_EVENT(KEY_MOD_ALT, KEY_HOME)},
 
     // Shift+Alt
-    {"[1;4A", SHIFT_ALT_UP},
-    {"[1;4B", SHIFT_ALT_DOWN},
-    {"[1;4C", SHIFT_ALT_RIGHT},
-    {"[1;4D", SHIFT_ALT_LEFT},
-    {"[1;4F", SHIFT_ALT_END},
-    {"[1;4H", SHIFT_ALT_HOME},
+    {"[1;4A", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_UP)},
+    {"[1;4B", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;4C", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;4D", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;4F", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_END)},
+    {"[1;4H", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_HOME)},
 
     // Ctrl
-    {"[1;5A", CTRL_UP},
-    {"[1;5B", CTRL_DOWN},
-    {"[1;5C", CTRL_RIGHT},
-    {"[1;5D", CTRL_LEFT},
-    {"[1;5F", CTRL_END},
-    {"[1;5H", CTRL_HOME},
+    {"[1;5A", KEY_EVENT(KEY_MOD_CTRL, KEY_UP)},
+    {"[1;5B", KEY_EVENT(KEY_MOD_CTRL, KEY_DOWN)},
+    {"[1;5C", KEY_EVENT(KEY_MOD_CTRL, KEY_RIGHT)},
+    {"[1;5D", KEY_EVENT(KEY_MOD_CTRL, KEY_LEFT)},
+    {"[1;5F", KEY_EVENT(KEY_MOD_CTRL, KEY_END)},
+    {"[1;5H", KEY_EVENT(KEY_MOD_CTRL, KEY_HOME)},
 
     // Shift+Ctrl
-    {"[1;6A", SHIFT_CTRL_UP},
-    {"[1;6B", SHIFT_CTRL_DOWN},
-    {"[1;6C", SHIFT_CTRL_RIGHT},
-    {"[1;6D", SHIFT_CTRL_LEFT},
-    {"[1;6F", SHIFT_CTRL_END},
-    {"[1;6H", SHIFT_CTRL_HOME},
+    {"[1;6A", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_UP)},
+    {"[1;6B", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_DOWN)},
+    {"[1;6C", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT)},
+    {"[1;6D", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT)},
+    {"[1;6F", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_END)},
+    {"[1;6H", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_HOME)},
 
     // Alt+Ctrl
-    {"[1;7A", CTRL_ALT_UP},
-    {"[1;7B", CTRL_ALT_DOWN},
-    {"[1;7C", CTRL_ALT_RIGHT},
-    {"[1;7D", CTRL_ALT_LEFT},
-    {"[1;7F", CTRL_ALT_END},
-    {"[1;7H", CTRL_ALT_HOME},
+    {"[1;7A", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_UP)},
+    {"[1;7B", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;7C", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;7D", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;7F", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_END)},
+    {"[1;7H", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_HOME)},
 
     // Page UP / Page Down
-    {"[5;2~", SHIFT_PAGE_UP},
-    {"[6;2~", SHIFT_PAGE_DOWN},
-    {"[5;5~", CTRL_PAGE_UP},
-    {"[6;5~", CTRL_PAGE_DOWN},
-    {"[5;6~", SHIFT_CTRL_PAGE_UP},
-    {"[6;6~", SHIFT_CTRL_PAGE_DOWN},
+    {"[5;2~", KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_UP)},
+    {"[6;2~", KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_DOWN)},
+    {"[5;5~", KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_UP)},
+    {"[6;5~", KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_DOWN)},
+    {"[5;6~", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_UP)},
+    {"[6;6~", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_DOWN)},
 };
 
 static bool parseMouseSGR(const char* seq,
@@ -145,70 +144,87 @@ static bool parseMouseSGR(const char* seq,
 }
 
 static bool has_pending_resize = false;
-static ConsoleSize pending_resize = {0, 0};
+static ConsoleResizeEvent pending_resize = {0, 0};
 
 // Reads a raw key. Skips resize events.
-static bool readConsoleKey(uint32_t* out, int timeout_ms) {
+static ConsoleEventType readConsoleKey(uint32_t* out, int timeout_ms) {
     while (true) {
         ConsoleEvent ev = readConsoleEvent(timeout_ms);
         switch (ev.type) {
             case CONSOLE_EVENT_KEY:
                 *out = ev.data.unicode;
-                return true;
+                return CONSOLE_EVENT_KEY;
+
             case CONSOLE_EVENT_RESIZE:
                 has_pending_resize = true;
                 pending_resize = ev.data.resize;
                 break;
+
             default:
-                return false;
+                return ev.type;
         }
     }
 }
 
 // ANSII escape sequences parsing.
-EditorInput editorReadEvent(void) {
-    uint32_t c;
-    EditorInput result = {.type = UNKNOWN};
+Event eventPoll(int timeout_ms) {
+    Event result = {.type = EVENT_ERROR};
     ConsoleEvent ev;
-    while (true) {
-        if (has_pending_resize) {
-            has_pending_resize = false;
-            ev.type = CONSOLE_EVENT_RESIZE;
-            ev.data.resize = pending_resize;
-        } else {
-            ev = readConsoleEvent(READ_WAIT_INFINITE);
-        }
+    uint32_t c;
 
-        if (ev.type == CONSOLE_EVENT_KEY) {
+    if (has_pending_resize) {
+        has_pending_resize = false;
+        ev.type = CONSOLE_EVENT_RESIZE;
+        ev.data.resize = pending_resize;
+    } else {
+        ev = readConsoleEvent(timeout_ms);
+    }
+
+    switch (ev.type) {
+        case CONSOLE_EVENT_ERROR:
+            result.type = EVENT_ERROR;
+            return result;
+
+        case CONSOLE_EVENT_TIMEOUT:
+            result.type = EVENT_TIMEOUT;
+            return result;
+
+        case CONSOLE_EVENT_KEY:
             c = ev.data.unicode;
             break;
-        } else if (ev.type == CONSOLE_EVENT_RESIZE) {
-            result.type = RESIZE_EVENT;
-            result.data.resize = ev.data.resize;
-            result.timestamp_ms = getTimeMs();
+
+        case CONSOLE_EVENT_RESIZE:
+            result.type = EVENT_RESIZE;
+            result.resize = ev.data.resize;
             return result;
-        }
+
+        default:
+            result.type = EVENT_ERROR;
+            return result;
     }
 
     int timeout = ttimeoutlen.int_value;
-    result.timestamp_ms = getTimeMs();
 
-    if (c == ESC) {
+    // CONSOLE_EVENT_KEY
+    if (c == '\x1b') {  // ESC
+        result.type = EVENT_KEY;
+        result.key.value = KEY_EVENT(KEY_ESC);
+
         char seq[16] = {0};
         bool success = false;
-        if (!readConsoleKey(&c, timeout)) {
-            result.type = ESC;
+        if (readConsoleKey(&c, timeout) < 0) {
             return result;
         }
         seq[0] = (char)c;
 
         if (seq[0] != '[') {
-            result.type = ALT_KEY(seq[0]);
+            // TODO: This is not always ALT
+            result.key.value = KEY_EVENT(KEY_MOD_ALT, KEY_CHAR, seq[0]);
             return result;
         }
 
         for (size_t i = 1; i < sizeof(seq) - 1; i++) {
-            if (!readConsoleKey(&c, timeout)) {
+            if (readConsoleKey(&c, timeout) < 0) {
                 return result;
             }
             seq[i] = (char)c;
@@ -229,13 +245,13 @@ EditorInput editorReadEvent(void) {
 
             bool last_was_cr = false;
             while (true) {
-                if (!readConsoleKey(&c, timeout)) {
+                if (readConsoleKey(&c, timeout) < 0) {
                     vector_free(content);
                     abufFree(&line);
                     return result;
                 }
 
-                if (c == ESC) {
+                if (c == '\x1b') {  // ESC
                     uint32_t end_seq[5];
                     bool is_end = true;
                     const char expected[5] = {'[', '2', '0', '1', '~'};
@@ -244,7 +260,7 @@ EditorInput editorReadEvent(void) {
                     for (index = 0;
                          index < sizeof(end_seq) / sizeof(end_seq[0]);
                          index++) {
-                        if (!readConsoleKey(&end_seq[index], timeout)) {
+                        if (readConsoleKey(&end_seq[index], timeout) < 0) {
                             vector_free(content);
                             abufFree(&line);
                             return result;
@@ -271,8 +287,8 @@ EditorInput editorReadEvent(void) {
                             clipboard.lines = content.data;
                         }
 
-                        result.type = PASTE_INPUT;
-                        result.data.paste = clipboard;
+                        result.type = EVENT_PASTE;
+                        result.paste = clipboard;
                         return result;
                     }
 
@@ -317,8 +333,10 @@ EditorInput editorReadEvent(void) {
                 return result;
             }
 
-            result.data.cursor.x = Cx - 1;
-            result.data.cursor.y = Cy - 1;
+            MouseEvent mouse_event = {
+                .x = Cx - 1,
+                .y = Cy - 1,
+            };
 
             int btn = Cb & 0x03;  // 0=L, 1=M, 2=R
             bool motion = (Cb & 0x20) != 0;
@@ -327,87 +345,105 @@ EditorInput editorReadEvent(void) {
             bool rel = (fin == 'm');
 
             if (wheel) {
-                if ((Cb & 0x41) == 0x40)
-                    result.type = WHEEL_UP;
-                else if ((Cb & 0x41) == 0x41)
-                    result.type = WHEEL_DOWN;
-                return result;
-            }
-
-            if (motion) {
-                if (btn == 0) {
-                    result.type = MOUSE_MOVE;
+                if ((Cb & 0x41) == 0x40) {
+                    mouse_event.type = MWHEEL_UP;
+                } else if ((Cb & 0x41) == 0x41) {
+                    mouse_event.type = MWHEEL_DOWN;
+                } else {
+                    return result;
                 }
-                // TODO: Add mouse2, mouse3 move
-                return result;
-            }
-
-            if (press) {
+            } else if (motion) {
                 switch (btn) {
                     case 0:
-                        result.type = MOUSE_PRESSED;
+                        mouse_event.type = MOUSE1_DRAG;
                         break;
                     case 1:
-                        result.type = SCROLL_PRESSED;
+                        mouse_event.type = MOUSE2_DRAG;
+                        break;
+                    case 2:
+                        mouse_event.type = MOUSE3_DRAG;
                         break;
                     default:
                         return result;
                 }
-                return result;
+            } else if (press) {
+                switch (btn) {
+                    case 0:
+                        mouse_event.type = MOUSE1_PRESSED;
+                        break;
+                    case 1:
+                        mouse_event.type = MOUSE2_PRESSED;
+                        break;
+                    case 2:
+                        mouse_event.type = MOUSE3_PRESSED;
+                        break;
+                    default:
+                        return result;
+                }
             } else if (rel) {
                 switch (btn) {
                     case 0:
-                        result.type = MOUSE_RELEASED;
+                        mouse_event.type = MOUSE1_RELEASED;
                         break;
                     case 1:
-                        result.type = SCROLL_RELEASED;
+                        mouse_event.type = MOUSE2_RELEASED;
+                        break;
+                    case 2:
+                        mouse_event.type = MOUSE3_RELEASED;
                         break;
                     default:
-                        break;
+                        return result;
                 }
-                return result;
             }
+
+            result.type = EVENT_MOUSE;
+            result.mouse = mouse_event;
+            return result;
         }
 
         for (size_t i = 0;
              i < sizeof(sequence_lookup) / sizeof(sequence_lookup[0]); i++) {
             if (strcmp(sequence_lookup[i].str, seq) == 0) {
-                result.type = sequence_lookup[i].value;
+                result.type = EVENT_KEY;
+                result.key.value = sequence_lookup[i].value;
                 return result;
             }
         }
         return result;
     }
 
-    if ((c <= 31 || c == BACKSPACE) && c != '\t') {
-        result.type = c;
+    result.type = EVENT_KEY;
+
+    if (c == '\r') {
+        result.key.value = KEY_EVENT(KEY_ENTER);
         return result;
     }
 
-    result.type = CHAR_INPUT;
-    result.data.unicode = c;
+    if (c == '\t') {
+        result.key.value = KEY_EVENT(KEY_TAB);
+        return result;
+    }
 
+    if (c == 127) {
+        result.key.value = KEY_EVENT(KEY_BACKSPACE);
+        return result;
+    }
+
+    if (c < 32) {
+        result.key.value = KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, c + 0x40);
+        return result;
+    }
+
+    result.key.value = KEY_EVENT(KEY_TEXT);
+    result.key.unicode = c;
     return result;
 }
 
-// Read a key. Skips resize events.
-EditorInput editorReadKey(void) {
-    while (true) {
-        EditorInput input = editorReadEvent();
-        if (input.type == RESIZE_EVENT) {
-            setWindowSize(input.data.resize.rows, input.data.resize.cols,
-                          false);
-            continue;
-        }
-        return input;
-    }
-}
-
-void editorFreeInput(EditorInput* input) {
-    if (!input)
+void eventFree(Event* event) {
+    if (!event)
         return;
-    if (input->type == PASTE_INPUT) {
-        editorFreeClipboardContent(&input->data.paste);
+    if (event->type == EVENT_PASTE) {
+        editorFreeClipboardContent(&event->paste);
     }
 }
 
@@ -442,29 +478,7 @@ void disableMouse(void) {
     writeConsoleStr(ANSI_MOUSE_DISABLE);
 }
 
-void resizeWindow(bool force_redraw) {
-    int rows = 0;
-    int cols = 0;
-
-    if (getWindowSize(&rows, &cols) == -1)
-        PANIC("Unable to query terminal window size");
-    setWindowSize(rows, cols, force_redraw);
-}
-
-void setWindowSize(int rows, int cols, bool force_redraw) {
-    rows = rows < 1 ? 1 : rows;
-    cols = cols < 1 ? 1 : cols;
-
-    if (gEditor.screen_rows != rows || gEditor.screen_cols != cols ||
-        force_redraw) {
-        gEditor.screen_rows = rows;
-        gEditor.screen_cols = cols;
-        gEditor.screen_size_updated = true;
-        editorRefreshScreen();
-    }
-}
-
-void editorInitTerminal(void) {
+void terminalInit(void) {
     terminalStart();
 
     if (signal(SIGSEGV, SIGSEGV_handler) == SIG_ERR) {
@@ -488,7 +502,7 @@ void terminalStart(void) {
         disableMouse();
     }
 
-    resizeWindow(true);
+    editorResizeWindow();
 }
 
 void terminalExit(void) {

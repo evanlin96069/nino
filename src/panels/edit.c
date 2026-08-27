@@ -13,8 +13,8 @@ static void destroy(Panel* self);
 static void render(Panel* self, Surface s);
 static bool getCursor(Panel* self, UICursor* out);
 static void onFocus(Panel* self, bool focused);
-static void keyEvent(Panel* self, EditorInput input);
-static bool mouseEvent(Panel* self, UIMouseEvent mouse_event);
+static void keyEvent(Panel* self, KeyEvent event);
+static bool mouseEvent(Panel* self, UIMouseEvent event);
 
 static PanelVtable panel_vt = {
     .destroy = destroy,
@@ -560,12 +560,12 @@ static void editorMousePosToEditorPos(const EditPanel* split,
     *out_y = row;
 }
 
-static void editorMoveCursor(EditorTab* tab, int e) {
+static void editorMoveCursor(EditorTab* tab, int code) {
     const EditorFile* file = editorTabGetFile(tab);
     const EditorRow* row = &file->row[tab->cursor.y];
 
-    switch (e) {
-        case ARROW_LEFT:
+    switch (code) {
+        case KEY_LEFT:
             if (tab->cursor.x != 0) {
                 tab->cursor.x = editorRowPreviousUTF8(&file->row[tab->cursor.y],
                                                       tab->cursor.x);
@@ -576,7 +576,7 @@ static void editorMoveCursor(EditorTab* tab, int e) {
             editorUpdateSx(tab);
             break;
 
-        case ARROW_RIGHT:
+        case KEY_RIGHT:
             if (row && tab->cursor.x < row->size) {
                 tab->cursor.x =
                     editorRowNextUTF8(&file->row[tab->cursor.y], tab->cursor.x);
@@ -589,7 +589,7 @@ static void editorMoveCursor(EditorTab* tab, int e) {
             }
             break;
 
-        case ARROW_UP:
+        case KEY_UP:
             if (tab->cursor.y != 0) {
                 tab->cursor.y--;
                 tab->cursor.x =
@@ -597,7 +597,7 @@ static void editorMoveCursor(EditorTab* tab, int e) {
             }
             break;
 
-        case ARROW_DOWN:
+        case KEY_DOWN:
             if (tab->cursor.y + 1 < file->num_rows) {
                 tab->cursor.y++;
                 tab->cursor.x =
@@ -618,7 +618,7 @@ static void editorMoveCursorWordLeft(EditorTab* tab) {
     if (tab->cursor.x == 0) {
         if (tab->cursor.y == 0)
             return;
-        editorMoveCursor(tab, ARROW_LEFT);
+        editorMoveCursor(tab, KEY_LEFT);
     }
 
     const EditorRow* row = &file->row[tab->cursor.y];
@@ -693,7 +693,7 @@ static void editorSelectAll(EditorTab* tab) {
     tab->cursor.select_x = 0;
 }
 
-static void keyEvent(Panel* self, EditorInput input) {
+static void keyEvent(Panel* self, KeyEvent event) {
     EditPanel* p = (EditPanel*)self;
 
     EditWaitState wait_state = p->wait_state;
@@ -713,12 +713,11 @@ static void keyEvent(Panel* self, EditorInput input) {
     EditorCursor old_cursor = tab->cursor;
     EditorCursor new_cursor = tab->cursor;
 
-    int e = input.type;
-    switch (e) {
+    switch (event.value) {
         // --- File ---
 
         // Save
-        case CTRL_KEY('s'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'S'): {
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -762,7 +761,7 @@ static void keyEvent(Panel* self, EditorInput input) {
         }
 
         // Save all
-        case ALT_KEY('s'): {
+        case KEY_EVENT(KEY_MOD_ALT, KEY_CHAR, 's'): {
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -809,7 +808,7 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Save as
-        case ALT_KEY('a'):
+        case KEY_EVENT(KEY_MOD_ALT, KEY_CHAR, 'a'):
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -817,7 +816,7 @@ static void keyEvent(Panel* self, EditorInput input) {
             break;
 
         // Next file
-        case CTRL_KEY(']'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, ']'):
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -832,13 +831,13 @@ static void keyEvent(Panel* self, EditorInput input) {
             return;
 
         // Split left right
-        case CTRL_KEY('\\'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, '\\'): {
             EditPanel* new_split = editorAddSplit(p, true);
             editorAddTab(new_split, editorSplitGetTab(p)->file_index);
         } break;
 
         // Split top bottom
-        case CTRL_KEY('_'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, '_'): {
             EditPanel* new_split = editorAddSplit(p, false);
             editorAddTab(new_split, editorSplitGetTab(p)->file_index);
         } break;
@@ -846,17 +845,17 @@ static void keyEvent(Panel* self, EditorInput input) {
         // --- Navigation & Selection ---
 
         // Unselect
-        case ESC:
+        case KEY_EVENT(KEY_ESC):
             if (tab->cursor.is_selected) {
                 should_scroll = true;
             }
             break;
 
         // Move cursor
-        case ARROW_UP:
-        case ARROW_DOWN:
-        case ARROW_LEFT:
-        case ARROW_RIGHT:
+        case KEY_EVENT(KEY_UP):
+        case KEY_EVENT(KEY_DOWN):
+        case KEY_EVENT(KEY_LEFT):
+        case KEY_EVENT(KEY_RIGHT):
             should_scroll = true;
             // Will reset this manually if needed
             keep_bracket_autocomplete = true;
@@ -865,7 +864,7 @@ static void keyEvent(Panel* self, EditorInput input) {
                 EditorSelectRange range;
                 editorGetSelectRange(&tab->cursor, &range);
 
-                if (e == ARROW_UP || e == ARROW_LEFT) {
+                if (event.code == KEY_UP || event.code == KEY_LEFT) {
                     tab->cursor.x = range.start_x;
                     tab->cursor.y = range.start_y;
                 } else {
@@ -873,54 +872,54 @@ static void keyEvent(Panel* self, EditorInput input) {
                     tab->cursor.y = range.end_y;
                 }
                 editorUpdateSx(tab);
-                if (e == ARROW_UP || e == ARROW_DOWN) {
-                    editorMoveCursor(tab, e);
+                if (event.code == KEY_UP || event.code == KEY_DOWN) {
+                    editorMoveCursor(tab, event.code);
                 }
                 tab->cursor.is_selected = false;
             } else {
                 if (tab->bracket_autocomplete) {
-                    if (e == ARROW_RIGHT) {
+                    if (event.code == KEY_RIGHT) {
                         tab->bracket_autocomplete--;
                     } else {
                         tab->bracket_autocomplete = 0;
                     }
                 }
-                editorMoveCursor(tab, e);
+                editorMoveCursor(tab, event.code);
             }
             break;
 
-        case SHIFT_UP:
-        case SHIFT_DOWN:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_UP):
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_DOWN):
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_LEFT):
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_RIGHT):
             should_scroll = true;
             keep_selection = true;
 
             tab->cursor.is_selected = true;
-            editorMoveCursor(tab, e - (SHIFT_UP - ARROW_UP));
+            editorMoveCursor(tab, event.code);
             break;
 
         // Word move
-        case CTRL_LEFT:
-        case SHIFT_CTRL_LEFT:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_LEFT):
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT):
             should_scroll = true;
             keep_selection = true;
 
             editorMoveCursorWordLeft(tab);
-            tab->cursor.is_selected = (e == SHIFT_CTRL_LEFT);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             break;
 
-        case CTRL_RIGHT:
-        case SHIFT_CTRL_RIGHT:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_RIGHT):
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT):
             should_scroll = true;
             keep_selection = true;
 
             editorMoveCursorWordRight(tab);
-            tab->cursor.is_selected = (e == SHIFT_CTRL_RIGHT);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             break;
 
         // Select word
-        case CTRL_KEY('d'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'D'): {
             should_scroll = true;
             keep_selection = true;
 
@@ -934,8 +933,8 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Move to start/end of line
-        case HOME_KEY:
-        case SHIFT_HOME: {
+        case KEY_EVENT(KEY_HOME):
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_HOME): {
             should_scroll = true;
             keep_selection = true;
 
@@ -945,60 +944,59 @@ static void keyEvent(Panel* self, EditorInput input) {
                 start_x = 0;
             tab->cursor.x = start_x;
             editorUpdateSx(tab);
-            tab->cursor.is_selected = (e == (SHIFT_HOME));
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
         } break;
 
-        case END_KEY:
-        case SHIFT_END:
+        case KEY_EVENT(KEY_END):
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_END):
             should_scroll = true;
             keep_selection = true;
 
             tab->cursor.x = file->row[tab->cursor.y].size;
             editorUpdateSx(tab);
-            tab->cursor.is_selected = (e == SHIFT_END);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             break;
 
         // Move to start/end of file
-        case CTRL_HOME:
-        case SHIFT_CTRL_HOME:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_HOME):
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_HOME):
             should_scroll = true;
             keep_selection = true;
 
-            tab->cursor.is_selected = (e == SHIFT_CTRL_HOME);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             tab->cursor.y = 0;
             tab->cursor.x = 0;
             tab->sx = 0;
             editorUpdateSx(tab);
             break;
 
-        case CTRL_END:
-        case SHIFT_CTRL_END:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_END):
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_END):
             should_scroll = true;
             keep_selection = true;
 
-            tab->cursor.is_selected = (e == SHIFT_CTRL_END);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             tab->cursor.y = file->num_rows - 1;
             tab->cursor.x = file->row[file->num_rows - 1].size;
             editorUpdateSx(tab);
             break;
 
         // Next/previous page
-        case SHIFT_PAGE_UP:
-        case SHIFT_PAGE_DOWN:
-        case PAGE_UP:
-        case PAGE_DOWN: {
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_UP):
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_DOWN):
+        case KEY_EVENT(KEY_PAGE_UP):
+        case KEY_EVENT(KEY_PAGE_DOWN): {
             should_scroll = true;
             keep_selection = true;
 
             const int tab_bar_height = 1;
             const int content_height = p->base.layout->rect.h - tab_bar_height;
 
-            tab->cursor.is_selected =
-                (e == SHIFT_PAGE_UP || e == SHIFT_PAGE_DOWN);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
 
-            if (e == PAGE_UP || e == SHIFT_PAGE_UP) {
+            if (event.code == KEY_PAGE_UP) {
                 tab->cursor.y = tab->row_offset;
-            } else if (e == PAGE_DOWN || e == SHIFT_PAGE_DOWN) {
+            } else if (event.code == KEY_PAGE_DOWN) {
                 tab->cursor.y = tab->row_offset + content_height - 1;
                 if (tab->cursor.y >= file->num_rows)
                     tab->cursor.y = file->num_rows - 1;
@@ -1006,48 +1004,48 @@ static void keyEvent(Panel* self, EditorInput input) {
 
             int times = content_height;
             while (times--) {
-                if (e == PAGE_UP || e == SHIFT_PAGE_UP) {
+                if (event.code == KEY_PAGE_UP) {
                     if (tab->cursor.y == 0) {
                         tab->cursor.x = 0;
                         tab->sx = 0;
                         editorUpdateSx(tab);
                         break;
                     }
-                    editorMoveCursor(tab, ARROW_UP);
+                    editorMoveCursor(tab, KEY_UP);
                 } else {
                     if (tab->cursor.y == file->num_rows - 1) {
                         tab->cursor.x = file->row[tab->cursor.y].size;
                         editorUpdateSx(tab);
                         break;
                     }
-                    editorMoveCursor(tab, ARROW_DOWN);
+                    editorMoveCursor(tab, KEY_DOWN);
                 }
             }
         } break;
 
         // Next/previous empty line
-        case SHIFT_CTRL_PAGE_UP:
-        case CTRL_PAGE_UP:
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_UP):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_UP):
             should_scroll = true;
             keep_selection = true;
 
-            tab->cursor.is_selected = (e == SHIFT_CTRL_PAGE_UP);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             while (tab->cursor.y > 0) {
-                editorMoveCursor(tab, ARROW_UP);
+                editorMoveCursor(tab, KEY_UP);
                 if (file->row[tab->cursor.y].size == 0) {
                     break;
                 }
             }
             break;
 
-        case SHIFT_CTRL_PAGE_DOWN:
-        case CTRL_PAGE_DOWN:
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_DOWN):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_DOWN):
             should_scroll = true;
             keep_selection = true;
 
-            tab->cursor.is_selected = (e == SHIFT_CTRL_PAGE_DOWN);
+            tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             while (tab->cursor.y < file->num_rows - 1) {
-                editorMoveCursor(tab, ARROW_DOWN);
+                editorMoveCursor(tab, KEY_DOWN);
                 if (file->row[tab->cursor.y].size == 0) {
                     break;
                 }
@@ -1055,7 +1053,7 @@ static void keyEvent(Panel* self, EditorInput input) {
             break;
 
         // Select line
-        case CTRL_KEY('l'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'L'):
             should_scroll = true;
             keep_selection = true;
 
@@ -1063,34 +1061,34 @@ static void keyEvent(Panel* self, EditorInput input) {
             break;
 
         // Select all
-        case CTRL_KEY('a'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'A'):
             keep_selection = true;
 
             editorSelectAll(tab);
             break;
 
         // Find
-        case CTRL_KEY('f'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'F'):
             editorPromptFind();
             break;
 
         // Goto line
-        case CTRL_KEY('g'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'G'):
             editorPromptGoto();
             break;
 
         // Scroll
-        case CTRL_UP:
-        case CTRL_DOWN: {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_UP):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_DOWN): {
             keep_selection = true;
             keep_bracket_autocomplete = true;
-            editorScroll(p, e == CTRL_UP ? -1 : 1);
+            editorScroll(p, event.code == KEY_UP ? -1 : 1);
         } break;
 
         // --- Edit ---
 
         // Copy
-        case CTRL_KEY('c'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'C'): {
             keep_selection = true;
 
             editorFreeClipboardContent(&gEditor.clipboard);
@@ -1108,19 +1106,15 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Paste
-        case PASTE_INPUT:
-        case CTRL_KEY('v'): {
-            bool is_paste_input = (e == PASTE_INPUT);
-            EditorClipboard* clipboard =
-                is_paste_input ? &input.data.paste : &gEditor.clipboard;
-
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'V'): {
+            const EditorClipboard* clipboard = &gEditor.clipboard;
             if (!clipboard->size)
                 break;
 
             should_scroll = true;
             has_edit = true;
 
-            bool copy_line = is_paste_input ? false : gEditor.copy_line;
+            bool copy_line = gEditor.is_paste_event ? false : gEditor.copy_line;
             EditorSelectRange delete_range = {
                 tab->cursor.x,
                 tab->cursor.y,
@@ -1172,7 +1166,7 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Cut
-        case CTRL_KEY('x'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'X'): {
             if (file->num_rows == 1 && file->row[0].size == 0)
                 break;
 
@@ -1228,7 +1222,7 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Undo
-        case CTRL_KEY('z'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Z'): {
             keep_selection = true;
             keep_bracket_autocomplete = true;
 
@@ -1240,7 +1234,7 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Redo
-        case CTRL_KEY('y'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Y'): {
             keep_selection = true;
             keep_bracket_autocomplete = true;
 
@@ -1252,8 +1246,8 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Duplicate line up/down
-        case SHIFT_ALT_UP:
-        case SHIFT_ALT_DOWN:
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_UP):
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_DOWN):
             should_scroll = true;
             has_edit = true;
 
@@ -1263,15 +1257,15 @@ static void keyEvent(Panel* self, EditorInput input) {
             should_set_edit_cursor = true;
             new_cursor = tab->cursor;
             new_cursor.is_selected = false;
-            if (e == SHIFT_ALT_DOWN) {
+            if (event.code == KEY_DOWN) {
                 new_cursor.y++;
             }
             break;
 
         // Move line up/down
-        case ALT_UP:
-        case ALT_DOWN: {
-            bool move_up = (e == ALT_UP);
+        case KEY_EVENT(KEY_MOD_ALT, KEY_UP):
+        case KEY_EVENT(KEY_MOD_ALT, KEY_DOWN): {
+            bool move_up = (event.code == KEY_UP);
             EditorSelectRange range;
             editorGetSelectRange(&tab->cursor, &range);
             if (move_up) {
@@ -1339,10 +1333,10 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Delete/backspace
-        case DEL_KEY:
-        case CTRL_KEY('h'):
-        case BACKSPACE: {
-            bool is_delete = (e == DEL_KEY);
+        case KEY_EVENT(KEY_DELETE):
+        case KEY_EVENT(KEY_BACKSPACE):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'H'): {
+            bool is_delete = (event.code == KEY_DELETE);
             if (!tab->cursor.is_selected) {
                 if (is_delete) {
                     if (tab->cursor.y == file->num_rows - 1 &&
@@ -1456,7 +1450,7 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Newline
-        case '\r': {
+        case KEY_EVENT(KEY_ENTER): {
             should_scroll = true;
             keep_bracket_autocomplete = true;
             has_edit = true;
@@ -1541,12 +1535,12 @@ static void keyEvent(Panel* self, EditorInput input) {
         } break;
 
         // Key input
-        case CHAR_INPUT: {
+        case KEY_EVENT(KEY_TEXT): {
             should_scroll = true;
             keep_bracket_autocomplete = true;
             has_edit = true;
 
-            uint32_t c = input.data.unicode;
+            uint32_t c = event.unicode;
             EditorSelectRange delete_range = {
                 tab->cursor.x,
                 tab->cursor.y,
@@ -1758,13 +1752,12 @@ static void scrollTabBar(EditPanel* split, bool scroll_left) {
     editorUpdateTabDisplayed(split);
 }
 
-static void handleTabBarPress(EditPanel* split, UIMouseEvent mouse_event) {
-    if (!split || mouse_event.local_y != 0)
+static void handleTabBarPress(EditPanel* split, UIMouseEvent event) {
+    if (!split || event.mouse.y != 0)
         return;
 
     int tab_index;
-    TabClickResult click_result =
-        getTabClick(split, mouse_event.local_x, &tab_index);
+    TabClickResult click_result = getTabClick(split, event.mouse.x, &tab_index);
 
     if (click_result == TAB_CLICK_INDEX && tab_index != -1) {
         editorChangeToFile(split, tab_index);
@@ -1776,21 +1769,20 @@ static void handleTabBarPress(EditPanel* split, UIMouseEvent mouse_event) {
 }
 
 static void handleTabBarClose(EditPanel* split,
-                              UIMouseEvent mouse_event,
+                              UIMouseEvent event,
                               EditWaitState wait_state) {
     if (!split)
         return;
 
-    UIMouseEventType type = mouse_event.state->type;
-    if (type != UI_MOUSE3_PRESSED && type != UI_MOUSE3_RELEASED) {
+    MouseEventType type = event.mouse.type;
+    if (type != MOUSE3_PRESSED && type != MOUSE3_RELEASED) {
         return;
     }
 
-    bool pressed = (type == UI_MOUSE3_PRESSED);
+    bool pressed = (type == MOUSE3_PRESSED);
 
     int tab_index;
-    TabClickResult click_result =
-        getTabClick(split, mouse_event.local_x, &tab_index);
+    TabClickResult click_result = getTabClick(split, event.mouse.x, &tab_index);
 
     if (click_result == TAB_CLICK_INDEX && tab_index != -1) {
         // Handle tab close confirmation
@@ -1857,12 +1849,12 @@ static void handleTabBarClose(EditPanel* split,
     }
 }
 
-static bool handleSelectClick(EditPanel* split, UIMouseEvent mouse_event) {
+static bool handleSelectClick(EditPanel* split, UIMouseEvent event) {
     if (!split)
         return false;
 
-    int x = mouse_event.local_x;
-    int y = mouse_event.local_y;
+    int x = event.mouse.x;
+    int y = event.mouse.y;
 
     EditorTab* tab = editorSplitGetTab(split);
     const EditorFile* file = editorTabGetFile(tab);
@@ -1881,7 +1873,7 @@ static bool handleSelectClick(EditPanel* split, UIMouseEvent mouse_event) {
         return false;
     }
 
-    switch (mouse_event.state->click_count % 4) {
+    switch (event.state->click_count % 4) {
         case 1:
             tab->cursor.x = cx;
             tab->cursor.y = cy;
@@ -1925,12 +1917,12 @@ static bool handleSelectClick(EditPanel* split, UIMouseEvent mouse_event) {
     return true;
 }
 
-void handleSelectDrag(EditPanel* split, UIMouseEvent mouse_event) {
+void handleSelectDrag(EditPanel* split, UIMouseEvent event) {
     if (!split)
         return;
 
-    int x = mouse_event.local_x;
-    int y = mouse_event.local_y;
+    int x = event.mouse.x;
+    int y = event.mouse.y;
 
     EditorTab* tab = editorSplitGetTab(split);
     EditorFile* file = editorTabGetFile(tab);
@@ -1956,15 +1948,15 @@ void handleSelectDrag(EditPanel* split, UIMouseEvent mouse_event) {
     }
 }
 
-static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {
+static bool mouseEvent(Panel* self, UIMouseEvent event) {
     EditPanel* p = (EditPanel*)self;
-    UIMouseEventType type = mouse_event.state->type;
+    MouseEventType type = event.mouse.type;
 
     EditWaitState wait_state = p->wait_state;
     p->wait_state = EDIT_WAIT_NONE;
 
     const int tab_bar_height = 1;
-    bool on_tab_bar = (mouse_event.local_y < tab_bar_height);
+    bool on_tab_bar = (event.mouse.y < tab_bar_height);
 
     EditorTab* tab = editorSplitGetTab(p);
     if (tab) {
@@ -1972,37 +1964,37 @@ static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {
     }
 
     switch (type) {
-        case UI_MOUSE1_PRESSED:
+        case MOUSE1_PRESSED:
             if (on_tab_bar) {
                 p->mouse_mode = EDIT_MOUSE_TAB_BAR;
-                handleTabBarPress(p, mouse_event);
+                handleTabBarPress(p, event);
                 return false;
             }
             p->mouse_mode = EDIT_MOUSE_SELECT_DRAG;
-            return handleSelectClick(p, mouse_event);
+            return handleSelectClick(p, event);
 
-        case UI_MOUSE1_MOVE:
+        case MOUSE1_DRAG:
             if (p->mouse_mode == EDIT_MOUSE_SELECT_DRAG)
-                handleSelectDrag(p, mouse_event);
+                handleSelectDrag(p, event);
             return p->mouse_mode == EDIT_MOUSE_SELECT_DRAG;
 
-        case UI_MOUSE1_RELEASED:
+        case MOUSE1_RELEASED:
             p->mouse_mode = EDIT_MOUSE_NONE;
             return false;
 
-        case UI_MOUSE3_PRESSED:
-        case UI_MOUSE3_RELEASED:
+        case MOUSE3_PRESSED:
+        case MOUSE3_RELEASED:
             if (on_tab_bar)
-                handleTabBarClose(p, mouse_event, wait_state);
+                handleTabBarClose(p, event, wait_state);
             return false;
 
-        case UI_MWHEEL_UP:
-        case UI_MWHEEL_DOWN:
+        case MWHEEL_UP:
+        case MWHEEL_DOWN:
             if (on_tab_bar) {
-                scrollTabBar(p, type == UI_MWHEEL_UP);
+                scrollTabBar(p, type == MWHEEL_UP);
             } else {
-                editorScroll(p, type == UI_MWHEEL_UP ? -EDITOR_SCROLL_DIST
-                                                     : EDITOR_SCROLL_DIST);
+                editorScroll(p, type == MWHEEL_UP ? -EDITOR_SCROLL_DIST
+                                                  : EDITOR_SCROLL_DIST);
             }
             return false;
 

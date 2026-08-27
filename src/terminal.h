@@ -4,129 +4,121 @@
 #include "os.h"
 #include "select.h"
 
-// ANSI escape sequences
-#define ANSI_CLEAR_STYLE "\x1b[m"
-#define ANSI_ERASE_LINE "\x1b[K"
-#define ANSI_UNDERLINE "\x1b[4m"
-#define ANSI_NOT_UNDERLINE "\x1b[24m"
-#define ANSI_INVERT "\x1b[7m"
-#define ANSI_NOT_INVERT "\x1b[27m"
-#define ANSI_DEFAULT_FG "\x1b[39m"
-#define ANSI_DEFAULT_BG "\x1b[49m"
+// Input
 
-#define ANSI_CURSOR_RESET_POS "\x1b[H"
-#define ANSI_CURSOR_SHOW "\x1b[?25h"
-#define ANSI_CURSOR_HIDE "\x1b[?25l"
+typedef enum EventType {
+    EVENT_ERROR = -2,
+    EVENT_TIMEOUT = -1,
+    EVENT_FOCUS_GAINED,
+    EVENT_FOCUS_LOST,
+    EVENT_KEY,
+    EVENT_MOUSE,
+    EVENT_PASTE,
+    EVENT_RESIZE,
+} EventType;
 
-#define ANSI_SYNC_BEGIN "\x1b[?2026h"
-#define ANSI_SYNC_END "\x1b[?2026l"
+#define _KEY_EVENT3(modifiers, code, id) \
+    ((uint32_t)(modifiers) | ((uint32_t)(code) << 8) | ((uint32_t)(id) << 16))
 
-// Keys
-#define CTRL_KEY(k) ((k) & 0x1F)
-#define ALT_KEY(k) ((k) | 0x1B00)
+#define _KEY_EVENT2(modifiers, code) _KEY_EVENT3(modifiers, code, 0)
 
-enum EditorEventType {
-    UNKNOWN = -1,
-    ESC = 27,
-    BACKSPACE = 127,
-    CHAR_INPUT = 1000,
-    PASTE_INPUT,
-    RESIZE_EVENT,
+#define _KEY_EVENT1(code) _KEY_EVENT3(0, code, 0)
 
-    ARROW_UP,
-    ARROW_DOWN,
-    ARROW_RIGHT,
-    ARROW_LEFT,
+#define _GET_KEY_EVENT_MACRO(_1, _2, _3, NAME, ...) NAME
+// _UNUSED to surpress zero variadic macro warning
+#define KEY_EVENT(...)                                                       \
+    _GET_KEY_EVENT_MACRO(__VA_ARGS__, _KEY_EVENT3, _KEY_EVENT2, _KEY_EVENT1, \
+                         _UNUSED)                                            \
+    (__VA_ARGS__)
 
-    DEL_KEY,
-    HOME_KEY,
-    END_KEY,
-    PAGE_UP,
-    PAGE_DOWN,
-
-    SHIFT_UP,
-    SHIFT_DOWN,
-    SHIFT_RIGHT,
-    SHIFT_LEFT,
-    SHIFT_END,
-    SHIFT_HOME,
-    SHIFT_PAGE_UP,
-    SHIFT_PAGE_DOWN,
-
-    ALT_UP,
-    ALT_DOWN,
-    ALT_RIGHT,
-    ALT_LEFT,
-    ALT_END,
-    ALT_HOME,
-
-    SHIFT_ALT_UP,
-    SHIFT_ALT_DOWN,
-    SHIFT_ALT_RIGHT,
-    SHIFT_ALT_LEFT,
-    SHIFT_ALT_END,
-    SHIFT_ALT_HOME,
-
-    CTRL_UP,
-    CTRL_DOWN,
-    CTRL_RIGHT,
-    CTRL_LEFT,
-    CTRL_END,
-    CTRL_HOME,
-    CTRL_PAGE_UP,
-    CTRL_PAGE_DOWN,
-
-    SHIFT_CTRL_UP,
-    SHIFT_CTRL_DOWN,
-    SHIFT_CTRL_RIGHT,
-    SHIFT_CTRL_LEFT,
-    SHIFT_CTRL_END,
-    SHIFT_CTRL_HOME,
-    SHIFT_CTRL_PAGE_UP,
-    SHIFT_CTRL_PAGE_DOWN,
-
-    CTRL_ALT_UP,
-    CTRL_ALT_DOWN,
-    CTRL_ALT_RIGHT,
-    CTRL_ALT_LEFT,
-    CTRL_ALT_END,
-    CTRL_ALT_HOME,
-
-    MOUSE_PRESSED,
-    MOUSE_RELEASED,
-    SCROLL_PRESSED,
-    SCROLL_RELEASED,
-    MOUSE_MOVE,
-    WHEEL_UP,
-    WHEEL_DOWN,
+enum KeyCode {
+    KEY_BACKSPACE,
+    KEY_ENTER,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_HOME,
+    KEY_END,
+    KEY_PAGE_UP,
+    KEY_PAGE_DOWN,
+    KEY_TAB,
+    KEY_DELETE,
+    KEY_INSERT,
+    KEY_F,
+    KEY_ESC,
+    KEY_CHAR,
+    KEY_TEXT,
 };
 
-typedef struct EditorInput {
-    int type;
-    int64_t timestamp_ms;
-    union {
-        uint32_t unicode;
-        struct {
-            int x;
-            int y;
-        } cursor;
-        ConsoleSize resize;
-        EditorClipboard paste;
-    } data;
-} EditorInput;
+enum KeyModifiers {
+    KEY_MOD_NONE = 0,
+    KEY_MOD_SHIFT = 1 << 0,
+    KEY_MOD_ALT = 1 << 1,
+    KEY_MOD_CTRL = 1 << 2,
+    KEY_MOD_META = 1 << 3,
+};
 
-void editorInitTerminal(void);
-EditorInput editorReadEvent(void);
-EditorInput editorReadKey(void);  // Won't return resize events
-void editorFreeInput(EditorInput* input);
+enum KeyKind {
+    KEY_KIND_PRESS,
+    KEY_KIND_REPEAT,
+    KEY_KIND_RELEASE,
+};
+
+typedef struct KeyEvent {
+    union {
+        struct {
+            uint8_t modifiers;  // KeyModifiers
+            uint8_t code;       // KeyCode
+            uint8_t id;         // KEY_CHAR or KEY_F
+            uint8_t kind;       // KeyKind, unused
+        };
+        uint32_t value;
+    };
+    uint32_t unicode;  // KEY_TEXT
+} KeyEvent;
+
+typedef enum MouseEventType {
+    MOUSE1_PRESSED,
+    MOUSE2_PRESSED,
+    MOUSE3_PRESSED,
+    MOUSE1_RELEASED,
+    MOUSE2_RELEASED,
+    MOUSE3_RELEASED,
+    MOUSE1_DRAG,
+    MOUSE2_DRAG,
+    MOUSE3_DRAG,
+    MWHEEL_UP,
+    MWHEEL_DOWN,
+} MouseEventType;
+
+typedef struct MouseEvent {
+    MouseEventType type;
+    int x, y;
+} MouseEvent;
+
+typedef ConsoleResizeEvent ResizeEvent;
+
+typedef EditorClipboard PasteEvent;
+
+typedef struct Event {
+    EventType type;
+    union {
+        KeyEvent key;
+        MouseEvent mouse;
+        PasteEvent paste;
+        ResizeEvent resize;
+    };
+} Event;
+
+void terminalInit(void);
+void terminalStart(void);
+void terminalExit(void);
+
+Event eventPoll(int timeout_ms);
+void eventFree(Event* event);
 
 void enableMouse(void);
 void disableMouse(void);
-
-void setWindowSize(int rows, int cols, bool force_redraw);
-void resizeWindow(bool force_redraw);
-
-void terminalStart(void);
-void terminalExit(void);
 
 #endif

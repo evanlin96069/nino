@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Setup terminal
-    editorInitTerminal();
+    terminalInit();
 
     if (!stdin_piped) {
         for (int i = 0; i < argc; i++) {

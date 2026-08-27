@@ -115,6 +115,23 @@ static inline void abufReset(abuf* ab) {
     ab->len = 0;
 }
 
+// ANSI escape sequences
+#define ANSI_CLEAR_STYLE "\x1b[m"
+#define ANSI_ERASE_LINE "\x1b[K"
+#define ANSI_UNDERLINE "\x1b[4m"
+#define ANSI_NOT_UNDERLINE "\x1b[24m"
+#define ANSI_INVERT "\x1b[7m"
+#define ANSI_NOT_INVERT "\x1b[27m"
+#define ANSI_DEFAULT_FG "\x1b[39m"
+#define ANSI_DEFAULT_BG "\x1b[49m"
+
+#define ANSI_CURSOR_RESET_POS "\x1b[H"
+#define ANSI_CURSOR_SHOW "\x1b[?25h"
+#define ANSI_CURSOR_HIDE "\x1b[?25l"
+
+#define ANSI_SYNC_BEGIN "\x1b[?2026h"
+#define ANSI_SYNC_END "\x1b[?2026l"
+
 // Color
 
 typedef enum ANSI16Color {

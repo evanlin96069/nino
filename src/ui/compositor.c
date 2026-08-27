@@ -76,176 +76,136 @@ bool uiGetCursor(UI* ui, UICursor* out) {
     return true;
 }
 
-static inline UIMouseEventType inputTypeToMouseEventType(int type) {
-    switch (type) {
-        case MOUSE_MOVE:
-            return UI_MOUSE1_MOVE;
-        case MOUSE_PRESSED:
-            return UI_MOUSE1_PRESSED;
-        case MOUSE_RELEASED:
-            return UI_MOUSE1_RELEASED;
-        case SCROLL_PRESSED:
-            return UI_MOUSE3_PRESSED;
-        case SCROLL_RELEASED:
-            return UI_MOUSE3_RELEASED;
-        case WHEEL_UP:
-            return UI_MWHEEL_UP;
-        case WHEEL_DOWN:
-            return UI_MWHEEL_DOWN;
-        default:
-            return -1;  // Invalid type
+void uiProcessKeyEvent(UI* ui, KeyEvent event, UIPreKeyEvent pre_key_event) {
+    if (ui->focused_panel) {
+        if (!pre_key_event || !pre_key_event(ui->focused_panel, event)) {
+            ui->focused_panel->vt->keyEvent(ui->focused_panel, event);
+        }
     }
 }
 
-void uiProcessInput(UI* ui, EditorInput input, UIProcessInputHooks hooks) {
-    switch (input.type) {
-        case MOUSE_MOVE:
-        case MOUSE_PRESSED:
-        case MOUSE_RELEASED:
-        case SCROLL_PRESSED:
-        case SCROLL_RELEASED:
-        case WHEEL_UP:
-        case WHEEL_DOWN: {
-            int x = input.data.cursor.x;
-            int y = input.data.cursor.y;
-            ui->mouse.type = inputTypeToMouseEventType(input.type);
-            ui->mouse.x = x;
-            ui->mouse.y = y;
+void uiProcessMouseEvent(UI* ui,
+                         MouseEvent event,
+                         uint64_t timestamp_ms,
+                         UIPreMouseEvent pre_mouse_event) {
+    int x = event.x;
+    int y = event.y;
 
-            switch (ui->mouse.type) {
-                case UI_MOUSE1_MOVE: {
-                    if (ui->mouse.drag.type == UI_DRAG_PANEL) {
-                        Panel* panel;
-                        if (ui->mouse.drag.capture) {
-                            panel = ui->mouse.drag.panel;
-                        } else {
-                            LayoutNode* node = layoutFindAt(ui->root, x, y);
-                            if (!node || node->kind != LAYOUT_LEAF)
-                                break;
-                            panel = node->panel;
-                        }
+    switch (event.type) {
+        case MOUSE1_PRESSED: {
+            int prev_x = ui->mouse.drag.start_x;
+            int prev_y = ui->mouse.drag.start_y;
+            if (x == prev_x && y == prev_y &&
+                timestamp_ms - ui->mouse.last_click_time <
+                    UI_MOUSE_DOUBLE_CLICK_TIME) {
+                ui->mouse.click_count++;
+            } else {
+                ui->mouse.click_count = 1;
+            }
+            ui->mouse.last_click_time = timestamp_ms;
 
-                        UIMouseEvent event;
-                        event.state = &ui->mouse;
-                        rectToLocal(panel->layout->rect, x, y, &event.local_x,
-                                    &event.local_y);
+            ui->mouse.drag.start_x = x;
+            ui->mouse.drag.start_y = y;
 
-                        if (!hooks.preMouseEvent ||
-                            !hooks.preMouseEvent(panel, event)) {
-                            panel->vt->mouseEvent(panel, event);
-                        }
-                    } else if (ui->mouse.drag.type == UI_DRAG_SEPARATOR) {
-                        layoutSeparatorDrag(&ui->mouse.drag.separator, x, y);
-                    }
-                } break;
+            Separator* sep = layoutFindSeparatorAt(&ui->separators, x, y);
+            if (sep) {
+                ui->mouse.drag.type = UI_DRAG_SEPARATOR;
+                ui->mouse.drag.separator = *sep;
+                break;
+            }
 
-                case UI_MOUSE1_PRESSED: {
-                    int prev_x = ui->mouse.drag.start_x;
-                    int prev_y = ui->mouse.drag.start_y;
-                    if (x == prev_x && y == prev_y &&
-                        input.timestamp_ms - ui->mouse.last_click_time <
-                            UI_MOUSE_DOUBLE_CLICK_TIME) {
-                        ui->mouse.click_count++;
-                    } else {
-                        ui->mouse.click_count = 1;
-                    }
-                    ui->mouse.last_click_time = input.timestamp_ms;
+            LayoutNode* node = layoutFindAt(ui->root, x, y);
+            if (!node || node->kind != LAYOUT_LEAF)
+                break;
 
-                    ui->mouse.drag.start_x = x;
-                    ui->mouse.drag.start_y = y;
+            Panel* panel = node->panel;
+            ui->mouse.drag.type = UI_DRAG_PANEL;
+            ui->mouse.drag.panel = panel;
 
-                    Separator* sep =
-                        layoutFindSeparatorAt(&ui->separators, x, y);
-                    if (sep) {
-                        ui->mouse.drag.type = UI_DRAG_SEPARATOR;
-                        ui->mouse.drag.separator = *sep;
-                        break;
-                    }
+            uiPanelSetFocused(ui, panel);
 
+            UIMouseEvent ev;
+            ev.state = &ui->mouse;
+            ev.mouse = event;
+            rectToLocal(node->rect, x, y, &ev.mouse.x, &ev.mouse.y);
+
+            bool capture = false;
+            if (!pre_mouse_event || !pre_mouse_event(panel, ev)) {
+                capture = panel->vt->mouseEvent(panel, ev);
+            }
+            ui->mouse.drag.capture = capture;
+        } break;
+
+        case MOUSE1_RELEASED:
+            if (ui->mouse.drag.type == UI_DRAG_PANEL) {
+                Panel* panel;
+                if (ui->mouse.drag.capture) {
+                    panel = ui->mouse.drag.panel;
+                } else {
                     LayoutNode* node = layoutFindAt(ui->root, x, y);
                     if (!node || node->kind != LAYOUT_LEAF)
                         break;
+                    panel = node->panel;
+                }
 
-                    Panel* panel = node->panel;
-                    ui->mouse.drag.type = UI_DRAG_PANEL;
-                    ui->mouse.drag.panel = panel;
+                UIMouseEvent ev;
+                ev.state = &ui->mouse;
+                ev.mouse = event;
+                rectToLocal(panel->layout->rect, x, y, &ev.mouse.x,
+                            &ev.mouse.y);
 
-                    uiPanelSetFocused(ui, panel);
+                ui->mouse.drag.type = UI_DRAG_NONE;
+                if (!pre_mouse_event || !pre_mouse_event(panel, ev)) {
+                    panel->vt->mouseEvent(panel, ev);
+                }
+            } else {
+                ui->mouse.drag.type = UI_DRAG_NONE;
+            }
+            break;
 
-                    UIMouseEvent event;
-                    event.state = &ui->mouse;
-                    rectToLocal(node->rect, x, y, &event.local_x,
-                                &event.local_y);
-
-                    bool capture = false;
-                    if (!hooks.preMouseEvent ||
-                        !hooks.preMouseEvent(panel, event)) {
-                        capture = panel->vt->mouseEvent(panel, event);
-                    }
-                    ui->mouse.drag.capture = capture;
-                } break;
-
-                case UI_MOUSE1_RELEASED:
-                    if (ui->mouse.drag.type == UI_DRAG_PANEL) {
-                        Panel* panel;
-                        if (ui->mouse.drag.capture) {
-                            panel = ui->mouse.drag.panel;
-                        } else {
-                            LayoutNode* node = layoutFindAt(ui->root, x, y);
-                            if (!node || node->kind != LAYOUT_LEAF)
-                                break;
-                            panel = node->panel;
-                        }
-
-                        UIMouseEvent event;
-                        event.state = &ui->mouse;
-                        rectToLocal(panel->layout->rect, x, y, &event.local_x,
-                                    &event.local_y);
-
-                        ui->mouse.drag.type = UI_DRAG_NONE;
-                        if (!hooks.preMouseEvent ||
-                            !hooks.preMouseEvent(panel, event)) {
-                            panel->vt->mouseEvent(panel, event);
-                        }
-                    } else {
-                        ui->mouse.drag.type = UI_DRAG_NONE;
-                    }
-                    break;
-
-                case UI_MOUSE3_PRESSED:
-                case UI_MOUSE3_RELEASED:
-                case UI_MWHEEL_UP:
-                case UI_MWHEEL_DOWN: {
+        case MOUSE1_DRAG: {
+            if (ui->mouse.drag.type == UI_DRAG_PANEL) {
+                Panel* panel;
+                if (ui->mouse.drag.capture) {
+                    panel = ui->mouse.drag.panel;
+                } else {
                     LayoutNode* node = layoutFindAt(ui->root, x, y);
                     if (!node || node->kind != LAYOUT_LEAF)
                         break;
+                    panel = node->panel;
+                }
 
-                    Panel* panel = node->panel;
+                UIMouseEvent ev;
+                ev.state = &ui->mouse;
+                ev.mouse = event;
+                rectToLocal(panel->layout->rect, x, y, &ev.mouse.x,
+                            &ev.mouse.y);
 
-                    UIMouseEvent event;
-                    event.state = &ui->mouse;
-                    rectToLocal(node->rect, x, y, &event.local_x,
-                                &event.local_y);
-
-                    if (!hooks.preMouseEvent ||
-                        !hooks.preMouseEvent(panel, event)) {
-                        panel->vt->mouseEvent(panel, event);
-                    }
-                } break;
-
-                default:
-                    break;
+                if (!pre_mouse_event || !pre_mouse_event(panel, ev)) {
+                    panel->vt->mouseEvent(panel, ev);
+                }
+            } else if (ui->mouse.drag.type == UI_DRAG_SEPARATOR) {
+                layoutSeparatorDrag(&ui->mouse.drag.separator, x, y);
             }
         } break;
 
-        default:
-            if (ui->focused_panel) {
-                if (!hooks.preKeyEvent ||
-                    !hooks.preKeyEvent(ui->focused_panel, input)) {
-                    ui->focused_panel->vt->keyEvent(ui->focused_panel, input);
-                }
+        default: {
+            // Send directly to the panel under the mouse
+            LayoutNode* node = layoutFindAt(ui->root, x, y);
+            if (!node || node->kind != LAYOUT_LEAF)
+                break;
+
+            Panel* panel = node->panel;
+
+            UIMouseEvent ev;
+            ev.state = &ui->mouse;
+            ev.mouse = event;
+            rectToLocal(node->rect, x, y, &ev.mouse.x, &ev.mouse.y);
+
+            if (!pre_mouse_event || !pre_mouse_event(panel, ev)) {
+                panel->vt->mouseEvent(panel, ev);
             }
-            break;
+        } break;
     }
 }
 

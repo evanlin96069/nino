@@ -26,21 +26,22 @@ void disableRawMode(void);
 bool isStdinTty(void);
 
 typedef enum {
-    CONSOLE_EVENT_NONE,
+    CONSOLE_EVENT_ERROR = -2,
+    CONSOLE_EVENT_TIMEOUT = -1,
     CONSOLE_EVENT_KEY,
     CONSOLE_EVENT_RESIZE,
 } ConsoleEventType;
 
-typedef struct {
+typedef struct ConsoleResizeEvent {
     int rows;
     int cols;
-} ConsoleSize;
+} ConsoleResizeEvent;
 
 typedef struct {
     ConsoleEventType type;
     union {
         uint32_t unicode;
-        ConsoleSize resize;
+        ConsoleResizeEvent resize;
     } data;
 } ConsoleEvent;
 

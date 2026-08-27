@@ -202,3 +202,25 @@ void editorHelpSetMsg(EditorHelpMsg msg) {
 void editorHelpRestoreMsg(void) {
     gEditor.help_msg = gEditor.help_msg_prev;
 }
+
+void editorResizeWindow(void) {
+    int rows = 0;
+    int cols = 0;
+
+    if (getWindowSize(&rows, &cols) == -1)
+        PANIC("Unable to query terminal window size");
+    editorSetWindowSize(rows, cols);
+    gEditor.screen_size_updated = true;
+    editorRefreshScreen();
+}
+
+void editorSetWindowSize(int rows, int cols) {
+    rows = rows < 1 ? 1 : rows;
+    cols = cols < 1 ? 1 : cols;
+
+    if (gEditor.screen_rows != rows || gEditor.screen_cols != cols) {
+        gEditor.screen_rows = rows;
+        gEditor.screen_cols = cols;
+        gEditor.screen_size_updated = true;
+    }
+}

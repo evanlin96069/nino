@@ -10,8 +10,8 @@ static void destroy(Panel* self);
 static void render(Panel* self, Surface s);
 static bool getCursor(Panel* self, UICursor* out);
 static void onFocus(Panel* self, bool focused);
-static void keyEvent(Panel* self, EditorInput input);
-static bool mouseEvent(Panel* self, UIMouseEvent mouse_event);
+static void keyEvent(Panel* self, KeyEvent event);
+static bool mouseEvent(Panel* self, UIMouseEvent event);
 
 static PanelVtable panel_vt = {
     .destroy = destroy,
@@ -169,14 +169,14 @@ static void editorExplorerOpenSelected(ExplorerPanel* p) {
     }
 }
 
-static void keyEvent(Panel* self, EditorInput input) {
+static void keyEvent(Panel* self, KeyEvent event) {
     ExplorerPanel* p = (ExplorerPanel*)self;
-    switch (input.type) {
-        case CHAR_INPUT: {
+    switch (event.value) {
+        case KEY_EVENT(KEY_TEXT): {
             if (!p->node)
                 return;
 
-            uint32_t unicode = input.data.unicode;
+            uint32_t unicode = event.unicode;
             if (unicode > 255)
                 return;
 
@@ -194,31 +194,31 @@ static void keyEvent(Panel* self, EditorInput input) {
             }
         } break;
 
-        case ARROW_UP:
+        case KEY_EVENT(KEY_UP):
             if (p->selected_index <= 0)
                 break;
             p->selected_index--;
             editorExplorerScrollToSelected(p);
             break;
 
-        case ARROW_DOWN:
+        case KEY_EVENT(KEY_DOWN):
             if (p->selected_index + 1 >= (int)p->flatten.size)
                 break;
             p->selected_index++;
             editorExplorerScrollToSelected(p);
             break;
 
-        case HOME_KEY:
+        case KEY_EVENT(KEY_HOME):
             p->selected_index = 0;
             editorExplorerScrollToSelected(p);
             break;
 
-        case END_KEY:
+        case KEY_EVENT(KEY_END):
             p->selected_index = p->flatten.size - 1;
             editorExplorerScrollToSelected(p);
             break;
 
-        case PAGE_UP: {
+        case KEY_EVENT(KEY_PAGE_UP): {
             int rows = p->base.layout->rect.h - 1;  // -1 for header
             if (p->selected_index != p->offset) {
                 p->selected_index = p->offset;
@@ -231,7 +231,7 @@ static void keyEvent(Panel* self, EditorInput input) {
             editorExplorerScrollToSelected(p);
         } break;
 
-        case PAGE_DOWN: {
+        case KEY_EVENT(KEY_PAGE_DOWN): {
             int rows = p->base.layout->rect.h - 1;  // -1 for header
             if (p->selected_index != p->offset + rows - 1) {
                 p->selected_index = p->offset + rows - 1;
@@ -245,7 +245,7 @@ static void keyEvent(Panel* self, EditorInput input) {
             editorExplorerScrollToSelected(p);
         } break;
 
-        case '\r':
+        case KEY_EVENT(KEY_ENTER):
             editorExplorerOpenSelected(p);
             break;
 
@@ -254,11 +254,11 @@ static void keyEvent(Panel* self, EditorInput input) {
     }
 }
 
-static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {
+static bool mouseEvent(Panel* self, UIMouseEvent event) {
     ExplorerPanel* p = (ExplorerPanel*)self;
-    switch (mouse_event.state->type) {
-        case UI_MOUSE1_PRESSED: {
-            int y = mouse_event.local_y;
+    switch (event.mouse.type) {
+        case MOUSE1_PRESSED: {
+            int y = event.mouse.y;
             if (y < 1 || y > (int)p->flatten.size - p->offset)
                 break;
 
@@ -266,11 +266,11 @@ static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {
             editorExplorerOpenSelected(p);
         } break;
 
-        case UI_MWHEEL_UP:
+        case MWHEEL_UP:
             editorExplorerScroll(gEditor.explorer_panel, -EXPLORER_SCROLL_STEP);
             break;
 
-        case UI_MWHEEL_DOWN:
+        case MWHEEL_DOWN:
             editorExplorerScroll(gEditor.explorer_panel, EXPLORER_SCROLL_STEP);
             break;
 

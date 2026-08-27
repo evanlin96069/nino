@@ -21,7 +21,8 @@ typedef struct PanelVtable {
     void (*render)(Panel* self, Surface s);
     bool (*getCursor)(Panel* self, UICursor* out);
     void (*onFocus)(Panel* self, bool focused);
-    void (*keyEvent)(Panel* self, EditorInput input);
+    // EVENT_KEY or EVENT_PASTE
+    void (*keyEvent)(Panel* self, KeyEvent event);
     // Return if the panel capture the drag event (UI_MOUSE1_MOVE)
     bool (*mouseEvent)(Panel* self, UIMouseEvent mouse_event);
 } PanelVtable;

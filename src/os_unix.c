@@ -186,7 +186,7 @@ static bool readConsoleByte(uint8_t* out, int timeout_ms) {
 }
 
 ConsoleEvent readConsoleEvent(int timeout_ms) {
-    ConsoleEvent ev = {.type = CONSOLE_EVENT_NONE};
+    ConsoleEvent ev = {.type = CONSOLE_EVENT_ERROR};
 
     if (has_pending_resize) {
         has_pending_resize = false;
@@ -208,8 +208,10 @@ ConsoleEvent readConsoleEvent(int timeout_ms) {
                 ev.type = CONSOLE_EVENT_RESIZE;
                 ev.data.resize.rows = rows;
                 ev.data.resize.cols = cols;
+                return ev;
             }
         }
+        ev.type = CONSOLE_EVENT_TIMEOUT;
         return ev;
     }
 
@@ -233,7 +235,7 @@ ConsoleEvent readConsoleEvent(int timeout_ms) {
         ev.data.unicode = (first_byte & 0x07) << 18;
         bytes = 3;
     } else {
-        ev.type = CONSOLE_EVENT_NONE;
+        ev.type = CONSOLE_EVENT_ERROR;
         return ev;
     }
 
@@ -241,11 +243,11 @@ ConsoleEvent readConsoleEvent(int timeout_ms) {
     for (int i = 0; i < bytes; i++) {
         uint8_t byte;
         if (!readConsoleByte(&byte, READ_GRACE_MS)) {
-            ev.type = CONSOLE_EVENT_NONE;
+            ev.type = CONSOLE_EVENT_ERROR;
             return ev;
         }
         if ((byte & 0xC0) != 0x80) {
-            ev.type = CONSOLE_EVENT_NONE;
+            ev.type = CONSOLE_EVENT_ERROR;
             return ev;
         }
 

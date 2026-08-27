@@ -103,6 +103,7 @@ typedef struct Editor {
 
     // Copy paste
     EditorClipboard clipboard;
+    bool is_paste_event;  // true if the clipboard is from a EVENT_PASTE
     bool copy_line;
 
     // Color settings
@@ -147,5 +148,9 @@ int editorGetDirtyFileCount(void);
 const char* editorHelpMsgToString(EditorHelpMsg msg);
 void editorHelpSetMsg(EditorHelpMsg msg);
 void editorHelpRestoreMsg(void);
+
+// Window size
+void editorSetWindowSize(int rows, int cols);
+void editorResizeWindow(void);
 
 #endif

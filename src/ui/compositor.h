@@ -7,18 +7,6 @@
 
 #define UI_MOUSE_DOUBLE_CLICK_TIME 500  // ms
 
-typedef enum UIMouseEventType {
-    UI_MOUSE1_MOVE,
-    UI_MOUSE1_PRESSED,
-    UI_MOUSE1_RELEASED,
-    UI_MOUSE2_PRESSED,
-    UI_MOUSE2_RELEASED,
-    UI_MOUSE3_PRESSED,
-    UI_MOUSE3_RELEASED,
-    UI_MWHEEL_UP,
-    UI_MWHEEL_DOWN,
-} UIMouseEventType;
-
 typedef enum UIDragType {
     UI_DRAG_NONE = 0,
     UI_DRAG_PANEL,
@@ -37,10 +25,6 @@ typedef struct UIDragState {
 } UIDragState;
 
 typedef struct UIMouseState {
-    UIMouseEventType type;
-    int x;
-    int y;
-
     // These are for mouse1
     int64_t last_click_time;
     int click_count;
@@ -50,7 +34,7 @@ typedef struct UIMouseState {
 
 typedef struct UIMouseEvent {
     const UIMouseState* state;
-    int local_x, local_y;
+    MouseEvent mouse;
 } UIMouseEvent;
 
 typedef struct UICursor {
@@ -76,12 +60,14 @@ void uiFree(UI* ui);
 void uiComposite(UI* ui, Surface s, ScreenStyle sep_style);
 bool uiGetCursor(UI* ui, UICursor* out);
 
-typedef struct UIProcessInputHooks {
-    // Return true to handle this input
-    bool (*preKeyEvent)(Panel* panel, EditorInput input);
-    bool (*preMouseEvent)(Panel* panel, UIMouseEvent mouse_event);
-} UIProcessInputHooks;
-void uiProcessInput(UI* ui, EditorInput input, UIProcessInputHooks hooks);
+// Input
+typedef bool (*UIPreKeyEvent)(Panel* panel, KeyEvent event);
+void uiProcessKeyEvent(UI* ui, KeyEvent event, UIPreKeyEvent pre_key_event);
+typedef bool (*UIPreMouseEvent)(Panel* panel, UIMouseEvent event);
+void uiProcessMouseEvent(UI* ui,
+                         MouseEvent event,
+                         uint64_t timestamp_ms,
+                         UIPreMouseEvent pre_mouse_event);
 
 void uiAddPanel(UI* ui, Panel* relative_to, Panel* new_panel, bool leftright);
 void uiClosePanel(UI* ui, Panel* panel);

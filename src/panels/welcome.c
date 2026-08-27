@@ -8,7 +8,7 @@ static void destroy(Panel* self);
 static void render(Panel* self, Surface s);
 static bool getCursor(Panel* self, UICursor* out);
 static void onFocus(Panel* self, bool focused);
-static void keyEvent(Panel* self, EditorInput input);
+static void keyEvent(Panel* self, KeyEvent event);
 static bool mouseEvent(Panel* self, UIMouseEvent mouse_event);
 
 static PanelVtable panel_vt = {
@@ -132,9 +132,9 @@ static void onFocus(Panel* self, bool focused) {
     }
 }
 
-static void keyEvent(Panel* self, EditorInput input) {
+static void keyEvent(Panel* self, KeyEvent event) {
     UNUSED(self);
-    UNUSED(input);
+    UNUSED(event);
 }
 
 static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {

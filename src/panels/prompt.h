@@ -19,7 +19,7 @@ typedef struct PromptEvent {
     PromptEventType type;
     const char* query;
     union {
-        EditorInput key_input;
+        KeyEvent key_event;
         UIMouseEvent mouse_event;
     };
 } PromptEvent;

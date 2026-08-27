@@ -10,7 +10,7 @@
 #include "panels/edit.h"
 #include "ui/compositor.h"
 
-static bool globalKeyEvent(Panel* panel, EditorInput input) {
+static bool preKeyEvent(Panel* panel, KeyEvent event) {
     EditorWaitState wait_state = gEditor.wait_state;
     gEditor.wait_state = EDITOR_WAIT_NONE;
 
@@ -21,9 +21,9 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
 
     bool handled = true;
 
-    switch (input.type) {
+    switch (event.value) {
         // Quit
-        case CTRL_KEY('q'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Q'): {
             // Handle quit confirmation
             if (wait_state == EDITOR_WAIT_QUIT) {
                 gEditor.state = STATE_EXIT;
@@ -48,7 +48,7 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
         } break;
 
         // Close tab
-        case CTRL_KEY('w'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'W'): {
             EditPanel* split = gEditor.active_edit_panel;
             if (!split || split->tab_active_index == -1)
                 break;
@@ -73,18 +73,18 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
         } break;
 
         // Prompt
-        case CTRL_KEY('p'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'P'):
             editorPromptConfig();
             gEditor.con_keep_msg = true;
             break;
 
         // Open file
-        case CTRL_KEY('o'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'O'):
             editorPromptFileOpen();
             break;
 
         // New tab
-        case CTRL_KEY('n'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'N'): {
             EditorFile new_file;
             editorNewUntitledFile(&new_file);
             if (editorAddFileToActiveSplit(&new_file) != -1) {
@@ -94,7 +94,7 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
         } break;
 
         // Toggle explorer
-        case CTRL_KEY('b'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'B'):
             if (panelIsEnabled((Panel*)gEditor.explorer_panel)) {
                 uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.explorer_panel,
                                   false);
@@ -107,7 +107,7 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
             break;
 
         // Toggle explorer focus
-        case CTRL_KEY('e'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'E'):
             if (gEditor.ui.focused_panel == (Panel*)gEditor.explorer_panel) {
                 editorFocusActiveSplit();
             } else {
@@ -120,19 +120,19 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
             break;
 
         // Navigate panels
-        case CTRL_ALT_LEFT:
+        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_LEFT):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_LEFT);
             break;
 
-        case CTRL_ALT_RIGHT:
+        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_RIGHT):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_RIGHT);
             break;
 
-        case CTRL_ALT_UP:
+        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_UP):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_UP);
             break;
 
-        case CTRL_ALT_DOWN:
+        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_DOWN):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_DOWN);
             break;
 
@@ -156,13 +156,19 @@ static bool globalKeyEvent(Panel* panel, EditorInput input) {
     return handled;
 }
 
-static bool globalMouseEvent(Panel* panel, UIMouseEvent mouse_event) {
-    switch (mouse_event.state->type) {
-        case UI_MOUSE1_PRESSED:
-        case UI_MWHEEL_UP:
-        case UI_MWHEEL_DOWN:
+static bool preMouseEvent(Panel* panel, UIMouseEvent event) {
+    switch (event.mouse.type) {
+        case MOUSE1_PRESSED:
+        case MWHEEL_UP:
+        case MWHEEL_DOWN:
             // Only clear console for these events
             break;
+
+        case MOUSE2_PRESSED:
+        case MOUSE2_RELEASED:
+        case MOUSE2_DRAG:
+        case MOUSE3_DRAG:
+            return true;  // Ignore these events
 
         default:
             gEditor.con_keep_msg = true;
@@ -184,15 +190,40 @@ static bool globalMouseEvent(Panel* panel, UIMouseEvent mouse_event) {
     return false;
 }
 
-static UIProcessInputHooks global_input_hooks = {
-    .preKeyEvent = globalKeyEvent,
-    .preMouseEvent = globalMouseEvent,
-};
-
 void editorProcessInput(void) {
-    EditorInput input = editorReadKey();  // TODO: Add record/replay feature
-    if (input.type != UNKNOWN) {
-        uiProcessInput(&gEditor.ui, input, global_input_hooks);
+    // TODO: Add record/replay feature
+    Event event = eventPoll(READ_WAIT_INFINITE);
+    switch (event.type) {
+        case EVENT_KEY:
+            uiProcessKeyEvent(&gEditor.ui, event.key, preKeyEvent);
+            break;
+
+        case EVENT_MOUSE:
+            uiProcessMouseEvent(&gEditor.ui, event.mouse, getTimeMs(),
+                                preMouseEvent);
+            break;
+
+        case EVENT_PASTE: {
+            EditorClipboard old_clipboard = gEditor.clipboard;
+            gEditor.clipboard = event.paste;
+            gEditor.is_paste_event = true;
+            // Hack
+            Event fake_event = {
+                .type = EVENT_KEY,
+                .key = {.value = KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'V')},
+            };
+            uiProcessKeyEvent(&gEditor.ui, fake_event.key, preKeyEvent);
+            gEditor.clipboard = old_clipboard;
+            gEditor.is_paste_event = false;
+        } break;
+
+        case EVENT_RESIZE:
+            editorSetWindowSize(event.resize.rows, event.resize.cols);
+            break;
+
+        default:
+            break;
     }
-    editorFreeInput(&input);
+
+    eventFree(&event);
 }

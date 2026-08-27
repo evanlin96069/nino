@@ -9,8 +9,8 @@ static void destroy(Panel* self);
 static void render(Panel* self, Surface s);
 static bool getCursor(Panel* self, UICursor* out);
 static void onFocus(Panel* self, bool focused);
-static void keyEvent(Panel* self, EditorInput input);
-static bool mouseEvent(Panel* self, UIMouseEvent mouse_event);
+static void keyEvent(Panel* self, KeyEvent event);
+static bool mouseEvent(Panel* self, UIMouseEvent event);
 
 static PanelVtable panel_vt = {
     .destroy = destroy,
@@ -199,7 +199,7 @@ static void onFocus(Panel* self, bool focused) {
     }
 }
 
-static void keyEvent(Panel* self, EditorInput input) {
+static void keyEvent(Panel* self, KeyEvent event) {
     PromptPanel* p = (PromptPanel*)self;
     EditorRow* row = &p->prompt_row;
 
@@ -207,17 +207,17 @@ static void keyEvent(Panel* self, EditorInput input) {
     getSelectStartEnd(p, &select_start, &select_end);
     const bool is_selected = (select_start != -1 && select_end != -1);
 
-    switch (input.type) {
+    switch (event.value) {
         // Cancel event
-        case CTRL_KEY('q'):
-        case ESC:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Q'):
+        case KEY_EVENT(KEY_ESC):
             if (p->callback) {
                 editorRowEnsureNull(row);
-                PromptEvent event = {
+                PromptEvent ev = {
                     .type = PROMPT_EVENT_CANCEL,
                     .query = row->data,
                 };
-                p->callback(event, p->user_data);
+                p->callback(ev, p->user_data);
             }
             uiPanelSetEnabled(&gEditor.ui, self, false);
             if (gEditor.ui.focused_panel == self) {
@@ -227,14 +227,14 @@ static void keyEvent(Panel* self, EditorInput input) {
             break;
 
         // Submit event
-        case '\r':
+        case KEY_EVENT(KEY_ENTER):
             if (p->callback) {
                 editorRowEnsureNull(row);
-                PromptEvent event = {
+                PromptEvent ev = {
                     .type = PROMPT_EVENT_SUBMIT,
                     .query = row->data,
                 };
-                p->callback(event, p->user_data);
+                p->callback(ev, p->user_data);
             }
             uiPanelSetEnabled(&gEditor.ui, self, false);
             if (gEditor.ui.focused_panel == self) {
@@ -244,11 +244,11 @@ static void keyEvent(Panel* self, EditorInput input) {
             break;
 
         // Key events
-        case CHAR_INPUT: {
+        case KEY_EVENT(KEY_TEXT): {
             // TODO: Handle tab completion
-            if (input.data.unicode != '\t') {
+            if (event.unicode != '\t') {
                 char output[4];
-                int len = encodeUTF8(input.data.unicode, output);
+                int len = encodeUTF8(event.unicode, output);
                 if (len == -1)
                     break;
 
@@ -263,16 +263,16 @@ static void keyEvent(Panel* self, EditorInput input) {
 
             if (p->callback) {
                 editorRowEnsureNull(row);
-                PromptEvent event = {
+                PromptEvent ev = {
                     .type = PROMPT_EVENT_KEY,
                     .query = row->data,
-                    .key_input = input,
+                    .key_event = event,
                 };
-                p->callback(event, p->user_data);
+                p->callback(ev, p->user_data);
             }
         } break;
 
-        case DEL_KEY:
+        case KEY_EVENT(KEY_DELETE):
             if (is_selected) {
                 editorRowDeleteRange(NULL, row, select_start, select_end);
                 p->cx = select_start;
@@ -284,17 +284,17 @@ static void keyEvent(Panel* self, EditorInput input) {
 
             if (p->callback) {
                 editorRowEnsureNull(row);
-                PromptEvent event = {
+                PromptEvent ev = {
                     .type = PROMPT_EVENT_KEY,
                     .query = row->data,
-                    .key_input = input,
+                    .key_event = event,
                 };
-                p->callback(event, p->user_data);
+                p->callback(ev, p->user_data);
             }
             break;
 
-        case CTRL_KEY('h'):
-        case BACKSPACE:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'H'):
+        case KEY_EVENT(KEY_BACKSPACE):
             if (is_selected) {
                 editorRowDeleteRange(NULL, row, select_start, select_end);
                 p->cx = select_start;
@@ -307,22 +307,20 @@ static void keyEvent(Panel* self, EditorInput input) {
 
             if (p->callback) {
                 editorRowEnsureNull(row);
-                PromptEvent event = {
+                PromptEvent ev = {
                     .type = PROMPT_EVENT_KEY,
                     .query = row->data,
-                    .key_input = input,
+                    .key_event = event,
                 };
-                p->callback(event, p->user_data);
+                p->callback(ev, p->user_data);
             }
             break;
 
-        case PASTE_INPUT:
-        case CTRL_KEY('v'): {
-            EditorClipboard* clipboard = (input.type == PASTE_INPUT)
-                                             ? &input.data.paste
-                                             : &gEditor.clipboard;
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'V'): {
+            const EditorClipboard* clipboard = &gEditor.clipboard;
             if (!clipboard->size)
                 break;
+
             // Only paste the first line
             const char* paste_buf = clipboard->lines[0].data;
             size_t paste_len = clipboard->lines[0].size;
@@ -338,70 +336,62 @@ static void keyEvent(Panel* self, EditorInput input) {
             p->cx += (int)paste_len;
 
             if (p->callback) {
-                if (input.type == CTRL_KEY('v')) {
-                    // Construct a PASTE_INPUT event to send to the callback
-                    input.type = PASTE_INPUT;
-                    input.data.paste = *clipboard;
-                    input.data.paste.size = 1;  // only send the first line
-                }
-
                 editorRowEnsureNull(row);
-                PromptEvent event = {
+                PromptEvent ev = {
                     .type = PROMPT_EVENT_KEY,
                     .query = row->data,
-                    .key_input = input,
+                    .key_event = event,
                 };
-                p->callback(event, p->user_data);
+                p->callback(ev, p->user_data);
             }
-            break;
-        }
+        } break;
 
-        case ARROW_UP:
-        case ARROW_DOWN:
+        case KEY_EVENT(KEY_UP):
+        case KEY_EVENT(KEY_DOWN):
             // Find feature uses this
             if (p->callback) {
                 editorRowEnsureNull(row);
-                PromptEvent event = {
+                PromptEvent ev = {
                     .type = PROMPT_EVENT_KEY,
                     .query = row->data,
-                    .key_input = input,
+                    .key_event = event,
                 };
-                p->callback(event, p->user_data);
+                p->callback(ev, p->user_data);
             }
             break;
 
-        case SHIFT_HOME:
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_HOME):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = 0;
             break;
 
-        case HOME_KEY:
+        case KEY_EVENT(KEY_HOME):
             p->cx = 0;
             p->select_x = -1;
             break;
 
-        case SHIFT_END:
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_END):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = row->size;
             break;
 
-        case END_KEY:
+        case KEY_EVENT(KEY_END):
             p->cx = row->size;
             p->select_x = -1;
             break;
 
-        case SHIFT_LEFT:
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_LEFT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowPreviousUTF8(row, p->cx);
             break;
 
-        case ARROW_LEFT:
+        case KEY_EVENT(KEY_LEFT):
             if (is_selected) {
                 p->cx = p->cx < p->select_x ? p->cx : p->select_x;
                 p->select_x = -1;
@@ -410,14 +400,14 @@ static void keyEvent(Panel* self, EditorInput input) {
             }
             break;
 
-        case SHIFT_RIGHT:
+        case KEY_EVENT(KEY_MOD_SHIFT, KEY_RIGHT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowNextUTF8(row, p->cx);
             break;
 
-        case ARROW_RIGHT:
+        case KEY_EVENT(KEY_RIGHT):
             if (is_selected) {
                 p->cx = p->cx > p->select_x ? p->cx : p->select_x;
                 p->select_x = -1;
@@ -426,39 +416,39 @@ static void keyEvent(Panel* self, EditorInput input) {
             }
             break;
 
-        case SHIFT_CTRL_LEFT:
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowWordLeft(row, p->cx);
             break;
 
-        case CTRL_LEFT:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_LEFT):
             p->cx = editorRowWordLeft(row, p->cx);
             p->select_x = -1;
             break;
 
-        case SHIFT_CTRL_RIGHT:
+        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowWordRight(row, p->cx);
             break;
 
-        case CTRL_RIGHT:
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_RIGHT):
             p->cx = editorRowWordRight(row, p->cx);
             p->select_x = -1;
             break;
 
-        case CTRL_KEY('a'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'A'):
             if (row->size > 0) {
                 p->select_x = 0;
                 p->cx = row->size;
             }
             break;
 
-        case CTRL_KEY('c'):
-        case CTRL_KEY('x'): {
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'C'):
+        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'X'): {
             if (!is_selected)
                 break;
 
@@ -472,26 +462,26 @@ static void keyEvent(Panel* self, EditorInput input) {
             gEditor.clipboard.lines[0].size = select_end - select_start;
             gEditor.copy_line = false;
 
-            if (input.type == CTRL_KEY('x')) {
+            if (event.value == KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'X')) {
                 editorRowDeleteRange(NULL, row, select_start, select_end);
                 p->cx = select_start;
                 p->select_x = -1;
 
                 if (p->callback) {
                     editorRowEnsureNull(row);
-                    PromptEvent event = {
+                    PromptEvent ev = {
                         .type = PROMPT_EVENT_KEY,
                         .query = row->data,
-                        .key_input = input,
+                        .key_event = event,
                     };
-                    p->callback(event, p->user_data);
+                    p->callback(ev, p->user_data);
                 }
             }
         } break;
     }
 }
 
-static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {
+static bool mouseEvent(Panel* self, UIMouseEvent event) {
     PromptPanel* p = (PromptPanel*)self;
     EditorRow* row = &p->prompt_row;
 
@@ -500,18 +490,18 @@ static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {
     const bool is_selected = (select_start != -1 && select_end != -1);
 
     int mouse_cx = 0;
-    if (mouse_event.local_x >= p->prompt_prefix_len) {
+    if (event.mouse.x >= p->prompt_prefix_len) {
         mouse_cx = editorRowRxToCx(&p->prompt_row,
-                                   mouse_event.local_x - p->prompt_prefix_len);
+                                   event.mouse.x - p->prompt_prefix_len);
     }
 
-    switch (mouse_event.state->type) {
-        case UI_MOUSE1_PRESSED: {
-            if (mouse_event.local_y != 0) {
+    switch (event.mouse.type) {
+        case MOUSE1_PRESSED: {
+            if (event.mouse.y != 0) {
                 return false;
             }
 
-            switch (mouse_event.state->click_count % 3) {
+            switch (event.state->click_count % 3) {
                 case 1:
                     // Mouse to pos
                     p->cx = mouse_cx;
@@ -553,7 +543,7 @@ static bool mouseEvent(Panel* self, UIMouseEvent mouse_event) {
             return true;
         }
 
-        case UI_MOUSE1_MOVE:
+        case MOUSE1_DRAG:
             if (!is_selected) {
                 p->select_x = p->cx;
             }
