@@ -23,7 +23,7 @@ static bool preKeyEvent(Panel* panel, KeyEvent event) {
 
     switch (event.value) {
         // Quit
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Q'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'Q'): {
             // Handle quit confirmation
             if (wait_state == EDITOR_WAIT_QUIT) {
                 gEditor.state = STATE_EXIT;
@@ -48,7 +48,7 @@ static bool preKeyEvent(Panel* panel, KeyEvent event) {
         } break;
 
         // Close tab
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'W'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'W'): {
             EditPanel* split = gEditor.active_edit_panel;
             if (!split || split->tab_active_index == -1)
                 break;
@@ -73,18 +73,18 @@ static bool preKeyEvent(Panel* panel, KeyEvent event) {
         } break;
 
         // Prompt
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'P'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'P'):
             editorPromptConfig();
             gEditor.con_keep_msg = true;
             break;
 
         // Open file
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'O'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'O'):
             editorPromptFileOpen();
             break;
 
         // New tab
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'N'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'N'): {
             EditorFile new_file;
             editorNewUntitledFile(&new_file);
             if (editorAddFileToActiveSplit(&new_file) != -1) {
@@ -94,7 +94,7 @@ static bool preKeyEvent(Panel* panel, KeyEvent event) {
         } break;
 
         // Toggle explorer
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'B'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'B'):
             if (panelIsEnabled((Panel*)gEditor.explorer_panel)) {
                 uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.explorer_panel,
                                   false);
@@ -107,7 +107,7 @@ static bool preKeyEvent(Panel* panel, KeyEvent event) {
             break;
 
         // Toggle explorer focus
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'E'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'E'):
             if (gEditor.ui.focused_panel == (Panel*)gEditor.explorer_panel) {
                 editorFocusActiveSplit();
             } else {
@@ -120,19 +120,19 @@ static bool preKeyEvent(Panel* panel, KeyEvent event) {
             break;
 
         // Navigate panels
-        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_LEFT):
+        case KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_LEFT):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_LEFT);
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_RIGHT):
+        case KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_RIGHT):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_RIGHT);
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_UP):
+        case KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_UP):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_UP);
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_DOWN):
+        case KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_DOWN):
             uiPanelNavigate(&gEditor.ui, LAYOUT_DIR_DOWN);
             break;
 
@@ -210,7 +210,7 @@ void editorProcessInput(void) {
             // Hack
             Event fake_event = {
                 .type = EVENT_KEY,
-                .key = {.value = KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'V')},
+                .key = {.value = KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'V')},
             };
             uiProcessKeyEvent(&gEditor.ui, fake_event.key, preKeyEvent);
             gEditor.clipboard = old_clipboard;

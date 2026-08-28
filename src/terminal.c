@@ -14,21 +14,21 @@ typedef struct {
 } StrIntPair;
 
 static const StrIntPair sequence_lookup[] = {
-    {"[1~", KEY_EVENT(KEY_HOME)},
-    {"[2~", KEY_EVENT(KEY_INSERT)},
-    {"[3~", KEY_EVENT(KEY_DELETE)},
-    {"[4~", KEY_EVENT(KEY_END)},
-    {"[5~", KEY_EVENT(KEY_PAGE_UP)},
-    {"[6~", KEY_EVENT(KEY_PAGE_DOWN)},
-    {"[7~", KEY_EVENT(KEY_HOME)},
-    {"[8~", KEY_EVENT(KEY_END)},
+    {"[1~", KEYVAL(KEY_HOME)},
+    {"[2~", KEYVAL(KEY_INSERT)},
+    {"[3~", KEYVAL(KEY_DELETE)},
+    {"[4~", KEYVAL(KEY_END)},
+    {"[5~", KEYVAL(KEY_PAGE_UP)},
+    {"[6~", KEYVAL(KEY_PAGE_DOWN)},
+    {"[7~", KEYVAL(KEY_HOME)},
+    {"[8~", KEYVAL(KEY_END)},
 
-    {"[A", KEY_EVENT(KEY_UP)},
-    {"[B", KEY_EVENT(KEY_DOWN)},
-    {"[C", KEY_EVENT(KEY_RIGHT)},
-    {"[D", KEY_EVENT(KEY_LEFT)},
-    {"[F", KEY_EVENT(KEY_END)},
-    {"[H", KEY_EVENT(KEY_HOME)},
+    {"[A", KEYVAL(KEY_UP)},
+    {"[B", KEYVAL(KEY_DOWN)},
+    {"[C", KEYVAL(KEY_RIGHT)},
+    {"[D", KEYVAL(KEY_LEFT)},
+    {"[F", KEYVAL(KEY_END)},
+    {"[H", KEYVAL(KEY_HOME)},
 
     /*
       Code     Modifiers
@@ -52,60 +52,60 @@ static const StrIntPair sequence_lookup[] = {
     */
 
     // Shift
-    {"[1;2A", KEY_EVENT(KEY_MOD_SHIFT, KEY_UP)},
-    {"[1;2B", KEY_EVENT(KEY_MOD_SHIFT, KEY_DOWN)},
-    {"[1;2C", KEY_EVENT(KEY_MOD_SHIFT, KEY_RIGHT)},
-    {"[1;2D", KEY_EVENT(KEY_MOD_SHIFT, KEY_LEFT)},
-    {"[1;2F", KEY_EVENT(KEY_MOD_SHIFT, KEY_END)},
-    {"[1;2H", KEY_EVENT(KEY_MOD_SHIFT, KEY_HOME)},
+    {"[1;2A", KEYVAL(KEY_MOD_SHIFT, KEY_UP)},
+    {"[1;2B", KEYVAL(KEY_MOD_SHIFT, KEY_DOWN)},
+    {"[1;2C", KEYVAL(KEY_MOD_SHIFT, KEY_RIGHT)},
+    {"[1;2D", KEYVAL(KEY_MOD_SHIFT, KEY_LEFT)},
+    {"[1;2F", KEYVAL(KEY_MOD_SHIFT, KEY_END)},
+    {"[1;2H", KEYVAL(KEY_MOD_SHIFT, KEY_HOME)},
 
     // Alt
-    {"[1;3A", KEY_EVENT(KEY_MOD_ALT, KEY_UP)},
-    {"[1;3B", KEY_EVENT(KEY_MOD_ALT, KEY_DOWN)},
-    {"[1;3C", KEY_EVENT(KEY_MOD_ALT, KEY_RIGHT)},
-    {"[1;3D", KEY_EVENT(KEY_MOD_ALT, KEY_LEFT)},
-    {"[1;3F", KEY_EVENT(KEY_MOD_ALT, KEY_END)},
-    {"[1;3H", KEY_EVENT(KEY_MOD_ALT, KEY_HOME)},
+    {"[1;3A", KEYVAL(KEY_MOD_ALT, KEY_UP)},
+    {"[1;3B", KEYVAL(KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;3C", KEYVAL(KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;3D", KEYVAL(KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;3F", KEYVAL(KEY_MOD_ALT, KEY_END)},
+    {"[1;3H", KEYVAL(KEY_MOD_ALT, KEY_HOME)},
 
     // Shift+Alt
-    {"[1;4A", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_UP)},
-    {"[1;4B", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_DOWN)},
-    {"[1;4C", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_RIGHT)},
-    {"[1;4D", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_LEFT)},
-    {"[1;4F", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_END)},
-    {"[1;4H", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_HOME)},
+    {"[1;4A", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_UP)},
+    {"[1;4B", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;4C", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;4D", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;4F", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_END)},
+    {"[1;4H", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_HOME)},
 
     // Ctrl
-    {"[1;5A", KEY_EVENT(KEY_MOD_CTRL, KEY_UP)},
-    {"[1;5B", KEY_EVENT(KEY_MOD_CTRL, KEY_DOWN)},
-    {"[1;5C", KEY_EVENT(KEY_MOD_CTRL, KEY_RIGHT)},
-    {"[1;5D", KEY_EVENT(KEY_MOD_CTRL, KEY_LEFT)},
-    {"[1;5F", KEY_EVENT(KEY_MOD_CTRL, KEY_END)},
-    {"[1;5H", KEY_EVENT(KEY_MOD_CTRL, KEY_HOME)},
+    {"[1;5A", KEYVAL(KEY_MOD_CTRL, KEY_UP)},
+    {"[1;5B", KEYVAL(KEY_MOD_CTRL, KEY_DOWN)},
+    {"[1;5C", KEYVAL(KEY_MOD_CTRL, KEY_RIGHT)},
+    {"[1;5D", KEYVAL(KEY_MOD_CTRL, KEY_LEFT)},
+    {"[1;5F", KEYVAL(KEY_MOD_CTRL, KEY_END)},
+    {"[1;5H", KEYVAL(KEY_MOD_CTRL, KEY_HOME)},
 
     // Shift+Ctrl
-    {"[1;6A", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_UP)},
-    {"[1;6B", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_DOWN)},
-    {"[1;6C", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT)},
-    {"[1;6D", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT)},
-    {"[1;6F", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_END)},
-    {"[1;6H", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_HOME)},
+    {"[1;6A", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_UP)},
+    {"[1;6B", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_DOWN)},
+    {"[1;6C", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT)},
+    {"[1;6D", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT)},
+    {"[1;6F", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_END)},
+    {"[1;6H", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_HOME)},
 
     // Alt+Ctrl
-    {"[1;7A", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_UP)},
-    {"[1;7B", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_DOWN)},
-    {"[1;7C", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_RIGHT)},
-    {"[1;7D", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_LEFT)},
-    {"[1;7F", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_END)},
-    {"[1;7H", KEY_EVENT(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_HOME)},
+    {"[1;7A", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_UP)},
+    {"[1;7B", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;7C", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;7D", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;7F", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_END)},
+    {"[1;7H", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_HOME)},
 
     // Page UP / Page Down
-    {"[5;2~", KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_UP)},
-    {"[6;2~", KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_DOWN)},
-    {"[5;5~", KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_UP)},
-    {"[6;5~", KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_DOWN)},
-    {"[5;6~", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_UP)},
-    {"[6;6~", KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_DOWN)},
+    {"[5;2~", KEYVAL(KEY_MOD_SHIFT, KEY_PAGE_UP)},
+    {"[6;2~", KEYVAL(KEY_MOD_SHIFT, KEY_PAGE_DOWN)},
+    {"[5;5~", KEYVAL(KEY_MOD_CTRL, KEY_PAGE_UP)},
+    {"[6;5~", KEYVAL(KEY_MOD_CTRL, KEY_PAGE_DOWN)},
+    {"[5;6~", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_UP)},
+    {"[6;6~", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_DOWN)},
 };
 
 static bool parseMouseSGR(const char* seq,
@@ -208,7 +208,7 @@ Event eventPoll(int timeout_ms) {
     // CONSOLE_EVENT_KEY
     if (c == '\x1b') {  // ESC
         result.type = EVENT_KEY;
-        result.key.value = KEY_EVENT(KEY_ESC);
+        result.key.value = KEYVAL(KEY_ESC);
 
         char seq[16] = {0};
         bool success = false;
@@ -219,7 +219,7 @@ Event eventPoll(int timeout_ms) {
 
         if (seq[0] != '[') {
             // TODO: This is not always ALT
-            result.key.value = KEY_EVENT(KEY_MOD_ALT, KEY_CHAR, seq[0]);
+            result.key.value = KEYVAL(KEY_MOD_ALT, KEY_CHAR, seq[0]);
             return result;
         }
 
@@ -415,26 +415,26 @@ Event eventPoll(int timeout_ms) {
     result.type = EVENT_KEY;
 
     if (c == '\r') {
-        result.key.value = KEY_EVENT(KEY_ENTER);
+        result.key.value = KEYVAL(KEY_ENTER);
         return result;
     }
 
     if (c == '\t') {
-        result.key.value = KEY_EVENT(KEY_TAB);
+        result.key.value = KEYVAL(KEY_TAB);
         return result;
     }
 
     if (c == 127) {
-        result.key.value = KEY_EVENT(KEY_BACKSPACE);
+        result.key.value = KEYVAL(KEY_BACKSPACE);
         return result;
     }
 
     if (c < 32) {
-        result.key.value = KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, c + 0x40);
+        result.key.value = KEYVAL(KEY_MOD_CTRL, KEY_CHAR, c + 0x40);
         return result;
     }
 
-    result.key.value = KEY_EVENT(KEY_TEXT);
+    result.key.value = KEYVAL(KEY_TEXT);
     result.key.unicode = c;
     return result;
 }

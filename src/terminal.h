@@ -17,18 +17,17 @@ typedef enum EventType {
     EVENT_RESIZE,
 } EventType;
 
-#define _KEY_EVENT3(modifiers, code, id) \
+#define _KEYVAL3(modifiers, code, id) \
     ((uint32_t)(modifiers) | ((uint32_t)(code) << 8) | ((uint32_t)(id) << 16))
 
-#define _KEY_EVENT2(modifiers, code) _KEY_EVENT3(modifiers, code, 0)
+#define _KEYVAL2(modifiers, code) _KEYVAL3(modifiers, code, 0)
 
-#define _KEY_EVENT1(code) _KEY_EVENT3(0, code, 0)
+#define _KEYVAL1(code) _KEYVAL3(0, code, 0)
 
-#define _GET_KEY_EVENT_MACRO(_1, _2, _3, NAME, ...) NAME
+#define _GET_KEYVAL_MACRO(_1, _2, _3, NAME, ...) NAME
 // _UNUSED to surpress zero variadic macro warning
-#define KEY_EVENT(...)                                                       \
-    _GET_KEY_EVENT_MACRO(__VA_ARGS__, _KEY_EVENT3, _KEY_EVENT2, _KEY_EVENT1, \
-                         _UNUSED)                                            \
+#define KEYVAL(...)                                                       \
+    _GET_KEYVAL_MACRO(__VA_ARGS__, _KEYVAL3, _KEYVAL2, _KEYVAL1, _UNUSED) \
     (__VA_ARGS__)
 
 enum KeyCode {

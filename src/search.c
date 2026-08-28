@@ -294,9 +294,9 @@ static void findCallback(PromptEvent event, void* user_data) {
     }
 
     if (event.type == PROMPT_EVENT_KEY) {
-        if (event.key_event.value == KEY_EVENT(KEY_DOWN)) {
+        if (event.key_event.value == KEYVAL(KEY_DOWN)) {
             state->match = (state->match + 1) % matches->size;
-        } else if (event.key_event.value == KEY_EVENT(KEY_UP)) {
+        } else if (event.key_event.value == KEYVAL(KEY_UP)) {
             state->match = (state->match + matches->size - 1) % matches->size;
         }
     }

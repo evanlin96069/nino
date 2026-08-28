@@ -172,7 +172,7 @@ static void editorExplorerOpenSelected(ExplorerPanel* p) {
 static void keyEvent(Panel* self, KeyEvent event) {
     ExplorerPanel* p = (ExplorerPanel*)self;
     switch (event.value) {
-        case KEY_EVENT(KEY_TEXT): {
+        case KEYVAL(KEY_TEXT): {
             if (!p->node)
                 return;
 
@@ -194,31 +194,31 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
         } break;
 
-        case KEY_EVENT(KEY_UP):
+        case KEYVAL(KEY_UP):
             if (p->selected_index <= 0)
                 break;
             p->selected_index--;
             editorExplorerScrollToSelected(p);
             break;
 
-        case KEY_EVENT(KEY_DOWN):
+        case KEYVAL(KEY_DOWN):
             if (p->selected_index + 1 >= (int)p->flatten.size)
                 break;
             p->selected_index++;
             editorExplorerScrollToSelected(p);
             break;
 
-        case KEY_EVENT(KEY_HOME):
+        case KEYVAL(KEY_HOME):
             p->selected_index = 0;
             editorExplorerScrollToSelected(p);
             break;
 
-        case KEY_EVENT(KEY_END):
+        case KEYVAL(KEY_END):
             p->selected_index = p->flatten.size - 1;
             editorExplorerScrollToSelected(p);
             break;
 
-        case KEY_EVENT(KEY_PAGE_UP): {
+        case KEYVAL(KEY_PAGE_UP): {
             int rows = p->base.layout->rect.h - 1;  // -1 for header
             if (p->selected_index != p->offset) {
                 p->selected_index = p->offset;
@@ -231,7 +231,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             editorExplorerScrollToSelected(p);
         } break;
 
-        case KEY_EVENT(KEY_PAGE_DOWN): {
+        case KEYVAL(KEY_PAGE_DOWN): {
             int rows = p->base.layout->rect.h - 1;  // -1 for header
             if (p->selected_index != p->offset + rows - 1) {
                 p->selected_index = p->offset + rows - 1;
@@ -245,7 +245,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             editorExplorerScrollToSelected(p);
         } break;
 
-        case KEY_EVENT(KEY_ENTER):
+        case KEYVAL(KEY_ENTER):
             editorExplorerOpenSelected(p);
             break;
 

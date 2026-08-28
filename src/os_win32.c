@@ -87,7 +87,7 @@ void disableRawMode(void) {
 }
 
 static bool has_pending_resize = false;
-static ConsoleSize pending_resize = {0, 0};
+static ResizeEvent pending_resize = {0, 0};
 
 static bool readConsoleWChar(WCHAR* out, int timeout_ms) {
     static DWORD repeat_left = 0;

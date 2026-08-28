@@ -209,8 +209,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
 
     switch (event.value) {
         // Cancel event
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Q'):
-        case KEY_EVENT(KEY_ESC):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'Q'):
+        case KEYVAL(KEY_ESC):
             if (p->callback) {
                 editorRowEnsureNull(row);
                 PromptEvent ev = {
@@ -227,7 +227,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Submit event
-        case KEY_EVENT(KEY_ENTER):
+        case KEYVAL(KEY_ENTER):
             if (p->callback) {
                 editorRowEnsureNull(row);
                 PromptEvent ev = {
@@ -244,7 +244,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Key events
-        case KEY_EVENT(KEY_TEXT): {
+        case KEYVAL(KEY_TEXT): {
             // TODO: Handle tab completion
             if (event.unicode != '\t') {
                 char output[4];
@@ -272,7 +272,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
         } break;
 
-        case KEY_EVENT(KEY_DELETE):
+        case KEYVAL(KEY_DELETE):
             if (is_selected) {
                 editorRowDeleteRange(NULL, row, select_start, select_end);
                 p->cx = select_start;
@@ -293,8 +293,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'H'):
-        case KEY_EVENT(KEY_BACKSPACE):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'H'):
+        case KEYVAL(KEY_BACKSPACE):
             if (is_selected) {
                 editorRowDeleteRange(NULL, row, select_start, select_end);
                 p->cx = select_start;
@@ -316,7 +316,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'V'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'V'): {
             const EditorClipboard* clipboard = &gEditor.clipboard;
             if (!clipboard->size)
                 break;
@@ -346,8 +346,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
         } break;
 
-        case KEY_EVENT(KEY_UP):
-        case KEY_EVENT(KEY_DOWN):
+        case KEYVAL(KEY_UP):
+        case KEYVAL(KEY_DOWN):
             // Find feature uses this
             if (p->callback) {
                 editorRowEnsureNull(row);
@@ -360,38 +360,38 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_HOME):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_HOME):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = 0;
             break;
 
-        case KEY_EVENT(KEY_HOME):
+        case KEYVAL(KEY_HOME):
             p->cx = 0;
             p->select_x = -1;
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_END):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_END):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = row->size;
             break;
 
-        case KEY_EVENT(KEY_END):
+        case KEYVAL(KEY_END):
             p->cx = row->size;
             p->select_x = -1;
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_LEFT):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_LEFT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowPreviousUTF8(row, p->cx);
             break;
 
-        case KEY_EVENT(KEY_LEFT):
+        case KEYVAL(KEY_LEFT):
             if (is_selected) {
                 p->cx = p->cx < p->select_x ? p->cx : p->select_x;
                 p->select_x = -1;
@@ -400,14 +400,14 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_RIGHT):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_RIGHT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowNextUTF8(row, p->cx);
             break;
 
-        case KEY_EVENT(KEY_RIGHT):
+        case KEYVAL(KEY_RIGHT):
             if (is_selected) {
                 p->cx = p->cx > p->select_x ? p->cx : p->select_x;
                 p->select_x = -1;
@@ -416,39 +416,39 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowWordLeft(row, p->cx);
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_LEFT):
+        case KEYVAL(KEY_MOD_CTRL, KEY_LEFT):
             p->cx = editorRowWordLeft(row, p->cx);
             p->select_x = -1;
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT):
             if (!is_selected) {
                 p->select_x = p->cx;
             }
             p->cx = editorRowWordRight(row, p->cx);
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_RIGHT):
+        case KEYVAL(KEY_MOD_CTRL, KEY_RIGHT):
             p->cx = editorRowWordRight(row, p->cx);
             p->select_x = -1;
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'A'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'A'):
             if (row->size > 0) {
                 p->select_x = 0;
                 p->cx = row->size;
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'C'):
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'X'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'C'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'X'): {
             if (!is_selected)
                 break;
 
@@ -462,7 +462,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             gEditor.clipboard.lines[0].size = select_end - select_start;
             gEditor.copy_line = false;
 
-            if (event.value == KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'X')) {
+            if (event.value == KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'X')) {
                 editorRowDeleteRange(NULL, row, select_start, select_end);
                 p->cx = select_start;
                 p->select_x = -1;

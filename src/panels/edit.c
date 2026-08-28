@@ -717,7 +717,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         // --- File ---
 
         // Save
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'S'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'S'): {
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -761,7 +761,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         }
 
         // Save all
-        case KEY_EVENT(KEY_MOD_ALT, KEY_CHAR, 's'): {
+        case KEYVAL(KEY_MOD_ALT, KEY_CHAR, 's'): {
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -808,7 +808,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Save as
-        case KEY_EVENT(KEY_MOD_ALT, KEY_CHAR, 'a'):
+        case KEYVAL(KEY_MOD_ALT, KEY_CHAR, 'a'):
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -816,7 +816,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Next file
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, ']'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, ']'):
             keep_bracket_autocomplete = true;
             keep_selection = true;
 
@@ -831,13 +831,13 @@ static void keyEvent(Panel* self, KeyEvent event) {
             return;
 
         // Split left right
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, '\\'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, '\\'): {
             EditPanel* new_split = editorAddSplit(p, true);
             editorAddTab(new_split, editorSplitGetTab(p)->file_index);
         } break;
 
         // Split top bottom
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, '_'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, '_'): {
             EditPanel* new_split = editorAddSplit(p, false);
             editorAddTab(new_split, editorSplitGetTab(p)->file_index);
         } break;
@@ -845,17 +845,17 @@ static void keyEvent(Panel* self, KeyEvent event) {
         // --- Navigation & Selection ---
 
         // Unselect
-        case KEY_EVENT(KEY_ESC):
+        case KEYVAL(KEY_ESC):
             if (tab->cursor.is_selected) {
                 should_scroll = true;
             }
             break;
 
         // Move cursor
-        case KEY_EVENT(KEY_UP):
-        case KEY_EVENT(KEY_DOWN):
-        case KEY_EVENT(KEY_LEFT):
-        case KEY_EVENT(KEY_RIGHT):
+        case KEYVAL(KEY_UP):
+        case KEYVAL(KEY_DOWN):
+        case KEYVAL(KEY_LEFT):
+        case KEYVAL(KEY_RIGHT):
             should_scroll = true;
             // Will reset this manually if needed
             keep_bracket_autocomplete = true;
@@ -888,10 +888,10 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_UP):
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_DOWN):
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_LEFT):
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_RIGHT):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_UP):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_DOWN):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_LEFT):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_RIGHT):
             should_scroll = true;
             keep_selection = true;
 
@@ -900,8 +900,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Word move
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_LEFT):
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT):
+        case KEYVAL(KEY_MOD_CTRL, KEY_LEFT):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT):
             should_scroll = true;
             keep_selection = true;
 
@@ -909,8 +909,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_RIGHT):
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT):
+        case KEYVAL(KEY_MOD_CTRL, KEY_RIGHT):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT):
             should_scroll = true;
             keep_selection = true;
 
@@ -919,7 +919,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Select word
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'D'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'D'): {
             should_scroll = true;
             keep_selection = true;
 
@@ -933,8 +933,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Move to start/end of line
-        case KEY_EVENT(KEY_HOME):
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_HOME): {
+        case KEYVAL(KEY_HOME):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_HOME): {
             should_scroll = true;
             keep_selection = true;
 
@@ -947,8 +947,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             tab->cursor.is_selected = (event.modifiers & KEY_MOD_SHIFT) != 0;
         } break;
 
-        case KEY_EVENT(KEY_END):
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_END):
+        case KEYVAL(KEY_END):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_END):
             should_scroll = true;
             keep_selection = true;
 
@@ -958,8 +958,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Move to start/end of file
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_HOME):
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_HOME):
+        case KEYVAL(KEY_MOD_CTRL, KEY_HOME):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_HOME):
             should_scroll = true;
             keep_selection = true;
 
@@ -970,8 +970,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             editorUpdateSx(tab);
             break;
 
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_END):
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_END):
+        case KEYVAL(KEY_MOD_CTRL, KEY_END):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_END):
             should_scroll = true;
             keep_selection = true;
 
@@ -982,10 +982,10 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Next/previous page
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_UP):
-        case KEY_EVENT(KEY_MOD_SHIFT, KEY_PAGE_DOWN):
-        case KEY_EVENT(KEY_PAGE_UP):
-        case KEY_EVENT(KEY_PAGE_DOWN): {
+        case KEYVAL(KEY_MOD_SHIFT, KEY_PAGE_UP):
+        case KEYVAL(KEY_MOD_SHIFT, KEY_PAGE_DOWN):
+        case KEYVAL(KEY_PAGE_UP):
+        case KEYVAL(KEY_PAGE_DOWN): {
             should_scroll = true;
             keep_selection = true;
 
@@ -1024,8 +1024,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Next/previous empty line
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_UP):
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_UP):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_UP):
+        case KEYVAL(KEY_MOD_CTRL, KEY_PAGE_UP):
             should_scroll = true;
             keep_selection = true;
 
@@ -1038,8 +1038,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             }
             break;
 
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_DOWN):
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_PAGE_DOWN):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_DOWN):
+        case KEYVAL(KEY_MOD_CTRL, KEY_PAGE_DOWN):
             should_scroll = true;
             keep_selection = true;
 
@@ -1053,7 +1053,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Select line
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'L'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'L'):
             should_scroll = true;
             keep_selection = true;
 
@@ -1061,25 +1061,25 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Select all
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'A'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'A'):
             keep_selection = true;
 
             editorSelectAll(tab);
             break;
 
         // Find
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'F'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'F'):
             editorPromptFind();
             break;
 
         // Goto line
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'G'):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'G'):
             editorPromptGoto();
             break;
 
         // Scroll
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_UP):
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_DOWN): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_UP):
+        case KEYVAL(KEY_MOD_CTRL, KEY_DOWN): {
             keep_selection = true;
             keep_bracket_autocomplete = true;
             editorScroll(p, event.code == KEY_UP ? -1 : 1);
@@ -1088,7 +1088,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         // --- Edit ---
 
         // Copy
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'C'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'C'): {
             keep_selection = true;
 
             editorFreeClipboardContent(&gEditor.clipboard);
@@ -1106,7 +1106,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Paste
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'V'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'V'): {
             const EditorClipboard* clipboard = &gEditor.clipboard;
             if (!clipboard->size)
                 break;
@@ -1166,7 +1166,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Cut
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'X'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'X'): {
             if (file->num_rows == 1 && file->row[0].size == 0)
                 break;
 
@@ -1222,7 +1222,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Undo
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Z'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'Z'): {
             keep_selection = true;
             keep_bracket_autocomplete = true;
 
@@ -1234,7 +1234,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Redo
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'Y'): {
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'Y'): {
             keep_selection = true;
             keep_bracket_autocomplete = true;
 
@@ -1246,8 +1246,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Duplicate line up/down
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_UP):
-        case KEY_EVENT(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_DOWN):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_UP):
+        case KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_DOWN):
             should_scroll = true;
             has_edit = true;
 
@@ -1263,8 +1263,8 @@ static void keyEvent(Panel* self, KeyEvent event) {
             break;
 
         // Move line up/down
-        case KEY_EVENT(KEY_MOD_ALT, KEY_UP):
-        case KEY_EVENT(KEY_MOD_ALT, KEY_DOWN): {
+        case KEYVAL(KEY_MOD_ALT, KEY_UP):
+        case KEYVAL(KEY_MOD_ALT, KEY_DOWN): {
             bool move_up = (event.code == KEY_UP);
             EditorSelectRange range;
             editorGetSelectRange(&tab->cursor, &range);
@@ -1333,9 +1333,9 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Delete/backspace
-        case KEY_EVENT(KEY_DELETE):
-        case KEY_EVENT(KEY_BACKSPACE):
-        case KEY_EVENT(KEY_MOD_CTRL, KEY_CHAR, 'H'): {
+        case KEYVAL(KEY_DELETE):
+        case KEYVAL(KEY_BACKSPACE):
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, 'H'): {
             bool is_delete = (event.code == KEY_DELETE);
             if (!tab->cursor.is_selected) {
                 if (is_delete) {
@@ -1450,7 +1450,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Newline
-        case KEY_EVENT(KEY_ENTER): {
+        case KEYVAL(KEY_ENTER): {
             should_scroll = true;
             keep_bracket_autocomplete = true;
             has_edit = true;
@@ -1535,7 +1535,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Key input
-        case KEY_EVENT(KEY_TEXT): {
+        case KEYVAL(KEY_TEXT): {
             should_scroll = true;
             keep_bracket_autocomplete = true;
             has_edit = true;
