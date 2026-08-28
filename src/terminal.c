@@ -358,10 +358,10 @@ Event eventPoll(int timeout_ms) {
                         mouse_event.type = MOUSE1_DRAG;
                         break;
                     case 1:
-                        mouse_event.type = MOUSE2_DRAG;
+                        mouse_event.type = MOUSE3_DRAG;
                         break;
                     case 2:
-                        mouse_event.type = MOUSE3_DRAG;
+                        mouse_event.type = MOUSE2_DRAG;
                         break;
                     default:
                         return result;
@@ -372,10 +372,10 @@ Event eventPoll(int timeout_ms) {
                         mouse_event.type = MOUSE1_PRESSED;
                         break;
                     case 1:
-                        mouse_event.type = MOUSE2_PRESSED;
+                        mouse_event.type = MOUSE3_PRESSED;
                         break;
                     case 2:
-                        mouse_event.type = MOUSE3_PRESSED;
+                        mouse_event.type = MOUSE2_PRESSED;
                         break;
                     default:
                         return result;
@@ -386,10 +386,10 @@ Event eventPoll(int timeout_ms) {
                         mouse_event.type = MOUSE1_RELEASED;
                         break;
                     case 1:
-                        mouse_event.type = MOUSE2_RELEASED;
+                        mouse_event.type = MOUSE3_RELEASED;
                         break;
                     case 2:
-                        mouse_event.type = MOUSE3_RELEASED;
+                        mouse_event.type = MOUSE2_RELEASED;
                         break;
                     default:
                         return result;
