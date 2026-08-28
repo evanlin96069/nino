@@ -337,6 +337,7 @@ static void gotoCallback(PromptEvent event, void* user_data) {
 
     if (event.type == PROMPT_EVENT_SUBMIT ||
         event.type == PROMPT_EVENT_CANCEL) {
+        editorMsgClear();
         editorHelpRestoreMsg();
         return;
     }

@@ -67,6 +67,7 @@ static bool preKeyEvent(Panel* panel, KeyEvent event) {
                 editorMsgClear();
                 editorMsg("File has unsaved changes.");
                 editorMsg("Press close again to close file anyway.");
+                gEditor.con_keep_msg = true;
             } else {
                 editorCloseTab(split, split->tab_active_index);
             }
