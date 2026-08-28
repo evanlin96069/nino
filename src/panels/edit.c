@@ -693,6 +693,28 @@ static void editorSelectAll(EditorTab* tab) {
     tab->cursor.select_x = 0;
 }
 
+static Edit editorReplaceSelected(EditorTab* tab, EditorClipboard after) {
+    Edit edit = {0};
+    EditorFile* file = editorTabGetFile(tab);
+
+    EditorSelectRange delete_range = {
+        tab->cursor.x,
+        tab->cursor.y,
+        tab->cursor.x,
+        tab->cursor.y,
+    };
+
+    if (tab->cursor.is_selected) {
+        editorGetSelectRange(&tab->cursor, &delete_range);
+        editorCopyText(file, &edit.before, delete_range);
+    }
+
+    edit.x = delete_range.start_x;
+    edit.y = delete_range.start_y;
+    edit.after = after;
+    return edit;
+}
+
 static void keyEvent(Panel* self, KeyEvent event) {
     EditPanel* p = (EditPanel*)self;
 
@@ -1128,7 +1150,6 @@ static void keyEvent(Panel* self, KeyEvent event) {
 
             edit.x = delete_range.start_x;
             edit.y = delete_range.start_y;
-            editorFreeClipboardContent(&edit.after);
             if (clipboard->size > 0) {
                 edit.after.size = clipboard->size;
                 edit.after.lines = malloc_s(sizeof(Str) * edit.after.size);
@@ -1197,7 +1218,6 @@ static void keyEvent(Panel* self, KeyEvent event) {
                 edit.x = range.start_x;
                 edit.y = range.start_y;
                 editorCopyText(file, &edit.before, range);
-                editorFreeClipboardContent(&edit.after);
                 should_set_edit_cursor = true;
                 new_cursor = tab->cursor;
                 new_cursor.is_selected = false;
@@ -1209,7 +1229,6 @@ static void keyEvent(Panel* self, KeyEvent event) {
                 edit.x = range.start_x;
                 edit.y = range.start_y;
                 editorCopyText(file, &edit.before, range);
-                editorFreeClipboardContent(&edit.after);
                 editorCopyText(file, &gEditor.clipboard, range);
                 gEditor.copy_line = false;
                 should_set_edit_cursor = true;
@@ -1291,7 +1310,6 @@ static void keyEvent(Panel* self, KeyEvent event) {
                 range.end_x = file->row[range.end_y].size;
             }
             editorCopyText(file, &edit.before, range);
-            editorFreeClipboardContent(&edit.after);
             edit.after.size = edit.before.size;
             edit.after.lines = malloc_s(sizeof(Str) * edit.after.size);
             for (size_t i = 0; i < edit.before.size; i++) {
@@ -1357,7 +1375,6 @@ static void keyEvent(Panel* self, KeyEvent event) {
                 edit.x = range.start_x;
                 edit.y = range.start_y;
                 editorCopyText(file, &edit.before, range);
-                editorFreeClipboardContent(&edit.after);
                 should_set_edit_cursor = true;
                 new_cursor = tab->cursor;
                 new_cursor.is_selected = false;
@@ -1438,7 +1455,6 @@ static void keyEvent(Panel* self, KeyEvent event) {
             edit.x = range.start_x;
             edit.y = range.start_y;
             editorCopyText(file, &edit.before, range);
-            editorFreeClipboardContent(&edit.after);
             tab->bracket_autocomplete += bracket_delta;
             if (tab->bracket_autocomplete < 0)
                 tab->bracket_autocomplete = 0;
@@ -1455,18 +1471,9 @@ static void keyEvent(Panel* self, KeyEvent event) {
             keep_bracket_autocomplete = true;
             has_edit = true;
 
-            edit.x = tab->cursor.x;
-            edit.y = tab->cursor.y;
-
-            EditorSelectRange delete_range = {0};
-            if (tab->cursor.is_selected) {
-                editorGetSelectRange(&tab->cursor, &delete_range);
-                editorCopyText(file, &edit.before, delete_range);
-            }
-
-            editorFreeClipboardContent(&edit.after);
-            editorClipboardAppendNewline(&edit.after);
-            editorClipboardAppendNewline(&edit.after);
+            EditorClipboard after = {0};
+            editorClipboardAppendNewline(&after);
+            editorClipboardAppendNewline(&after);
 
             if (autoindent.int_value) {
                 const EditorRow* row = &file->row[tab->cursor.y];
@@ -1494,7 +1501,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
                         i++;
                     }
                     if (i > 0) {
-                        editorClipboardAppendAt(&edit.after, 1, row->data,
+                        editorClipboardAppendAt(&after, 1, row->data,
                                                 (size_t)i);
                     }
 
@@ -1518,51 +1525,31 @@ static void keyEvent(Panel* self, KeyEvent event) {
                     if (should_inc) {
                         if (whitespace.int_value) {
                             editorClipboardAppendAtRepeat(
-                                &edit.after, edit.after.size - 1, ' ',
-                                tabsize.int_value);
+                                &after, after.size - 1, ' ', tabsize.int_value);
                         } else {
-                            editorClipboardAppendChar(&edit.after, '\t');
+                            editorClipboardAppendChar(&after, '\t');
                         }
                     }
                 }
             }
 
+            edit = editorReplaceSelected(tab, after);
+
             should_set_edit_cursor = true;
             new_cursor = tab->cursor;
             new_cursor.is_selected = false;
             new_cursor.x = edit.after.lines[1].size;
-            new_cursor.y = tab->cursor.y + 1;
+            new_cursor.y = edit.y + 1;
         } break;
 
         // Key input
-        case KEYVAL(KEY_TEXT): {
+        case KEYVAL(KEY_TAB): {
             should_scroll = true;
             keep_bracket_autocomplete = true;
             has_edit = true;
 
-            uint32_t c = event.unicode;
-            EditorSelectRange delete_range = {
-                tab->cursor.x,
-                tab->cursor.y,
-                tab->cursor.x,
-                tab->cursor.y,
-            };
-
-            if (tab->cursor.is_selected) {
-                editorGetSelectRange(&tab->cursor, &delete_range);
-                editorCopyText(file, &edit.before, delete_range);
-                tab->cursor.is_selected = false;
-            }
-
-            edit.x = delete_range.start_x;
-            edit.y = delete_range.start_y;
-            editorFreeClipboardContent(&edit.after);
-
-            int close_bracket = isOpenBracket(c);
-            int open_bracket = isCloseBracket(c);
-            bool should_skip = false;
-            bool did_autocomplete = false;
-            if (c == '\t' && whitespace.int_value) {
+            EditorClipboard after = {0};
+            if (whitespace.int_value) {
                 int tab_size = tabsize.int_value;
                 int column =
                     editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x);
@@ -1570,13 +1557,38 @@ static void keyEvent(Panel* self, KeyEvent event) {
                 if (total_spaces <= 0)
                     total_spaces = tab_size;
 
-                editorClipboardAppendAtRepeat(&edit.after, 0, ' ',
+                editorClipboardAppendAtRepeat(&after, 0, ' ',
                                               (size_t)total_spaces);
-            } else if (!bracket.int_value) {
-                editorClipboardAppendUnicode(&edit.after, c);
+            } else {
+                editorClipboardAppendUnicode(&after, '\t');
+            }
+
+            edit = editorReplaceSelected(tab, after);
+
+            should_set_edit_cursor = true;
+            new_cursor = tab->cursor;
+            new_cursor.is_selected = false;
+            new_cursor.x = edit.x + edit.after.lines[0].size;
+            new_cursor.y = edit.y;
+        } break;
+
+        case KEYVAL(KEY_TEXT): {
+            should_scroll = true;
+            keep_bracket_autocomplete = true;
+            has_edit = true;
+
+            EditorClipboard after = {0};
+
+            uint32_t c = event.unicode;
+            int close_bracket = isOpenBracket(c);
+            int open_bracket = isCloseBracket(c);
+            bool should_skip = false;
+            bool did_autocomplete = false;
+            if (!bracket.int_value) {
+                editorClipboardAppendUnicode(&after, c);
             } else if (close_bracket) {
-                editorClipboardAppendUnicode(&edit.after, c);
-                editorClipboardAppendChar(&edit.after, close_bracket);
+                editorClipboardAppendUnicode(&after, c);
+                editorClipboardAppendChar(&after, close_bracket);
                 did_autocomplete = true;
                 tab->bracket_autocomplete++;
             } else if (open_bracket) {
@@ -1585,12 +1597,12 @@ static void keyEvent(Panel* self, KeyEvent event) {
                     tab->bracket_autocomplete--;
                     should_skip = true;
                 } else {
-                    editorClipboardAppendUnicode(&edit.after, c);
+                    editorClipboardAppendUnicode(&after, c);
                 }
             } else if (c == '\'' || c == '"') {
                 if (file->row[tab->cursor.y].data[tab->cursor.x] != (int)c) {
-                    editorClipboardAppendUnicode(&edit.after, c);
-                    editorClipboardAppendChar(&edit.after, c);
+                    editorClipboardAppendUnicode(&after, c);
+                    editorClipboardAppendChar(&after, c);
                     did_autocomplete = true;
                     tab->bracket_autocomplete++;
                 } else if (tab->bracket_autocomplete &&
@@ -1599,14 +1611,16 @@ static void keyEvent(Panel* self, KeyEvent event) {
                     tab->bracket_autocomplete--;
                     should_skip = true;
                 } else {
-                    editorClipboardAppendUnicode(&edit.after, c);
+                    editorClipboardAppendUnicode(&after, c);
                 }
             } else {
-                editorClipboardAppendUnicode(&edit.after, c);
+                editorClipboardAppendUnicode(&after, c);
             }
 
             if (tab->bracket_autocomplete < 0)
                 tab->bracket_autocomplete = 0;
+
+            edit = editorReplaceSelected(tab, after);
 
             should_set_edit_cursor = true;
             new_cursor = tab->cursor;

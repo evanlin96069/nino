@@ -245,21 +245,18 @@ static void keyEvent(Panel* self, KeyEvent event) {
 
         // Key events
         case KEYVAL(KEY_TEXT): {
-            // TODO: Handle tab completion
-            if (event.unicode != '\t') {
-                char output[4];
-                int len = encodeUTF8(event.unicode, output);
-                if (len == -1)
-                    break;
+            char output[4];
+            int len = encodeUTF8(event.unicode, output);
+            if (len == -1)
+                break;
 
-                if (is_selected) {
-                    editorRowDeleteRange(NULL, row, select_start, select_end);
-                    p->cx = select_start;
-                    p->select_x = -1;
-                }
-                editorRowInsertString(NULL, row, p->cx, output, len);
-                p->cx += len;
+            if (is_selected) {
+                editorRowDeleteRange(NULL, row, select_start, select_end);
+                p->cx = select_start;
+                p->select_x = -1;
             }
+            editorRowInsertString(NULL, row, p->cx, output, len);
+            p->cx += len;
 
             if (p->callback) {
                 editorRowEnsureNull(row);
@@ -271,6 +268,19 @@ static void keyEvent(Panel* self, KeyEvent event) {
                 p->callback(ev, p->user_data);
             }
         } break;
+
+        case KEYVAL(KEY_TAB):
+            // TODO: Handle tab completion
+            if (p->callback) {
+                editorRowEnsureNull(row);
+                PromptEvent ev = {
+                    .type = PROMPT_EVENT_KEY,
+                    .query = row->data,
+                    .key_event = event,
+                };
+                p->callback(ev, p->user_data);
+            }
+            break;
 
         case KEYVAL(KEY_DELETE):
             if (is_selected) {
