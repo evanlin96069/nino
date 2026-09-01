@@ -512,12 +512,12 @@ static void onFocus(Panel* self, bool focused) {
 static void editorMousePosToEditorPos(const EditPanel* split,
                                       int local_x,
                                       int local_y,
-                                      int* out_x,
-                                      int* out_y) {
-    if (!out_x || !out_y)
+                                      int* out_cx,
+                                      int* out_cy) {
+    if (!out_cx || !out_cy)
         return;
-    *out_x = 0;
-    *out_y = 0;
+    *out_cx = 0;
+    *out_cy = 0;
 
     if (!split)
         return;
@@ -538,26 +538,26 @@ static void editorMousePosToEditorPos(const EditPanel* split,
     const EditorTab* tab = editorSplitGetTabConst(split);
     const EditorFile* file = editorTabGetFileConst(tab);
 
+    int col = 0;
     int row = tab->row_offset + local_y - tab_bar_height;
     if (row < 0)
         return;
 
     if (row >= file->num_rows) {
-        *out_y = file->num_rows - 1;
-        *out_x = file->row[*out_y].rsize;
-        return;
-    }
-
-    const int lineno_width = lineno.int_value ? file->lineno_width : 0;
-    int col = local_x - lineno_width + tab->col_offset;
-    if (col < 0) {
-        col = 0;
-    } else if (col > file->row[row].rsize) {
+        row = file->num_rows - 1;
         col = file->row[row].rsize;
+    } else {
+        const int lineno_width = lineno.int_value ? file->lineno_width : 0;
+        col = local_x - lineno_width + tab->col_offset;
+        if (col < 0) {
+            col = 0;
+        } else if (col > file->row[row].rsize) {
+            col = file->row[row].rsize;
+        }
     }
 
-    *out_x = col;
-    *out_y = row;
+    *out_cx = editorRowRxToCx(&file->row[row], col);
+    *out_cy = row;
 }
 
 static void editorMoveCursor(EditorTab* tab, int code) {
@@ -1660,27 +1660,27 @@ static void keyEvent(Panel* self, KeyEvent event) {
             } else {
                 keep_bracket_autocomplete = true;
 
-            EditorClipboard after = {0};
-            if (whitespace.int_value) {
-                int tab_size = tabsize.int_value;
+                EditorClipboard after = {0};
+                if (whitespace.int_value) {
+                    int tab_size = tabsize.int_value;
                     int column = editorRowCxToRx(&file->row[tab->cursor.y],
                                                  tab->cursor.x);
-                int total_spaces = tab_size - (column % tab_size);
-                if (total_spaces <= 0)
-                    total_spaces = tab_size;
+                    int total_spaces = tab_size - (column % tab_size);
+                    if (total_spaces <= 0)
+                        total_spaces = tab_size;
 
-                editorClipboardAppendAtRepeat(&after, 0, ' ',
-                                              (size_t)total_spaces);
-            } else {
-                editorClipboardAppendUnicode(&after, '\t');
-            }
+                    editorClipboardAppendAtRepeat(&after, 0, ' ',
+                                                  (size_t)total_spaces);
+                } else {
+                    editorClipboardAppendUnicode(&after, '\t');
+                }
 
-            edit = editorReplaceSelected(tab, after);
+                edit = editorReplaceSelected(tab, after);
 
-            new_cursor = tab->cursor;
-            new_cursor.is_selected = false;
-            new_cursor.x = edit.x + edit.after.lines[0].size;
-            new_cursor.y = edit.y;
+                new_cursor = tab->cursor;
+                new_cursor.is_selected = false;
+                new_cursor.x = edit.x + edit.after.lines[0].size;
+                new_cursor.y = edit.y;
             }
         } break;
 
