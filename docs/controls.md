@@ -38,6 +38,8 @@ The terminal emulator might have some key binds overlapping with nino, make sure
 | Duplicate Line Down | `Shift+Alt+Down` |
 | Move Line Up | `Alt+Up` |
 | Move Line Down | `Alt+Down` |
+| Indent | `Tab` (When selected multiple lines) |
+| Outdent | `Shift+Tab` |
 
 ## Navigation
 | Action | Keybinding |

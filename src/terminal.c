@@ -29,6 +29,7 @@ static const StrIntPair sequence_lookup[] = {
     {"[D", KEYVAL(KEY_LEFT)},
     {"[F", KEYVAL(KEY_END)},
     {"[H", KEYVAL(KEY_HOME)},
+    {"[Z", KEYVAL(KEY_BACK_TAB)},
 
     /*
       Code     Modifiers

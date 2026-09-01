@@ -42,6 +42,7 @@ enum KeyCode {
     KEY_PAGE_UP,
     KEY_PAGE_DOWN,
     KEY_TAB,
+    KEY_BACK_TAB,
     KEY_DELETE,
     KEY_INSERT,
     KEY_F,

@@ -715,6 +715,100 @@ static Edit editorReplaceSelected(EditorTab* tab, EditorClipboard after) {
     return edit;
 }
 
+static bool editorIndentSelected(EditorTab* tab,
+                                 bool increase,
+                                 Edit* edit,
+                                 EditorCursor* new_cursor) {
+    if (!edit || !new_cursor)
+        return false;
+
+    EditorFile* file = editorTabGetFile(tab);
+
+    bool has_edit = false;
+    EditorClipboard before = {0};
+    EditorClipboard after = {0};
+
+    EditorSelectRange range;
+    editorGetSelectRange(&tab->cursor, &range);
+
+    *new_cursor = tab->cursor;
+
+    EditorSelectRange edit_range = {
+        .start_x = 0,
+        .start_y = range.start_y,
+        .end_x = file->row[range.end_y].size,
+        .end_y = range.end_y,
+    };
+    editorCopyText(file, &before, edit_range);
+
+    for (int i = range.start_y; i <= range.end_y; i++) {
+        EditorRow* row = &file->row[i];
+        if (row->size == 0) {
+            editorClipboardAppendNewline(&after);
+            continue;
+        }
+
+        int start_x = editorRowNextCharIndex(row, 0, isNonSpace);
+        int start_rx = editorRowCxToRx(row, start_x);
+
+        int tab_size = tabsize.int_value;
+        int indent = (start_rx / tab_size);
+        if (start_rx % tab_size && !increase) {
+            indent++;
+        }
+
+        indent += increase ? 1 : -1;
+        if (indent < 0) {
+            indent = 0;
+        } else {
+            has_edit = true;
+        }
+
+        int new_start_x;
+        if (whitespace.int_value) {
+            editorClipboardAppendAtRepeat(&after, i - range.start_y, ' ',
+                                          indent * tab_size);
+            new_start_x = indent * tab_size;
+        } else {
+            editorClipboardAppendAtRepeat(&after, i - range.start_y, '\t',
+                                          indent);
+            new_start_x = indent;
+        }
+
+        editorClipboardAppendAt(&after, i - range.start_y, &row->data[start_x],
+                                row->size - start_x);
+
+        // Set new cursor
+        int* cx = NULL;
+        if (i == tab->cursor.y) {
+            cx = &new_cursor->x;
+        } else if (tab->cursor.is_selected && i == tab->cursor.select_y) {
+            cx = &new_cursor->select_x;
+        }
+
+        if (cx) {
+            int rx = editorRowCxToRx(row, *cx);
+            if (rx >= start_rx) {
+                *cx = new_start_x + (*cx - start_x);
+            } else if (rx > new_start_x) {
+                *cx = new_start_x;
+            }
+        }
+    }
+
+    if (!has_edit) {
+        editorFreeClipboardContent(&before);
+        editorFreeClipboardContent(&after);
+    } else {
+        edit->x = 0;
+        edit->y = range.start_y;
+        edit->before = before;
+        edit->after = after;
+    }
+
+    return has_edit;
+}
+
 static void keyEvent(Panel* self, KeyEvent event) {
     EditPanel* p = (EditPanel*)self;
 
@@ -1542,17 +1636,35 @@ static void keyEvent(Panel* self, KeyEvent event) {
             new_cursor.y = edit.y + 1;
         } break;
 
-        // Key input
+        // Decrease indent
+        case KEYVAL(KEY_BACK_TAB):
+            should_scroll = true;
+            has_edit = true;
+            should_set_edit_cursor = true;
+            if (!editorIndentSelected(tab, false, &edit, &new_cursor)) {
+                return;
+            }
+            break;
+
         case KEYVAL(KEY_TAB): {
             should_scroll = true;
-            keep_bracket_autocomplete = true;
             has_edit = true;
+            should_set_edit_cursor = true;
+
+            if (tab->cursor.is_selected &&
+                tab->cursor.y != tab->cursor.select_y) {
+                // Increase indent
+                if (!editorIndentSelected(tab, true, &edit, &new_cursor)) {
+                    return;
+                }
+            } else {
+                keep_bracket_autocomplete = true;
 
             EditorClipboard after = {0};
             if (whitespace.int_value) {
                 int tab_size = tabsize.int_value;
-                int column =
-                    editorRowCxToRx(&file->row[tab->cursor.y], tab->cursor.x);
+                    int column = editorRowCxToRx(&file->row[tab->cursor.y],
+                                                 tab->cursor.x);
                 int total_spaces = tab_size - (column % tab_size);
                 if (total_spaces <= 0)
                     total_spaces = tab_size;
@@ -1565,13 +1677,14 @@ static void keyEvent(Panel* self, KeyEvent event) {
 
             edit = editorReplaceSelected(tab, after);
 
-            should_set_edit_cursor = true;
             new_cursor = tab->cursor;
             new_cursor.is_selected = false;
             new_cursor.x = edit.x + edit.after.lines[0].size;
             new_cursor.y = edit.y;
+            }
         } break;
 
+        // Key input
         case KEYVAL(KEY_TEXT): {
             should_scroll = true;
             keep_bracket_autocomplete = true;
