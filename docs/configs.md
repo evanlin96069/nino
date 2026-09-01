@@ -29,6 +29,7 @@ The command will first search for the file in the current directory, then the co
 | `mouse` | 1 | Enable mouse mode. |
 | `ex_default_width` | 40 | File explorer default width. |
 | `ex_show_hidden` | 1 | Show hidden files in the file explorer. |
+| `ex_left` | 1 | Set explorer to the left side. |
 | `osc52_copy` | 1 | Copy to system clipboard using OSC52. |
 | `newline_default` | 0 | Set the default EOL sequence (LF/CRLF). 0 is OS default. |
 | `ttimeoutlen` | 50 | Time in milliseconds to wait for a key code sequence to complete. |

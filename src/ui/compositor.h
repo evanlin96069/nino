@@ -69,7 +69,12 @@ void uiProcessMouseEvent(UI* ui,
                          uint64_t timestamp_ms,
                          UIPreMouseEvent pre_mouse_event);
 
-void uiAddPanel(UI* ui, Panel* relative_to, Panel* new_panel, bool leftright);
+void uiAddPanel(UI* ui,
+                Panel* relative_to,
+                Panel* new_panel,
+                bool leftright,
+                bool first);
+void uiDetachPanel(UI* ui, Panel* panel);
 void uiClosePanel(UI* ui, Panel* panel);
 
 void uiPanelSetEnabled(UI* ui, Panel* panel, bool enabled);

@@ -298,7 +298,8 @@ void layoutFree(LayoutNode* node) {
 void layoutSplit(LayoutNode** root,
                  LayoutNode* node,
                  LayoutNode* new_node,
-                 bool leftright) {
+                 bool leftright,
+                 bool first) {
     if (!node || !new_node || !root)
         return;
 
@@ -307,7 +308,11 @@ void layoutSplit(LayoutNode** root,
         (parent->kind == (leftright ? LAYOUT_LEFTRIGHT : LAYOUT_TOPBOTTOM))) {
         for (uint32_t i = 0; i < parent->children.size; i++) {
             if (parent->children.data[i] == node) {
-                layoutInsertChild(parent, i + 1, new_node);
+                if (first) {
+                    layoutInsertChild(parent, i, new_node);
+                } else {
+                    layoutInsertChild(parent, i + 1, new_node);
+                }
                 break;
             }
         }
@@ -328,8 +333,13 @@ void layoutSplit(LayoutNode** root,
     split_node->enabled = node->enabled;
     split_node->resizable = node->resizable;
 
-    layoutAppendChild(split_node, node);
-    layoutAppendChild(split_node, new_node);
+    if (first) {
+        layoutAppendChild(split_node, new_node);
+        layoutAppendChild(split_node, node);
+    } else {
+        layoutAppendChild(split_node, node);
+        layoutAppendChild(split_node, new_node);
+    }
 
     if (parent) {
         for (uint32_t i = 0; i < parent->children.size; i++) {
@@ -345,20 +355,24 @@ void layoutSplit(LayoutNode** root,
     layoutUpdate(*root);
 }
 
-void layoutRemove(LayoutNode** root, LayoutNode* node) {
+static void layoutRemoveEx(LayoutNode** root, LayoutNode* node, bool detach) {
     if (!node || !root)
         return;
     LayoutNode* parent = node->parent;
     if (!parent) {
         *root = NULL;
-        layoutFree(node);
+        if (!detach) {
+            layoutFree(node);
+        }
         return;
     }
 
     for (uint32_t i = 0; i < parent->children.size; i++) {
         if (parent->children.data[i] == node) {
             vector_erase(parent->children, i);
-            layoutFree(node);
+            if (!detach) {
+                layoutFree(node);
+            }
             break;
         }
     }
@@ -382,6 +396,14 @@ void layoutRemove(LayoutNode** root, LayoutNode* node) {
     }
 
     layoutUpdate(*root);
+}
+
+void layoutDetach(LayoutNode** root, LayoutNode* node) {
+    layoutRemoveEx(root, node, true);
+}
+
+void layoutRemove(LayoutNode** root, LayoutNode* node) {
+    layoutRemoveEx(root, node, false);
 }
 
 static LayoutNode* layoutFindNextEnabledSibling(LayoutNode* node) {
@@ -512,7 +534,11 @@ void layoutSeparatorDrag(Separator* sep, int x, int y) {
     if (!next || !next->has_enabled_content)
         return;
 
+    if (!node->resizable || !next->resizable)
+        return;
+
     int curr_pos = (leftright ? node->rect.x : node->rect.y);
+    int curr_size = (leftright ? node->rect.w : node->rect.h);
     int lower_bound = curr_pos + node->min_size;
     int upper_bound = (leftright ? next->rect.x + next->rect.w
                                  : next->rect.y + next->rect.h) -
@@ -524,16 +550,23 @@ void layoutSeparatorDrag(Separator* sep, int x, int y) {
         desired_pos = upper_bound;
 
     int desired_size = desired_pos - curr_pos;
+    int delta = desired_size - curr_size;
 
     if (node->size_type == LAYOUT_SIZE_FIXED) {
-        node->fixed_size = desired_size;
+        node->fixed_size += delta;
+        if (next->size_type == LAYOUT_SIZE_FIXED) {
+            next->fixed_size -= delta;
+        }
         return;
     }
 
-    // Ratio
-    if (next->size_type == LAYOUT_SIZE_FIXED)
+    if (next->size_type == LAYOUT_SIZE_FIXED) {
+        // node ratio, next fixed size
+        next->fixed_size -= delta;
         return;
+    }
 
+    // Both ratio
     int next_end =
         (leftright ? next->rect.x + next->rect.w : next->rect.y + next->rect.h);
     int new_size_next = next_end - desired_pos - 1;

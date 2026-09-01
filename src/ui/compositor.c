@@ -209,7 +209,11 @@ void uiProcessMouseEvent(UI* ui,
     }
 }
 
-void uiAddPanel(UI* ui, Panel* relative_to, Panel* new_panel, bool leftright) {
+void uiAddPanel(UI* ui,
+                Panel* relative_to,
+                Panel* new_panel,
+                bool leftright,
+                bool first) {
     if (!relative_to || !relative_to->layout || !new_panel)
         return;
 
@@ -217,7 +221,14 @@ void uiAddPanel(UI* ui, Panel* relative_to, Panel* new_panel, bool leftright) {
         new_panel->layout = layoutNodeCreateLeaf(new_panel);
     }
 
-    layoutSplit(&ui->root, relative_to->layout, new_panel->layout, leftright);
+    layoutSplit(&ui->root, relative_to->layout, new_panel->layout, leftright,
+                first);
+}
+
+void uiDetachPanel(UI* ui, Panel* panel) {
+    if (!panel || !panel->layout)
+        return;
+    layoutDetach(&ui->root, panel->layout);
 }
 
 void uiClosePanel(UI* ui, Panel* panel) {

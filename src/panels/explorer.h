@@ -35,4 +35,6 @@ EditorExplorerNode* editorExplorerCreate(const char* path);
 void editorExplorerFreeNode(EditorExplorerNode* node);
 void editorExplorerRefresh(void);
 
+void editorExplorerSetSide(bool left);
+
 #endif

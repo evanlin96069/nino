@@ -14,7 +14,8 @@ CCommand args;
 
 static void cvarTabSizeCallback(void);
 static void cvarSyntaxCallback(void);
-static void cvarExplorerCallback(void);
+static void cvarExplorerReloadCallback(void);
+static void cvarExplorerLeftCallback(void);
 static void cvarMouseCallback(void);
 
 CONVAR(tabsize, "4", "Tab size.", true, 1, true, 16, cvarTabSizeCallback);
@@ -61,7 +62,12 @@ CONVAR(ex_default_width,
 CONVAR(ex_show_hidden,
        "1",
        "Show hidden files in the file explorer.",
-       cvarExplorerCallback);
+       cvarExplorerReloadCallback);
+CONVAR(ex_left,
+       "1",
+       "Set explorer to the left side.",
+       cvarExplorerLeftCallback);
+
 CONVAR(newline_default,
        "0",
        "Set the default EOL sequence (LF/CRLF). 0 is OS default.");
@@ -113,8 +119,12 @@ static void cvarSyntaxCallback(void) {
     reloadSyntax();
 }
 
-static void cvarExplorerCallback(void) {
+static void cvarExplorerReloadCallback(void) {
     reloadExplorer();
+}
+
+static void cvarExplorerLeftCallback(void) {
+    editorExplorerSetSide(ex_left.int_value != 0);
 }
 
 static void cvarMouseCallback(void) {
@@ -1013,8 +1023,11 @@ void editorRegisterCommands(void) {
     editorInitConVar(&ignorecase);
     editorInitConVar(&mouse);
     editorInitConVar(&osc52_copy);
+
     editorInitConVar(&ex_default_width);
     editorInitConVar(&ex_show_hidden);
+    editorInitConVar(&ex_left);
+
     editorInitConVar(&newline_default);
     editorInitConVar(&ttimeoutlen);
     editorInitConVar(&lineno);

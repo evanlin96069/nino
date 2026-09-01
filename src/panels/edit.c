@@ -2257,11 +2257,11 @@ EditPanel* editorAddSplit(EditPanel* relative_to, bool leftright) {
     if (!relative_to) {
         // Create a left-right layout with explorer and welcome panel
         uiAddPanel(&gEditor.ui, (Panel*)gEditor.welcome_panel,
-                   (Panel*)new_split, true);
+                   (Panel*)new_split, true, false);
         uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.welcome_panel, false);
     } else {
         uiAddPanel(&gEditor.ui, (Panel*)relative_to, (Panel*)new_split,
-                   leftright);
+                   leftright, false);
     }
 
     editorSplitRecentListAdd(new_split);

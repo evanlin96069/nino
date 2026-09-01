@@ -70,7 +70,10 @@ void layoutFree(LayoutNode* node);
 void layoutSplit(LayoutNode** root,
                  LayoutNode* node,
                  LayoutNode* new_node,
-                 bool leftright);
+                 bool leftright,
+                 bool first);
+// Remove the node
+void layoutDetach(LayoutNode** root, LayoutNode* node);
 // Remove and free the node and panel
 void layoutRemove(LayoutNode** root, LayoutNode* node);
 // Return the node itself if the node is on the edge in the given direction
@@ -83,8 +86,7 @@ void layoutSeparatorDrag(Separator* sep, int x, int y);
 LayoutNode* layoutFindAt(LayoutNode* node, int x, int y);
 Separator* layoutFindSeparatorAt(VecSeparator* separators, int x, int y);
 
-// Update the enabled content cache
-// Call this after changing node->enabled
+// Call this after layout changes
 void layoutUpdate(LayoutNode* root);
 
 typedef void (*LayoutWalkCallback)(LayoutNode* node, void* user_data);

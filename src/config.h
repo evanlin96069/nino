@@ -128,6 +128,7 @@ extern ConVar mouse;
 extern ConVar osc52_copy;
 extern ConVar ex_default_width;
 extern ConVar ex_show_hidden;
+extern ConVar ex_left;
 extern ConVar newline_default;
 extern ConVar ttimeoutlen;
 extern ConVar lineno;

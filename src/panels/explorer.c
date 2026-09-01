@@ -398,3 +398,20 @@ void editorExplorerRefresh(void) {
     vector_clear(gEditor.explorer_panel->flatten);
     flattenNode(gEditor.explorer_panel->node);
 }
+
+void editorExplorerSetSide(bool left) {
+    LayoutNode* node = gEditor.explorer_panel->base.layout;
+    LayoutNode* parent = gEditor.explorer_panel->base.layout->parent;
+    if (!parent)
+        return;
+
+    uiDetachPanel(&gEditor.ui, (Panel*)gEditor.explorer_panel);
+
+    if (left) {
+        layoutInsertChild(parent, 0, node);
+    } else {
+        layoutInsertChild(parent, parent->children.size, node);
+    }
+
+    layoutUpdate(gEditor.ui.root);
+}
