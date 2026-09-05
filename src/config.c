@@ -396,71 +396,40 @@ CON_COMMAND(unlock, "Allow editing a read-only file.") {
 }
 
 CON_COMMAND(reload, "Reload the current file from disk.") {
-    if (gEditor.file_count == 0) {
+    EditorTab* curr_tab = editorGetActiveTab();
+    EditorFile* curr_file = editorTabGetFile(curr_tab);
+    if (!curr_tab || !curr_file) {
         editorMsg("reload: No file opened");
         return;
     }
 
-    EditorTab* curr_tab = editorGetActiveTab();
-    EditorFile* curr_file = editorTabGetFile(curr_tab);
     int file_index = curr_tab->file_index;
 
-    if (curr_file->dirty) {
-        editorMsg("File has unsaved changes.");
-        return;
-    }
-
-    if (!curr_file->filename) {
-        editorMsg("File is untitled.");
-        return;
-    }
-
-    EditorFile temp_file;
-    OpenStatus result = editorLoadFile(&temp_file, curr_file->filename, true);
-    switch (result) {
-        case OPEN_FILE: {
-            int reference_count = curr_file->reference_count;
-            editorFreeFile(curr_file);
-            *curr_file = temp_file;
-            curr_file->action_head = calloc_s(1, sizeof(EditorActionList));
-            curr_file->action_current = curr_file->action_head;
-            curr_file->reference_count = reference_count;
-
-            int max_y = curr_file->num_rows > 0 ? curr_file->num_rows - 1 : 0;
-
-            for (uint32_t i = 0; i < gEditor.recent_splits.size; i++) {
-                EditPanel* split = gEditor.recent_splits.data[i];
-
-                for (uint32_t j = 0; j < split->tabs.size; j++) {
-                    EditorTab* tab = &split->tabs.data[j];
-                    if (tab->file_index == file_index) {
-                        tab->cursor.x = 0;
-                        if (tab->cursor.y > max_y)
-                            tab->cursor.y = max_y;
-                        if (tab->row_offset > max_y)
-                            tab->row_offset = max_y;
-                        tab->cursor.is_selected = false;
-                        tab->cursor.select_x = tab->cursor.x;
-                        tab->cursor.select_y = tab->cursor.y;
-                        tab->sx = 0;
-                        tab->col_offset = 0;
-                    }
-                }
-            }
+    EditorReloadStatus status = editorReloadFile(file_index, true);
+    switch (status) {
+        case RELOAD_SUCCESS:
             editorMsg("File reloaded from disk.");
-        } break;
+            break;
 
-        case OPEN_FILE_NEW:
-            editorFreeFile(&temp_file);
+        case RELOAD_UNTITLED:
+            editorMsg("File is untitled.");
+            break;
+
+        case RELOAD_DIRTY:
+            editorMsg("File has unsaved changes.");
+            break;
+
+        case RELOAD_NOT_EXIST:
             editorMsg("File does not exist on disk.");
             break;
 
-        case OPEN_DIR:
+        case RELOAD_DIR:
             editorMsg("File is now a directory on disk.");
             break;
 
         default:
             editorMsg("Failed to reload file.");
+            break;
     }
 }
 

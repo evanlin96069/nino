@@ -94,7 +94,9 @@ static void editorLoadRowsFromStream(EditorFile* file, FILE* fp) {
     free(line);
 }
 
-OpenStatus editorLoadFile(EditorFile* file, const char* path, bool reload) {
+EditorOpenStatus editorLoadFile(EditorFile* file,
+                                const char* path,
+                                bool reload) {
     editorInitFile(file);
 
     if (path[0] == '\0') {
@@ -347,11 +349,81 @@ void editorNewUntitledFileFromStdin(EditorFile* file) {
     }
 }
 
+EditorReloadStatus editorReloadFile(int file_index, bool force) {
+    if (file_index < 0 || file_index >= EDITOR_FILE_MAX_SLOT) {
+        return RELOAD_FAILED;
+    }
+
+    EditorFile* file = &gEditor.files[file_index];
+
+    if (file->dirty) {
+        return RELOAD_DIRTY;
+    }
+
+    if (!file->filename) {
+        return RELOAD_UNTITLED;
+    }
+
+    if (!force) {
+        FileInfo new_info = getFileInfo(file->filename);
+        if (!isFileModified(new_info, file->file_info)) {
+            return RELOAD_SUCCESS;
+        }
+    }
+
+    EditorFile temp_file;
+    EditorOpenStatus result = editorLoadFile(&temp_file, file->filename, true);
+    switch (result) {
+        case OPEN_FILE: {
+            int reference_count = file->reference_count;
+            editorFreeFile(file);
+            *file = temp_file;
+            file->action_head = calloc_s(1, sizeof(EditorActionList));
+            file->action_current = file->action_head;
+            file->reference_count = reference_count;
+
+            int max_y = file->num_rows > 0 ? file->num_rows - 1 : 0;
+
+            for (uint32_t i = 0; i < gEditor.recent_splits.size; i++) {
+                EditPanel* split = gEditor.recent_splits.data[i];
+
+                for (uint32_t j = 0; j < split->tabs.size; j++) {
+                    EditorTab* tab = &split->tabs.data[j];
+                    if (tab->file_index == file_index) {
+                        tab->cursor.x = 0;
+                        if (tab->cursor.y > max_y)
+                            tab->cursor.y = max_y;
+                        if (tab->row_offset > max_y)
+                            tab->row_offset = max_y;
+                        tab->cursor.is_selected = false;
+                        tab->cursor.select_x = tab->cursor.x;
+                        tab->cursor.select_y = tab->cursor.y;
+                        tab->sx = 0;
+                        tab->col_offset = 0;
+                        tab->bracket_autocomplete = 0;
+                    }
+                }
+            }
+            return RELOAD_SUCCESS;
+        }
+
+        case OPEN_FILE_NEW:
+            editorFreeFile(&temp_file);
+            return RELOAD_NOT_EXIST;
+
+        case OPEN_DIR:
+            return RELOAD_DIR;
+
+        default:
+            return RELOAD_FAILED;
+    }
+}
+
 static void fileOpenCallback(PromptEvent event, void* user_data) {
     UNUSED(user_data);
     if (event.type == PROMPT_EVENT_SUBMIT) {
         EditorFile file;
-        OpenStatus result = editorLoadFile(&file, event.query, false);
+        EditorOpenStatus result = editorLoadFile(&file, event.query, false);
         if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
             if (editorAddFileToActiveSplit(&file) != -1) {
                 // TODO: focus the tab that has the file opened

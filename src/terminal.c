@@ -239,6 +239,16 @@ Event eventPoll(int timeout_ms) {
             return result;
         }
 
+        if (strcmp(seq, "[I") == 0) {
+            result.type = EVENT_FOCUS_GAINED;
+            return result;
+        }
+
+        if (strcmp(seq, "[O") == 0) {
+            result.type = EVENT_FOCUS_LOST;
+            return result;
+        }
+
         // Bracketed paste
         if (strcmp(seq, "[200~") == 0) {
             VECTOR(Str) content = {0};
@@ -464,6 +474,8 @@ static void SIGABRT_handler(int sig) {
     _exit(EXIT_FAILURE);
 }
 
+#define ANSI_FOCUS_ENABLE "\x1b[?1004h"
+#define ANSI_FOCUS_DISABLE "\x1b[?1004l"
 #define ANSI_SWAP_ENABLE "\x1b[?1049h"
 #define ANSI_SWAP_DISABLE "\x1b[?1049l"
 #define ANSI_MOUSE_ENABLE "\x1b[?1000h\x1b[?1002h\x1b[?1006h"
@@ -496,7 +508,8 @@ static bool terminal_active = false;
 void terminalStart(void) {
     terminal_active = true;
     enableRawMode();
-    writeConsoleStr(ANSI_SWAP_ENABLE ANSI_BRACKETED_PASTE_ENABLE);
+    writeConsoleStr(
+        ANSI_FOCUS_ENABLE ANSI_SWAP_ENABLE ANSI_BRACKETED_PASTE_ENABLE);
     if (gEditor.mouse_mode) {
         enableMouse();
     } else {
@@ -510,7 +523,8 @@ void terminalExit(void) {
     if (!terminal_active)
         return;
     terminal_active = false;
-    writeConsoleStr(ANSI_MOUSE_DISABLE ANSI_BRACKETED_PASTE_DISABLE
-                        ANSI_SWAP_DISABLE ANSI_CLEAR_STYLE ANSI_CURSOR_SHOW);
+    writeConsoleStr(
+        ANSI_MOUSE_DISABLE ANSI_BRACKETED_PASTE_DISABLE ANSI_SWAP_DISABLE
+            ANSI_FOCUS_DISABLE ANSI_CLEAR_STYLE ANSI_CURSOR_SHOW);
     disableRawMode();
 }

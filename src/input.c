@@ -220,6 +220,14 @@ static void editorProcessEvent(Event event, uint64_t timestamp_ms) {
             editorSetWindowSize(event.resize.rows, event.resize.cols);
             break;
 
+        case EVENT_FOCUS_GAINED:
+            for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
+                if (gEditor.files[i].reference_count > 0) {
+                    editorReloadFile(i, false);
+                }
+            }
+            break;
+
         default:
             break;
     }

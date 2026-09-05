@@ -162,7 +162,7 @@ static void editorExplorerOpenSelected(ExplorerPanel* p) {
         editorExplorerRefresh();
     } else {
         EditorFile file = {0};
-        OpenStatus result = editorLoadFile(&file, node->filename, false);
+        EditorOpenStatus result = editorLoadFile(&file, node->filename, false);
         if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
             editorAddFileToActiveSplit(&file);
         }
