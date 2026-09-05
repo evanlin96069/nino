@@ -78,6 +78,13 @@ CONVAR(ttimeoutlen,
        0,
        false,
        0);
+CONVAR(fps_max,
+       "0",
+       "Frame rate limiter (0 for uncapped fps).",
+       true,
+       0,
+       false,
+       0);
 CONVAR(lineno, "1", "Show line numbers.");
 CONVAR(readonly, "0", "Open files in read-only mode.");
 
@@ -1030,6 +1037,7 @@ void editorRegisterCommands(void) {
 
     editorInitConVar(&newline_default);
     editorInitConVar(&ttimeoutlen);
+    editorInitConVar(&fps_max);
     editorInitConVar(&lineno);
     editorInitConVar(&readonly);
 

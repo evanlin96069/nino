@@ -186,6 +186,7 @@ void uiProcessMouseEvent(UI* ui,
                 }
             } else if (ui->mouse.drag.type == UI_DRAG_SEPARATOR) {
                 layoutSeparatorDrag(&ui->mouse.drag.separator, x, y);
+                layoutUpdate(ui->root);
             }
         } break;
 

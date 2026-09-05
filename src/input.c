@@ -191,16 +191,14 @@ static bool preMouseEvent(Panel* panel, UIMouseEvent event) {
     return false;
 }
 
-void editorProcessInput(void) {
-    // TODO: Add record/replay feature
-    Event event = eventPoll(READ_WAIT_INFINITE);
+static void editorProcessEvent(Event event, uint64_t timestamp_ms) {
     switch (event.type) {
         case EVENT_KEY:
             uiProcessKeyEvent(&gEditor.ui, event.key, preKeyEvent);
             break;
 
         case EVENT_MOUSE:
-            uiProcessMouseEvent(&gEditor.ui, event.mouse, getTimeMs(),
+            uiProcessMouseEvent(&gEditor.ui, event.mouse, timestamp_ms,
                                 preMouseEvent);
             break;
 
@@ -225,6 +223,26 @@ void editorProcessInput(void) {
         default:
             break;
     }
+}
 
+void editorProcessInput(void) {
+    // TODO: Add record/replay feature
+    Event event = eventPoll(READ_WAIT_INFINITE);
+    uint64_t curr_time = getTimeMs();
+
+    int frame_time = fps_max.int_value ? 1000 / fps_max.int_value : 0;
+    uint64_t next_frame = curr_time + frame_time;
+
+    editorProcessEvent(event, curr_time);
     eventFree(&event);
+
+    while (curr_time <= next_frame) {
+        int remain_time = next_frame - curr_time;
+
+        event = eventPoll(remain_time);
+        curr_time = getTimeMs();
+
+        editorProcessEvent(event, curr_time);
+        eventFree(&event);
+    }
 }
