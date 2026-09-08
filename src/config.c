@@ -83,8 +83,8 @@ CONVAR(fps_max,
        "Frame rate limiter (0 for uncapped fps).",
        true,
        0,
-       false,
-       0);
+       true,
+       1000);
 CONVAR(lineno, "1", "Show line numbers.");
 CONVAR(readonly, "0", "Open files in read-only mode.");
 

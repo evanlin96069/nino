@@ -244,7 +244,7 @@ void editorProcessInput(void) {
     editorProcessEvent(event, curr_time);
     eventFree(&event);
 
-    while (curr_time <= next_frame) {
+    while (curr_time < next_frame) {
         int remain_time = next_frame - curr_time;
 
         event = eventPoll(remain_time);
