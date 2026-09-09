@@ -36,6 +36,7 @@ The command will first search for the file in the current directory, then the co
 | `fps_max` | 0 | Frame rate limiter (0 for uncapped fps). |
 | `lineno` | 1 | Show line numbers. |
 | `readonly` | 0 | Open files in read-only mode. |
+| `autoreload` | 1 | Auto reload files and the explorer. |
 | `shell` | "" | Shell used by the run command. (full path) |
 | `color` | cmd | Change the color of an element. |
 | `exec` | cmd | Execute a config file. |
@@ -45,6 +46,7 @@ The command will first search for the file in the current directory, then the co
 | `newline` | cmd | Set the EOL sequence (LF/CRLF). |
 | `unlock` | cmd | Allow editing a read-only file. |
 | `reload` | cmd | Reload the current file from disk. |
+| `ex_reload` | cmd | Reload the explorer. |
 | `alias` | cmd | Alias a command. |
 | `unalias` | cmd | Remove an alias. |
 | `cmd_expand_depth` | 1024 | Max depth for alias expansion. |

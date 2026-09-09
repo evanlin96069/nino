@@ -222,6 +222,9 @@ static void editorProcessEvent(Event event, uint64_t timestamp_ms) {
             break;
 
         case EVENT_FOCUS_GAINED:
+            if (!autoreload.int_value)
+                break;
+
             for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
                 if (gEditor.files[i].reference_count > 0) {
                     editorReloadFile(i, false);

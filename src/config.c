@@ -87,6 +87,7 @@ CONVAR(fps_max,
        1000);
 CONVAR(lineno, "1", "Show line numbers.");
 CONVAR(readonly, "0", "Open files in read-only mode.");
+CONVAR(autoreload, "1", "Auto reload files and the explorer.");
 
 CONVAR(developer, "0", "Set developer message level.");
 
@@ -420,6 +421,10 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
             editorMsg("Failed to reload file.");
             break;
     }
+}
+
+CON_COMMAND(ex_reload, "Reload the explorer.") {
+    editorExplorerReload();
 }
 
 int editorGetDefaultNewline(void) {
@@ -998,6 +1003,7 @@ void editorRegisterCommands(void) {
     editorInitConVar(&fps_max);
     editorInitConVar(&lineno);
     editorInitConVar(&readonly);
+    editorInitConVar(&autoreload);
 
     editorInitConCommand(&color);
     editorInitConCommand(&lang);
@@ -1006,6 +1012,7 @@ void editorRegisterCommands(void) {
     editorInitConCommand(&newline);
     editorInitConCommand(&unlock);
     editorInitConCommand(&reload);
+    editorInitConCommand(&ex_reload);
 
     editorInitConVar(&cmd_expand_depth);
     editorInitConCommand(&alias);

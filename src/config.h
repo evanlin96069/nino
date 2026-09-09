@@ -133,6 +133,7 @@ extern ConVar newline_default;
 extern ConVar ttimeoutlen;
 extern ConVar lineno;
 extern ConVar readonly;
+extern ConVar autoreload;
 extern ConVar fps_max;
 extern ConVar shell;
 extern ConVar developer;
