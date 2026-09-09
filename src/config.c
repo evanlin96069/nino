@@ -98,17 +98,6 @@ static void reloadSyntax(void) {
     }
 }
 
-static void reloadExplorer(void) {
-    if (gEditor.explorer_panel->node) {
-        gEditor.explorer_panel->node = editorExplorerCreate(".");
-        gEditor.explorer_panel->node->is_open = true;
-        editorExplorerRefresh();
-
-        gEditor.explorer_panel->offset = 0;
-        gEditor.explorer_panel->selected_index = 0;
-    }
-}
-
 static void cvarTabSizeCallback(void) {
     // Update rsize
     for (int i = 0; i < EDITOR_FILE_MAX_SLOT; i++) {
@@ -127,7 +116,7 @@ static void cvarSyntaxCallback(void) {
 }
 
 static void cvarExplorerReloadCallback(void) {
-    reloadExplorer();
+    editorExplorerReload();
 }
 
 static void cvarExplorerLeftCallback(void) {

@@ -8,6 +8,7 @@
 #include "terminal.h"
 
 #include "panels/edit.h"
+#include "panels/explorer.h"
 #include "ui/compositor.h"
 
 static bool preKeyEvent(Panel* panel, KeyEvent event) {
@@ -226,6 +227,7 @@ static void editorProcessEvent(Event event, uint64_t timestamp_ms) {
                     editorReloadFile(i, false);
                 }
             }
+            editorExplorerReload();
             break;
 
         default:

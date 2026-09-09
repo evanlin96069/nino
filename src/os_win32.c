@@ -256,12 +256,16 @@ errdefer:
 }
 
 bool areFilesEqual(FileInfo f1, FileInfo f2) {
+    if (f1.error || f2.error)
+        return false;
     return (f1.info.dwVolumeSerialNumber == f2.info.dwVolumeSerialNumber &&
             f1.info.nFileIndexHigh == f2.info.nFileIndexHigh &&
             f1.info.nFileIndexLow == f2.info.nFileIndexLow);
 }
 
 bool isFileModified(FileInfo f1, FileInfo f2) {
+    if (f1.error || f2.error)
+        return true;
     return (f1.info.ftLastWriteTime.dwLowDateTime !=
                 f2.info.ftLastWriteTime.dwLowDateTime ||
             f1.info.ftLastWriteTime.dwHighDateTime !=

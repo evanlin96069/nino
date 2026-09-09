@@ -280,23 +280,23 @@ static bool mouseEvent(Panel* self, UIMouseEvent event) {
     return false;
 }
 
-EditorExplorerNode* editorExplorerCreate(const char* path) {
-    EditorExplorerNode* node = malloc_s(sizeof(EditorExplorerNode));
+EditorExplorerNode* editorExplorerCreate(const char* path, bool is_directory) {
+    EditorExplorerNode* node = calloc_s(1, sizeof(EditorExplorerNode));
 
     int len = strlen(path);
     node->filename = malloc_s(len + 1);
     snprintf(node->filename, len + 1, "%s", path);
 
-    node->is_directory = (getFileType(path) == FT_DIR);
-    node->is_open = false;
-    node->loaded = false;
-    node->depth = 0;
-    node->dir.count = 0;
-    node->dir.nodes = NULL;
-    node->file.count = 0;
-    node->file.nodes = NULL;
+    node->is_directory = is_directory;
 
     return node;
+}
+
+static inline void editorExplorerFreeNodes(VecEditorExplorerNode* nodes) {
+    for (size_t i = 0; i < nodes->size; i++) {
+        editorExplorerFreeNode(nodes->data[i]);
+    }
+    vector_free(*nodes);
 }
 
 void editorExplorerFreeNode(EditorExplorerNode* node) {
@@ -304,46 +304,54 @@ void editorExplorerFreeNode(EditorExplorerNode* node) {
         return;
 
     if (node->is_directory) {
-        for (size_t i = 0; i < node->dir.count; i++) {
-            editorExplorerFreeNode(node->dir.nodes[i]);
-        }
-
-        for (size_t i = 0; i < node->file.count; i++) {
-            editorExplorerFreeNode(node->file.nodes[i]);
-        }
-
-        free(node->dir.nodes);
-        free(node->file.nodes);
+        editorExplorerFreeNodes(&node->dir_nodes);
+        editorExplorerFreeNodes(&node->file_nodes);
     }
 
     free(node->filename);
     free(node);
 }
 
-static void insertNode(EditorExplorerNode* node, EditorExplorerNodeData* data) {
+// Insert in dictionary order
+static void editorExplorerInsertNode(VecEditorExplorerNode* nodes,
+                                     EditorExplorerNode* child) {
     size_t i;
-    data->nodes =
-        realloc_s(data->nodes, (data->count + 1) * sizeof(EditorExplorerNode*));
-
-    for (i = 0; i < data->count; i++) {
-        if (strcmp(data->nodes[i]->filename, node->filename) > 0) {
-            memmove(&data->nodes[i + 1], &data->nodes[i],
-                    (data->count - i) * sizeof(EditorExplorerNode*));
+    for (i = 0; i < nodes->size; i++) {
+        if (strcmp(nodes->data[i]->filename, child->filename) > 0) {
             break;
         }
     }
 
-    data->nodes[i] = node;
-    data->count++;
+    vector_insert(*nodes, i, child);
 }
 
-static void loadNode(EditorExplorerNode* node) {
+static bool editorExplorerRescanNode(EditorExplorerNode* node) {
     if (!node->is_directory)
-        return;
+        return false;
+
+    FileInfo info = getFileInfo(node->filename);
+    if (node->loaded) {
+        if (!isFileModified(info, node->info)) {
+            return true;
+        }
+    } else {
+        vector_clear(node->dir_nodes);
+        vector_clear(node->file_nodes);
+    }
 
     DirIter iter = dirFindFirst(node->filename);
-    if (iter.error)
-        return;
+    if (iter.error) {
+        // Dir likely not exist anymore
+        vector_free(node->dir_nodes);
+        vector_free(node->file_nodes);
+        return false;
+    }
+
+    VecEditorExplorerNode old_dir_nodes = node->dir_nodes;
+    VecEditorExplorerNode old_file_nodes = node->file_nodes;
+
+    VecEditorExplorerNode dir_nodes = {0};
+    VecEditorExplorerNode file_nodes = {0};
 
     do {
         const char* filename = dirGetName(&iter);
@@ -356,24 +364,46 @@ static void loadNode(EditorExplorerNode* node) {
         snprintf(entry_path, sizeof(entry_path), PATH_CAT("%s", "%s"),
                  node->filename, filename);
 
-        EditorExplorerNode* child = editorExplorerCreate(entry_path);
-        if (!child)
-            continue;
+        bool is_directory = (getFileType(entry_path) == FT_DIR);
 
-        child->depth = node->depth + 1;
+        VecEditorExplorerNode* old_nodes =
+            is_directory ? &old_dir_nodes : &old_file_nodes;
+        VecEditorExplorerNode* new_nodes =
+            is_directory ? &dir_nodes : &file_nodes;
 
-        if (child->is_directory) {
-            insertNode(child, &node->dir);
-        } else {
-            insertNode(child, &node->file);
+        // Find existing node
+        EditorExplorerNode* child = NULL;
+        for (size_t i = 0; i < old_nodes->size; i++) {
+            EditorExplorerNode* curr_node = old_nodes->data[i];
+            if (strcmp(curr_node->filename, entry_path) == 0) {
+                vector_erase(*old_nodes, i);
+                child = curr_node;
+                break;
+            }
         }
+
+        // Not exist, create new
+        if (!child) {
+            child = editorExplorerCreate(entry_path, is_directory);
+            child->depth = node->depth + 1;
+        }
+        editorExplorerInsertNode(new_nodes, child);
     } while (dirNext(&iter));
     dirClose(&iter);
 
-    node->loaded = true;
+    node->dir_nodes = dir_nodes;
+    node->file_nodes = file_nodes;
+
+    // Cleanup nodes no longer on disk
+    editorExplorerFreeNodes(&old_dir_nodes);
+    editorExplorerFreeNodes(&old_file_nodes);
+
+    node->info = info;
+
+    return true;
 }
 
-static void flattenNode(EditorExplorerNode* node) {
+static void editorExplorerFlattenNode(EditorExplorerNode* node, bool reload) {
     if (!node)
         return;
 
@@ -381,22 +411,62 @@ static void flattenNode(EditorExplorerNode* node) {
         vector_push(gEditor.explorer_panel->flatten, node);
 
     if (node->is_directory && node->is_open) {
-        if (!node->loaded)
-            loadNode(node);
-
-        for (size_t i = 0; i < node->dir.count; i++) {
-            flattenNode(node->dir.nodes[i]);
+        if (reload || !node->loaded) {
+            node->loaded = editorExplorerRescanNode(node);
         }
 
-        for (size_t i = 0; i < node->file.count; i++) {
-            flattenNode(node->file.nodes[i]);
+        for (size_t i = 0; i < node->dir_nodes.size; i++) {
+            editorExplorerFlattenNode(node->dir_nodes.data[i], reload);
+        }
+
+        for (size_t i = 0; i < node->file_nodes.size; i++) {
+            editorExplorerFlattenNode(node->file_nodes.data[i], reload);
         }
     }
 }
 
 void editorExplorerRefresh(void) {
     vector_clear(gEditor.explorer_panel->flatten);
-    flattenNode(gEditor.explorer_panel->node);
+    editorExplorerFlattenNode(gEditor.explorer_panel->node, false);
+}
+
+void editorExplorerReload(void) {
+    ExplorerPanel* p = gEditor.explorer_panel;
+    if (!p->node)
+        return;
+
+    char selected_path[EDITOR_PATH_MAX] = "";
+    if (p->selected_index >= 0 && p->selected_index < (int)p->flatten.size) {
+        snprintf(selected_path, sizeof(selected_path), "%s",
+                 p->flatten.data[p->selected_index]->filename);
+    }
+
+    vector_clear(gEditor.explorer_panel->flatten);
+    editorExplorerFlattenNode(gEditor.explorer_panel->node, true);
+
+    int new_index = -1;
+    if (selected_path[0]) {
+        for (size_t i = 0; i < p->flatten.size; i++) {
+            if (strcmp(p->flatten.data[i]->filename, selected_path) == 0) {
+                new_index = (int)i;
+                break;
+            }
+        }
+    }
+
+    if (new_index >= 0) {
+        p->selected_index = new_index;
+
+        if (p->offset > (int)p->flatten.size - 1) {
+            p->offset = (int)p->flatten.size - 1;
+        }
+        if (p->offset < 0) {
+            p->offset = 0;
+        }
+    } else {
+        p->offset = 0;
+        p->selected_index = 0;
+    }
 }
 
 void editorExplorerSetSide(bool left) {

@@ -133,7 +133,7 @@ EditorOpenStatus editorLoadFile(EditorFile* file,
                 editorExplorerFreeNode(gEditor.explorer_panel->node);
             }
             changeDir(path);
-            gEditor.explorer_panel->node = editorExplorerCreate(".");
+            gEditor.explorer_panel->node = editorExplorerCreate(".", true);
             gEditor.explorer_panel->node->is_open = true;
             editorExplorerRefresh();
 
@@ -235,6 +235,10 @@ bool editorSave(EditorFile* file, const char* path) {
         file->has_file_info = true;
         file->file_info = file_info;
     }
+
+    // Reload so new created file will show
+    editorExplorerReload();
+
     return true;
 }
 

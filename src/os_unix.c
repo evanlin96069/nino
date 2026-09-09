@@ -279,11 +279,15 @@ FileInfo getFileInfo(const char* path) {
 }
 
 bool areFilesEqual(FileInfo f1, FileInfo f2) {
+    if (f1.error || f2.error)
+        return false;
     return (f1.info.st_ino == f2.info.st_ino &&
             f1.info.st_dev == f2.info.st_dev);
 }
 
 bool isFileModified(FileInfo f1, FileInfo f2) {
+    if (f1.error || f2.error)
+        return true;
     return (f1.info.st_mtime != f2.info.st_mtime);
 }
 
