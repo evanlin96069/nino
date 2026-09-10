@@ -31,4 +31,8 @@ struct DirIter {
 
 typedef int OsError;
 
+static inline bool isPathSeparator(char c) {
+    return c == '/';
+}
+
 #endif

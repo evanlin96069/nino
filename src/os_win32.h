@@ -28,4 +28,8 @@ struct DirIter {
 
 typedef DWORD OsError;
 
+static inline bool isPathSeparator(char c) {
+    return c == '/' || c == '\\';
+}
+
 #endif

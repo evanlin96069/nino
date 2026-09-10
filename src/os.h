@@ -81,6 +81,8 @@ OsError saveFileReplace(const char* path, const void* buf, size_t len);
 bool changeDir(const char* path);
 char* getFullPath(const char* path);
 
+static inline bool isPathSeparator(char c);
+
 // Time
 int64_t getTimeMs(void);
 

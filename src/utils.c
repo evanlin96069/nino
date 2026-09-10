@@ -274,15 +274,12 @@ void gotoXY(abuf* ab, int x, int y) {
 
 char* getBaseName(char* path) {
     char* file = path + strlen(path);
-    for (; file > path; file--) {
-        if (*file == '/'
-#ifdef _WIN32
-            || *file == '\\'
-#endif
-        ) {
+    while (file > path) {
+        if (isPathSeparator(*file)) {
             file++;
             break;
         }
+        file--;
     }
     return file;
 }
@@ -304,12 +301,7 @@ char* getDirName(char* path) {
 void addDefaultExtension(char* path, const char* extension, int path_length) {
     char* src = path + strlen(path) - 1;
 
-    while (!(*src == '/'
-#ifdef _WIN32
-             || *src == '\\'
-#endif
-             ) &&
-           src > path) {
+    while (!isPathSeparator(*src) && src > path) {
         if (*src == '.') {
             return;
         }
