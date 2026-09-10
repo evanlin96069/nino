@@ -129,16 +129,8 @@ EditorOpenStatus editorLoadFile(EditorFile* file,
         } break;
 
         case FT_DIR:
-            if (gEditor.explorer_panel->node) {
-                editorExplorerFreeNode(gEditor.explorer_panel->node);
-            }
+            editorExplorerOpenDir(path);
             changeDir(path);
-            gEditor.explorer_panel->node = editorExplorerCreate(".", true);
-            gEditor.explorer_panel->node->is_open = true;
-            editorExplorerRefresh();
-
-            gEditor.explorer_panel->offset = 0;
-            gEditor.explorer_panel->selected_index = 0;
             return OPEN_DIR;
 
         case FT_ACCESS_DENIED:
@@ -155,6 +147,12 @@ EditorOpenStatus editorLoadFile(EditorFile* file,
 
         case FT_NOT_EXIST:
             break;
+    }
+
+    const char* full_path = getFullPath(path);
+    if (!full_path) {
+        editorMsg("Can't resolve path \"%s\"!", path);
+        return OPEN_FAILED;
     }
 
     FILE* fp = openFile(path, "rb");
@@ -176,11 +174,10 @@ EditorOpenStatus editorLoadFile(EditorFile* file,
         }
     }
 
-    const char* full_path = getFullPath(path);
-    size_t path_len = strlen(full_path) + 1;
+    size_t full_path_len = strlen(full_path) + 1;
     free(file->filename);
-    file->filename = malloc_s(path_len);
-    memcpy(file->filename, full_path, path_len);
+    file->filename = malloc_s(full_path_len);
+    memcpy(file->filename, full_path, full_path_len);
 
     editorSelectSyntaxHighlight(file);
 

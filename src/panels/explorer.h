@@ -28,16 +28,17 @@ typedef struct ExplorerPanel {
 
     int offset;
     int selected_index;
+
     EditorExplorerNode* node;  // Root node of explorer tree
     VECTOR(EditorExplorerNode*) flatten;
 } ExplorerPanel;
 
 ExplorerPanel* panelExplorerCreate(void);
 
-// Explorer tree
-EditorExplorerNode* editorExplorerCreate(const char* path, bool is_directory);
-void editorExplorerFreeNode(EditorExplorerNode* node);
+void editorExplorerOpenDir(const char* path);
+// Load opened but not loaded nodes
 void editorExplorerRefresh(void);
+// Reload all opened nodes
 void editorExplorerReload(void);
 
 void editorExplorerSetSide(bool left);

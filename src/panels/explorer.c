@@ -1,5 +1,6 @@
 #include "panels/explorer.h"
 
+#include "console.h"
 #include "editor.h"
 
 #include "panels/edit.h"
@@ -28,6 +29,8 @@ ExplorerPanel* panelExplorerCreate(void) {
     p->base.kind = PANEL_KIND_EXPLORER;
     return p;
 }
+
+static void editorExplorerFreeNode(EditorExplorerNode* node);
 
 static void destroy(Panel* self) {
     ExplorerPanel* p = (ExplorerPanel*)self;
@@ -280,12 +283,13 @@ static bool mouseEvent(Panel* self, UIMouseEvent event) {
     return false;
 }
 
-EditorExplorerNode* editorExplorerCreate(const char* path, bool is_directory) {
+static EditorExplorerNode* editorExplorerCreate(const char* path,
+                                                bool is_directory) {
     EditorExplorerNode* node = calloc_s(1, sizeof(EditorExplorerNode));
 
-    int len = strlen(path);
-    node->filename = malloc_s(len + 1);
-    snprintf(node->filename, len + 1, "%s", path);
+    size_t path_len = strlen(path) + 1;
+    node->filename = malloc_s(path_len);
+    memcpy(node->filename, path, path_len);
 
     node->is_directory = is_directory;
 
@@ -299,7 +303,7 @@ static inline void editorExplorerFreeNodes(VecEditorExplorerNode* nodes) {
     vector_free(*nodes);
 }
 
-void editorExplorerFreeNode(EditorExplorerNode* node) {
+static void editorExplorerFreeNode(EditorExplorerNode* node) {
     if (!node)
         return;
 
@@ -310,6 +314,28 @@ void editorExplorerFreeNode(EditorExplorerNode* node) {
 
     free(node->filename);
     free(node);
+}
+
+void editorExplorerOpenDir(const char* path) {
+    ExplorerPanel* p = gEditor.explorer_panel;
+
+    const char* full_path = getFullPath(path);
+    if (!full_path) {
+        editorMsg("Can't resolve path \"%s\"!", path);
+        return;
+    }
+
+    if (p->node) {
+        editorExplorerFreeNode(p->node);
+    }
+
+    p->node = editorExplorerCreate(full_path, true);
+    p->node->is_open = true;
+
+    editorExplorerRefresh();
+
+    p->offset = 0;
+    p->selected_index = 0;
 }
 
 // Insert in dictionary order
