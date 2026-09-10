@@ -371,6 +371,9 @@ EditorReloadStatus editorReloadFile(int file_index, bool force) {
     if (!force) {
         FileInfo new_info = getFileInfo(file->filename);
         if (!isFileModified(new_info, file->file_info)) {
+            // Still refresh the read-only status
+            file->read_only =
+                readonly.int_value || !canWriteFile(file->filename);
             return RELOAD_SUCCESS;
         }
     }
