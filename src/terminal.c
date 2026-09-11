@@ -257,7 +257,7 @@ Event eventPoll(int timeout_ms) {
             bool last_was_cr = false;
             while (true) {
                 if (readConsoleKey(&c, timeout) < 0) {
-                    vector_free(content);
+                    vector_free(&content);
                     abufFree(&line);
                     return result;
                 }
@@ -272,7 +272,7 @@ Event eventPoll(int timeout_ms) {
                          index < sizeof(end_seq) / sizeof(end_seq[0]);
                          index++) {
                         if (readConsoleKey(&end_seq[index], timeout) < 0) {
-                            vector_free(content);
+                            vector_free(&content);
                             abufFree(&line);
                             return result;
                         }
@@ -290,8 +290,8 @@ Event eventPoll(int timeout_ms) {
                                 .data = line.buf,
                                 .size = line.len,
                             };
-                            vector_push(content, s_line);
-                            vector_shrink(content);
+                            vector_push(&content, s_line);
+                            vector_shrink(&content);
 
                             // transfer the vector to clipboard
                             clipboard.size = content.size;
@@ -321,7 +321,7 @@ Event eventPoll(int timeout_ms) {
                         .data = line.buf,
                         .size = line.len,
                     };
-                    vector_push(content, s_line);
+                    vector_push(&content, s_line);
                     memset(&line, 0, sizeof(abuf));
                 } else {
                     last_was_cr = false;

@@ -18,75 +18,123 @@
 #define VECTOR_MIN_CAPACITY 4
 #define VECTOR_EXTEND_RATE 1.5f
 
-#define VECTOR(type)       \
-    struct {               \
-        uint32_t size;     \
-        uint32_t capacity; \
-        type* data;        \
+#define VECTOR(type)     \
+    struct {             \
+        size_t size;     \
+        type* data;      \
+        size_t capacity; \
     }
 
 typedef VECTOR(void) _Vector;
 
-void _vector_make_room(_Vector* _vec, size_t item_size);
+static inline void _vector_reserve(_Vector* vec, size_t n, size_t item_size) {
+    if (vec->size < n) {
+        vec->capacity = n;
+        vec->data = realloc_s(vec->data, vec->capacity * item_size);
+    }
+}
+
+static inline void _vector_make_room(_Vector* vec, size_t n, size_t item_size) {
+    if (!vec->capacity) {
+        vec->data = malloc_s(item_size * VECTOR_MIN_CAPACITY);
+        vec->capacity = VECTOR_MIN_CAPACITY;
+    }
+    if (vec->size >= vec->capacity) {
+        vec->capacity += n;  // Ensure at least increase by n
+        vec->capacity *= VECTOR_EXTEND_RATE;
+        vec->data = realloc_s(vec->data, vec->capacity * item_size);
+    }
+}
 
 // To suppress sizeof warning
 #define _VECTOR_ITEM_SIZE(vec) \
-    sizeof((vec).data[0]) /* NOLINT(bugprone-sizeof-expression) */
+    sizeof((vec)->data[0]) /* NOLINT(bugprone-sizeof-expression) */
+
+#define vector_reserve(vec, n) \
+    _vector_reserve((_Vector*)(vec), (n), _VECTOR_ITEM_SIZE(vec));
 
 // Use __VA_ARGS__ so we can pass in compound literal
-#define vector_push(vec, ...)                                        \
-    do {                                                             \
-        _vector_make_room((_Vector*)&(vec), _VECTOR_ITEM_SIZE(vec)); \
-        (vec).data[(vec).size++] = (__VA_ARGS__);                    \
+#define vector_push(vec, ...)                                          \
+    do {                                                               \
+        _vector_make_room((_Vector*)(vec), 1, _VECTOR_ITEM_SIZE(vec)); \
+        (vec)->data[(vec)->size++] = (__VA_ARGS__);                    \
     } while (0)
 
-#define vector_pop(vec) ((vec).data[--(vec).size])
-
-#define vector_insert(vec, index, ...)                               \
-    do {                                                             \
-        if ((index) > (vec).size)                                    \
-            break;                                                   \
-        _vector_make_room((_Vector*)&(vec), _VECTOR_ITEM_SIZE(vec)); \
-        memmove(&(vec).data[(index) + 1], &(vec).data[index],        \
-                _VECTOR_ITEM_SIZE(vec) * ((vec).size - (index)));    \
-        (vec).data[index] = (__VA_ARGS__);                           \
-        (vec).size++;                                                \
+#define vector_pushall(vec, arr, n)                                    \
+    do {                                                               \
+        _vector_make_room((_Vector*)(vec), n, _VECTOR_ITEM_SIZE(vec)); \
+        memcpy(&(vec)->data[(vec)->size], (arr),                       \
+               (n) * _VECTOR_ITEM_SIZE(vec));                          \
+        (vec)->size += n;                                              \
     } while (0)
 
-#define vector_erase(vec, index)                                          \
+#define vector_pop(vec) ((vec)->data[--(vec)->size])
+
+#define vector_insert(vec, index, ...)                                 \
+    do {                                                               \
+        if ((index) > (vec)->size)                                     \
+            break;                                                     \
+        _vector_make_room((_Vector*)(vec), 1, _VECTOR_ITEM_SIZE(vec)); \
+        memmove(&(vec)->data[(index) + 1], &(vec)->data[index],        \
+                _VECTOR_ITEM_SIZE(vec) * ((vec)->size - (index)));     \
+        (vec)->data[index] = (__VA_ARGS__);                            \
+        (vec)->size++;                                                 \
+    } while (0)
+
+#define vector_erase(vec, index)                                           \
+    do {                                                                   \
+        if ((index) < (vec)->size) {                                       \
+            memmove(&(vec)->data[index], &(vec)->data[(index) + 1],        \
+                    _VECTOR_ITEM_SIZE(vec) * ((vec)->size - (index) - 1)); \
+            (vec)->size--;                                                 \
+        }                                                                  \
+    } while (0)
+
+#define vector_shrink(vec)                                                \
     do {                                                                  \
-        if ((index) < (vec).size) {                                       \
-            memmove(&(vec).data[index], &(vec).data[(index) + 1],         \
-                    _VECTOR_ITEM_SIZE(vec) * ((vec).size - (index) - 1)); \
-            (vec).size--;                                                 \
-        }                                                                 \
-    } while (0)
-
-#define vector_shrink(vec)                                              \
-    do {                                                                \
-        (vec).data =                                                    \
-            realloc_s((vec).data, _VECTOR_ITEM_SIZE(vec) * (vec).size); \
-        (vec).capacity = (vec).size;                                    \
+        (vec)->data =                                                     \
+            realloc_s((vec)->data, _VECTOR_ITEM_SIZE(vec) * (vec)->size); \
+        (vec)->capacity = (vec)->size;                                    \
     } while (0)
 
 #define vector_clear(vec) \
     do {                  \
-        (vec).size = 0;   \
+        (vec)->size = 0;  \
     } while (0)
 
-#define vector_free(vec)    \
-    do {                    \
-        free((vec).data);   \
-        (vec).data = NULL;  \
-        (vec).size = 0;     \
-        (vec).capacity = 0; \
+#define vector_free(vec)     \
+    do {                     \
+        free((vec)->data);   \
+        (vec)->data = NULL;  \
+        (vec)->size = 0;     \
+        (vec)->capacity = 0; \
     } while (0)
 
 // Str
-typedef struct Str {
-    char* data;
-    int size;
-} Str;
+typedef VECTOR(char) Str;
+
+typedef struct StrView {
+    size_t size;
+    const char* data;
+} StrView;
+
+static inline StrView sv(const char* c_str) {
+    return (StrView){
+        .size = strlen(c_str),
+        .data = c_str,
+    };
+}
+
+static inline StrView strToSV(Str s) {
+    return (StrView){
+        .size = s.size,
+        .data = s.data,
+    };
+}
+
+static inline void strAppend(Str* s, StrView sv) {
+    vector_pushall(s, sv.data, sv.size);
+}
 
 // Abuf
 typedef struct {
@@ -96,10 +144,7 @@ typedef struct {
 } abuf;
 
 #define ABUF_GROWTH_RATE 1.5f
-#define ABUF_INIT  \
-    (abuf) {       \
-        NULL, 0, 0 \
-    }
+#define ABUF_INIT (abuf){NULL, 0, 0}
 
 void abufAppendN(abuf* ab, const char* s, size_t n);
 #define abufAppendStr(ab, s) abufAppendN((ab), (s), strlen(s))

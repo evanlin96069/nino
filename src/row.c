@@ -59,7 +59,7 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
 
 void editorFreeRow(EditorRow* row) {
     free(row->data);
-    vector_free(row->hl_spans);
+    vector_free(&row->hl_spans);
 }
 
 void editorDelRow(EditorFile* file, int at) {

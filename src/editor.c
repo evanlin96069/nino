@@ -85,7 +85,7 @@ void editorFree(void) {
     }
 #endif
 
-    vector_free(gEditor.recent_splits);
+    vector_free(&gEditor.recent_splits);
     editorFreeClipboardContent(&gEditor.clipboard);
     editorFreeHLDB();
     editorUnregisterCommands();

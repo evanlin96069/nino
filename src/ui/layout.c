@@ -32,7 +32,7 @@ bool layoutAppendChild(LayoutNode* parent, LayoutNode* child) {
         return false;
 
     child->parent = parent;
-    vector_push(parent->children, child);
+    vector_push(&parent->children, child);
     return true;
 }
 
@@ -43,7 +43,7 @@ bool layoutInsertChild(LayoutNode* parent, uint32_t index, LayoutNode* child) {
         return false;
 
     child->parent = parent;
-    vector_insert(parent->children, index, child);
+    vector_insert(&parent->children, index, child);
     return true;
 }
 
@@ -253,7 +253,7 @@ void layoutCompute(LayoutNode* node, Rect available, VecSeparator* separators) {
             }
 
             if (separators)
-                vector_push(*separators, sep);
+                vector_push(separators, sep);
             offset++;
         }
     }
@@ -290,7 +290,7 @@ void layoutFree(LayoutNode* node) {
         for (uint32_t i = 0; i < node->children.size; i++) {
             layoutFree(node->children.data[i]);
         }
-        vector_free(node->children);
+        vector_free(&node->children);
     }
     free(node);
 }
@@ -369,7 +369,7 @@ static void layoutRemoveEx(LayoutNode** root, LayoutNode* node, bool detach) {
 
     for (uint32_t i = 0; i < parent->children.size; i++) {
         if (parent->children.data[i] == node) {
-            vector_erase(parent->children, i);
+            vector_erase(&parent->children, i);
             if (!detach) {
                 layoutFree(node);
             }

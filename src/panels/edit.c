@@ -41,7 +41,7 @@ static void destroy(Panel* self) {
     for (uint32_t i = 0; i < p->tabs.size; i++) {
         editorRemoveFile(p->tabs.data[i].file_index);
     }
-    vector_free(p->tabs);
+    vector_free(&p->tabs);
 }
 
 static void getTabName(const EditorTab* tab, char* out_name, size_t out_size) {
@@ -469,13 +469,13 @@ static int editorSplitRecentListGetIndex(EditPanel* split) {
 }
 
 static void editorSplitRecentListAdd(EditPanel* split) {
-    vector_push(gEditor.recent_splits, split);
+    vector_push(&gEditor.recent_splits, split);
 }
 
 static void editorSplitRecentListRemove(EditPanel* split) {
     int index = editorSplitRecentListGetIndex(split);
     if (index >= 0) {
-        vector_erase(gEditor.recent_splits, (uint32_t)index);
+        vector_erase(&gEditor.recent_splits, (uint32_t)index);
     }
 }
 
@@ -2163,7 +2163,7 @@ int editorAddTab(EditPanel* split, int file_index) {
     }
     file->reference_count++;
 
-    vector_push(split->tabs, tab);
+    vector_push(&split->tabs, tab);
 
     int index = split->tabs.size - 1;
     editorChangeToFile(split, index);
@@ -2182,7 +2182,7 @@ static void editorRemoveTab(EditPanel* split, int tab_index) {
     int file_index = split->tabs.data[tab_index].file_index;
     editorRemoveFile(file_index);
 
-    vector_erase(split->tabs, (uint32_t)tab_index);
+    vector_erase(&split->tabs, (uint32_t)tab_index);
 }
 
 void editorCloseTab(EditPanel* split, int tab_index) {

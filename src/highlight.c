@@ -28,7 +28,7 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
         r->trailing_spaces = editorRowCountTrailingSpaces(r);
 
     if (!syntax.int_value || !s) {
-        vector_clear(r->hl_spans);
+        vector_clear(&r->hl_spans);
         r->hl_updated = !lazy;
         return 1;
     }
@@ -49,7 +49,7 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
     while (do_next_row && row_index < file->num_rows) {
         EditorRow* row = &file->row[row_index];
 
-        vector_clear(row->hl_spans);
+        vector_clear(&row->hl_spans);
         row->hl_updated = !lazy;
 
         do_next_row = false;
@@ -87,11 +87,11 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                     if (i > row->size)
                         i = row->size;
 
-                    vector_push(row->hl_spans, (EditorHLSpan){
-                                                   .start = start,
-                                                   .len = i - start,
-                                                   .type = HL_COMMENT,
-                                               });
+                    vector_push(&row->hl_spans, (EditorHLSpan){
+                                                    .start = start,
+                                                    .len = i - start,
+                                                    .type = HL_COMMENT,
+                                                });
                     continue;
                 }
             }
@@ -106,11 +106,11 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                 if (i + scs_len <= row->size &&
                     strncmp(&row->data[i], scs, scs_len) == 0) {
                     // Mark entire line as comment
-                    vector_push(row->hl_spans, (EditorHLSpan){
-                                                   .start = i,
-                                                   .len = row->size - i,
-                                                   .type = HL_COMMENT,
-                                               });
+                    vector_push(&row->hl_spans, (EditorHLSpan){
+                                                    .start = i,
+                                                    .len = row->size - i,
+                                                    .type = HL_COMMENT,
+                                                });
                     break;
                 }
             }
@@ -132,11 +132,11 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                     if (i > row->size)
                         i = row->size;
 
-                    vector_push(row->hl_spans, (EditorHLSpan){
-                                                   .start = start,
-                                                   .len = i - start,
-                                                   .type = HL_STRING,
-                                               });
+                    vector_push(&row->hl_spans, (EditorHLSpan){
+                                                    .start = start,
+                                                    .len = i - start,
+                                                    .type = HL_STRING,
+                                                });
                     prev_sep = true;
                     continue;
                 }
@@ -265,11 +265,11 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                     if (state == NP_ACCEPT &&
                         (i == row->size || isSeparator(row->data[i]) ||
                          isSpace(row->data[i]))) {
-                        vector_push(row->hl_spans, (EditorHLSpan){
-                                                       .start = start,
-                                                       .len = i - start,
-                                                       .type = HL_NUMBER,
-                                                   });
+                        vector_push(&row->hl_spans, (EditorHLSpan){
+                                                        .start = start,
+                                                        .len = i - start,
+                                                        .type = HL_NUMBER,
+                                                    });
                     }
                     prev_sep = false;
                     continue;
@@ -289,11 +289,12 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                             (i + klen == row->size ||
                              isNonIdentifierChar(row->data[i + klen]))) {
                             found_keyword = true;
-                            vector_push(row->hl_spans, (EditorHLSpan){
-                                                           .start = i,
-                                                           .len = klen,
-                                                           .type = keyword_type,
-                                                       });
+                            vector_push(&row->hl_spans,
+                                        (EditorHLSpan){
+                                            .start = i,
+                                            .len = klen,
+                                            .type = keyword_type,
+                                        });
                             i += klen;
                             break;
                         }
@@ -413,8 +414,8 @@ static void loadEditorConfigHLDB(void) {
     EditorSyntax* syntax_def = calloc_s(1, sizeof(EditorSyntax));
 
     syntax_def->file_type = EDITOR_NAME;
-    vector_push(syntax_def->file_exts, EDITOR_RC_FILE);
-    vector_push(syntax_def->file_exts, EDITOR_CONFIG_EXT);
+    vector_push(&syntax_def->file_exts, EDITOR_RC_FILE);
+    vector_push(&syntax_def->file_exts, EDITOR_CONFIG_EXT);
     syntax_def->singleline_comment_start = "#";
     syntax_def->multiline_comment_start = NULL;
     syntax_def->multiline_comment_end = NULL;
@@ -422,13 +423,14 @@ static void loadEditorConfigHLDB(void) {
     // Add commands
     ConCommandBase* curr = gEditor.cvars;
     while (curr) {
-        vector_push(syntax_def->keywords[curr->is_command ? 0 : 1], curr->name);
+        vector_push(&syntax_def->keywords[curr->is_command ? 0 : 1],
+                    curr->name);
         curr = curr->next;
     }
 
     // Add color labels
     for (int i = 0; i < UI_COLOR_COUNT; i++) {
-        vector_push(syntax_def->keywords[2], color_element_map[i].label);
+        vector_push(&syntax_def->keywords[2], color_element_map[i].label);
     }
 
     syntax_def->flags = HL_HIGHLIGHT_STRINGS;
@@ -466,9 +468,9 @@ static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax_def) {
         for (size_t i = 0; i < extensions->array->size; i++) {
             JsonValue* item = extensions->array->data[i];
             CHECK(item->type == JSON_STRING && *item->string != '\0');
-            vector_push(syntax_def->file_exts, item->string);
+            vector_push(&syntax_def->file_exts, item->string);
         }
-        vector_shrink(syntax_def->file_exts);
+        vector_shrink(&syntax_def->file_exts);
     }
 
     // Comment is optional
@@ -504,10 +506,10 @@ static bool editorLoadJsonHLDB(const char* json, EditorSyntax* syntax_def) {
             for (size_t j = 0; j < keywords->array->size; j++) {
                 JsonValue* item = keywords->array->data[j];
                 CHECK(item->type == JSON_STRING && *item->string != '\0');
-                vector_push(syntax_def->keywords[i], item->string);
+                vector_push(&syntax_def->keywords[i], item->string);
             }
         }
-        vector_shrink(syntax_def->keywords[i]);
+        vector_shrink(&syntax_def->keywords[i]);
     }
 
 #undef CHECK
@@ -572,10 +574,10 @@ void editorFreeHLDB(void) {
     while (HLDB) {
         EditorSyntax* temp = HLDB;
         HLDB = HLDB->next;
-        vector_free(temp->file_exts);
+        vector_free(&temp->file_exts);
         for (size_t i = 0;
              i < sizeof(temp->keywords) / sizeof(temp->keywords[0]); i++) {
-            vector_free(temp->keywords[i]);
+            vector_free(&temp->keywords[i]);
         }
         free(temp);
     }
