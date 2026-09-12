@@ -39,7 +39,7 @@ void editorExplorerOpenDir(const char* path);
 // Load opened but not loaded nodes
 void editorExplorerRefresh(void);
 // Reload all opened nodes
-void editorExplorerReload(void);
+void editorExplorerReload(bool force);
 
 void editorExplorerSetSide(bool left);
 

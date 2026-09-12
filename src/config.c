@@ -117,7 +117,7 @@ static void cvarSyntaxCallback(void) {
 }
 
 static void cvarExplorerReloadCallback(void) {
-    editorExplorerReload();
+    editorExplorerReload(true);
 }
 
 static void cvarExplorerLeftCallback(void) {
@@ -424,7 +424,7 @@ CON_COMMAND(reload, "Reload the current file from disk.") {
 }
 
 CON_COMMAND(ex_reload, "Reload the explorer.") {
-    editorExplorerReload();
+    editorExplorerReload(true);
 }
 
 int editorGetDefaultNewline(void) {

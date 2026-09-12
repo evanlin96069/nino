@@ -351,13 +351,13 @@ static void editorExplorerInsertNode(VecEditorExplorerNode* nodes,
     vector_insert(*nodes, i, child);
 }
 
-static bool editorExplorerRescanNode(EditorExplorerNode* node) {
+static bool editorExplorerRescanNode(EditorExplorerNode* node, bool force) {
     if (!node->is_directory)
         return false;
 
     FileInfo info = getFileInfo(node->filename);
     if (node->loaded) {
-        if (!isFileModified(info, node->info)) {
+        if (!force && !isFileModified(info, node->info)) {
             return true;
         }
     } else {
@@ -429,7 +429,7 @@ static bool editorExplorerRescanNode(EditorExplorerNode* node) {
     return true;
 }
 
-static void editorExplorerFlattenNode(EditorExplorerNode* node, bool reload) {
+static void editorExplorerFlattenNode(EditorExplorerNode* node, bool reload, bool force) {
     if (!node)
         return;
 
@@ -438,25 +438,25 @@ static void editorExplorerFlattenNode(EditorExplorerNode* node, bool reload) {
 
     if (node->is_directory && node->is_open) {
         if (reload || !node->loaded) {
-            node->loaded = editorExplorerRescanNode(node);
+            node->loaded = editorExplorerRescanNode(node, force);
         }
 
         for (size_t i = 0; i < node->dir_nodes.size; i++) {
-            editorExplorerFlattenNode(node->dir_nodes.data[i], reload);
+            editorExplorerFlattenNode(node->dir_nodes.data[i], reload, force);
         }
 
         for (size_t i = 0; i < node->file_nodes.size; i++) {
-            editorExplorerFlattenNode(node->file_nodes.data[i], reload);
+            editorExplorerFlattenNode(node->file_nodes.data[i], reload, force);
         }
     }
 }
 
 void editorExplorerRefresh(void) {
     vector_clear(gEditor.explorer_panel->flatten);
-    editorExplorerFlattenNode(gEditor.explorer_panel->node, false);
+    editorExplorerFlattenNode(gEditor.explorer_panel->node, false, false);
 }
 
-void editorExplorerReload(void) {
+void editorExplorerReload(bool force) {
     ExplorerPanel* p = gEditor.explorer_panel;
     if (!p->node)
         return;
@@ -468,7 +468,7 @@ void editorExplorerReload(void) {
     }
 
     vector_clear(gEditor.explorer_panel->flatten);
-    editorExplorerFlattenNode(gEditor.explorer_panel->node, true);
+    editorExplorerFlattenNode(gEditor.explorer_panel->node, true, force);
 
     int new_index = -1;
     if (selected_path[0]) {

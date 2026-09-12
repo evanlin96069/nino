@@ -230,7 +230,7 @@ static void editorProcessEvent(Event event, uint64_t timestamp_ms) {
                     editorReloadFile(i, false);
                 }
             }
-            editorExplorerReload();
+            editorExplorerReload(false);
             break;
 
         default:

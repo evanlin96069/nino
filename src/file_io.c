@@ -234,7 +234,7 @@ bool editorSave(EditorFile* file, const char* path) {
     }
 
     // Reload so new created file will show
-    editorExplorerReload();
+    editorExplorerReload(false);
 
     return true;
 }
