@@ -2,7 +2,7 @@
 set -eu
 
 : "${EDITOR_NAME:=nino}"
-: "${EDITOR_VERSION:=0.1.0}"
+: "${EDITOR_VERSION:=0.2.0}"
 : "${OUTPUT:=$EDITOR_NAME}"
 : "${HOST_CC:=cc}"
 : "${CC:=cc}"

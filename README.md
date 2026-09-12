@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/evanlin96069/nino/actions/workflows/build.yml/badge.svg)](https://github.com/evanlin96069/nino/actions?query=branch%3Amaster)
 
-![screenshot](docs/img/nino_v0.1.0.png)
+![screenshot](docs/img/nino_v0.2.0.png)
 
 My personal text editor.
 
@@ -30,7 +30,7 @@ This project uses CMake for building. Follow these steps to build the project:
 
 ### Prerequisites
 
-- CMake (minimum required version, e.g., 3.15)
+- CMake (minimum required version 3.15)
 - A suitable C compiler (GCC, Clang, MSVC, etc.)
 
 ### Cloning the Repository
