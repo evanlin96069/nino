@@ -1,6 +1,6 @@
-#include "ui/surface.h"
+#include "surface.h"
 
-#include "unicode.h"
+#include "utils/unicode.h"
 
 void surfaceInit(Surface* s, int w, int h) {
     s->w = w;

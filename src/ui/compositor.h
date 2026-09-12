@@ -1,9 +1,9 @@
 #ifndef UI_COMPOSITOR_H
 #define UI_COMPOSITOR_H
 
-#include "terminal.h"
+#include "backend/shared/event.h"
 
-#include "ui/layout.h"
+#include "layout.h"
 
 #define UI_MOUSE_DOUBLE_CLICK_TIME 500  // ms
 

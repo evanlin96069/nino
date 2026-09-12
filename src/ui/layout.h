@@ -1,9 +1,9 @@
 #ifndef UI_LAYOUT_H
 #define UI_LAYOUT_H
 
-#include "utils.h"
+#include "surface.h"
 
-#include "ui/surface.h"
+#include "utils/utils.h"
 
 typedef struct Panel Panel;
 

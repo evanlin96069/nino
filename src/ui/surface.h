@@ -1,9 +1,9 @@
 #ifndef UI_SURFACE_H
 #define UI_SURFACE_H
 
-#include "utils.h"
+#include "rect.h"
 
-#include "ui/rect.h"
+#include "utils/utils.h"
 
 #define MAX_CLUSTER_SIZE 8  // Good enough
 typedef struct Grapheme {
@@ -43,6 +43,34 @@ static inline Surface surfaceSub(Surface s, Rect rect) {
         .h = rect.h,
         .stride = s.stride,
     };
+}
+
+static inline bool styleEql(const ScreenStyle* a, const ScreenStyle* b) {
+    return colorEql(a->fg, b->fg) && colorEql(a->bg, b->bg);
+}
+
+static inline bool graphemeEql(const Grapheme* a, const Grapheme* b) {
+    if (a->size != b->size)
+        return false;
+
+    for (int i = 0; i < a->size; i++) {
+        if (a->cluster[i] != b->cluster[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static inline bool cellEql(const ScreenCell* a, const ScreenCell* b) {
+    if (a->continuation != b->continuation)
+        return false;
+    if (a->continuation)
+        return true;
+
+    if (!graphemeEql(&a->grapheme, &b->grapheme))
+        return false;
+
+    return styleEql(&a->style, &b->style);
 }
 
 // Screen cell

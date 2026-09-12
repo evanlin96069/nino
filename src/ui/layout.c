@@ -1,6 +1,6 @@
-#include "ui/layout.h"
+#include "layout.h"
 
-#include "ui/panel.h"
+#include "panel.h"
 
 LayoutNode* layoutNodeCreate(LayoutNodeKind kind) {
     LayoutNode* result = calloc_s(1, sizeof(LayoutNode));

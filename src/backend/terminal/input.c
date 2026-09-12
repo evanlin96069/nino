@@ -1,0 +1,438 @@
+#include "terminal.h"
+
+#include "editor/config.h"
+#include "editor/editor.h"
+
+#include "utils/os.h"
+#include "utils/unicode.h"
+#include "utils/utils.h"
+
+#include "os.h"
+
+typedef struct {
+    const char* str;
+    int value;
+} StrIntPair;
+
+static const StrIntPair sequence_lookup[] = {
+    {"[1~", KEYVAL(KEY_HOME)},
+    {"[2~", KEYVAL(KEY_INSERT)},
+    {"[3~", KEYVAL(KEY_DELETE)},
+    {"[4~", KEYVAL(KEY_END)},
+    {"[5~", KEYVAL(KEY_PAGE_UP)},
+    {"[6~", KEYVAL(KEY_PAGE_DOWN)},
+    {"[7~", KEYVAL(KEY_HOME)},
+    {"[8~", KEYVAL(KEY_END)},
+
+    {"[A", KEYVAL(KEY_UP)},
+    {"[B", KEYVAL(KEY_DOWN)},
+    {"[C", KEYVAL(KEY_RIGHT)},
+    {"[D", KEYVAL(KEY_LEFT)},
+    {"[F", KEYVAL(KEY_END)},
+    {"[H", KEYVAL(KEY_HOME)},
+    {"[Z", KEYVAL(KEY_BACK_TAB)},
+
+    /*
+      Code     Modifiers
+    ---------+---------------------------
+       2     | Shift
+       3     | Alt
+       4     | Shift + Alt
+       5     | Control
+       6     | Shift + Control
+       7     | Alt + Control
+       8     | Shift + Alt + Control
+       9     | Meta
+       10    | Meta + Shift
+       11    | Meta + Alt
+       12    | Meta + Alt + Shift
+       13    | Meta + Ctrl
+       14    | Meta + Ctrl + Shift
+       15    | Meta + Ctrl + Alt
+       16    | Meta + Ctrl + Alt + Shift
+    ---------+---------------------------
+    */
+
+    // Shift
+    {"[1;2A", KEYVAL(KEY_MOD_SHIFT, KEY_UP)},
+    {"[1;2B", KEYVAL(KEY_MOD_SHIFT, KEY_DOWN)},
+    {"[1;2C", KEYVAL(KEY_MOD_SHIFT, KEY_RIGHT)},
+    {"[1;2D", KEYVAL(KEY_MOD_SHIFT, KEY_LEFT)},
+    {"[1;2F", KEYVAL(KEY_MOD_SHIFT, KEY_END)},
+    {"[1;2H", KEYVAL(KEY_MOD_SHIFT, KEY_HOME)},
+
+    // Alt
+    {"[1;3A", KEYVAL(KEY_MOD_ALT, KEY_UP)},
+    {"[1;3B", KEYVAL(KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;3C", KEYVAL(KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;3D", KEYVAL(KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;3F", KEYVAL(KEY_MOD_ALT, KEY_END)},
+    {"[1;3H", KEYVAL(KEY_MOD_ALT, KEY_HOME)},
+
+    // Shift+Alt
+    {"[1;4A", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_UP)},
+    {"[1;4B", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;4C", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;4D", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;4F", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_END)},
+    {"[1;4H", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_ALT, KEY_HOME)},
+
+    // Ctrl
+    {"[1;5A", KEYVAL(KEY_MOD_CTRL, KEY_UP)},
+    {"[1;5B", KEYVAL(KEY_MOD_CTRL, KEY_DOWN)},
+    {"[1;5C", KEYVAL(KEY_MOD_CTRL, KEY_RIGHT)},
+    {"[1;5D", KEYVAL(KEY_MOD_CTRL, KEY_LEFT)},
+    {"[1;5F", KEYVAL(KEY_MOD_CTRL, KEY_END)},
+    {"[1;5H", KEYVAL(KEY_MOD_CTRL, KEY_HOME)},
+
+    // Shift+Ctrl
+    {"[1;6A", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_UP)},
+    {"[1;6B", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_DOWN)},
+    {"[1;6C", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_RIGHT)},
+    {"[1;6D", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_LEFT)},
+    {"[1;6F", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_END)},
+    {"[1;6H", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_HOME)},
+
+    // Alt+Ctrl
+    {"[1;7A", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_UP)},
+    {"[1;7B", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_DOWN)},
+    {"[1;7C", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_RIGHT)},
+    {"[1;7D", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_LEFT)},
+    {"[1;7F", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_END)},
+    {"[1;7H", KEYVAL(KEY_MOD_CTRL | KEY_MOD_ALT, KEY_HOME)},
+
+    // Page UP / Page Down
+    {"[5;2~", KEYVAL(KEY_MOD_SHIFT, KEY_PAGE_UP)},
+    {"[6;2~", KEYVAL(KEY_MOD_SHIFT, KEY_PAGE_DOWN)},
+    {"[5;5~", KEYVAL(KEY_MOD_CTRL, KEY_PAGE_UP)},
+    {"[6;5~", KEYVAL(KEY_MOD_CTRL, KEY_PAGE_DOWN)},
+    {"[5;6~", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_UP)},
+    {"[6;6~", KEYVAL(KEY_MOD_SHIFT | KEY_MOD_CTRL, KEY_PAGE_DOWN)},
+};
+
+static bool parseMouseSGR(const char* seq,
+                          int* Cb,
+                          int* Cx,
+                          int* Cy,
+                          char* fin) {
+    if (*seq != '<')
+        return false;
+    seq++;
+
+    // Cb
+    *Cb = atoi(seq);
+    while (*seq && *seq != ';')
+        seq++;
+    if (*seq++ != ';')
+        return false;
+
+    // Cx
+    *Cx = atoi(seq);
+    while (*seq && *seq != ';')
+        seq++;
+    if (*seq++ != ';')
+        return false;
+
+    // Cy
+    *Cy = atoi(seq);
+    while (*seq && isDigit(*seq))
+        seq++;
+
+    if (*seq != 'M' && *seq != 'm')
+        return false;
+    *fin = *seq;
+
+    return true;
+}
+
+static bool has_pending_resize = false;
+static ConsoleResizeEvent pending_resize = {0, 0};
+
+// Reads a raw key. Skips resize events.
+static ConsoleEventType readConsoleKey(uint32_t* out, int timeout_ms) {
+    while (true) {
+        ConsoleEvent ev = readConsoleEvent(timeout_ms);
+        switch (ev.type) {
+            case CONSOLE_EVENT_KEY:
+                *out = ev.data.unicode;
+                return CONSOLE_EVENT_KEY;
+
+            case CONSOLE_EVENT_RESIZE:
+                has_pending_resize = true;
+                pending_resize = ev.data.resize;
+                break;
+
+            default:
+                return ev.type;
+        }
+    }
+}
+
+// ANSII escape sequences parsing.
+static Event terminalEventPoll(int timeout_ms) {
+    Event result = {.type = EVENT_ERROR};
+    ConsoleEvent ev;
+    uint32_t c;
+
+    if (has_pending_resize) {
+        has_pending_resize = false;
+        ev.type = CONSOLE_EVENT_RESIZE;
+        ev.data.resize = pending_resize;
+    } else {
+        ev = readConsoleEvent(timeout_ms);
+    }
+
+    switch (ev.type) {
+        case CONSOLE_EVENT_ERROR:
+            result.type = EVENT_ERROR;
+            return result;
+
+        case CONSOLE_EVENT_TIMEOUT:
+            result.type = EVENT_TIMEOUT;
+            return result;
+
+        case CONSOLE_EVENT_KEY:
+            c = ev.data.unicode;
+            break;
+
+        case CONSOLE_EVENT_RESIZE:
+            result.type = EVENT_RESIZE;
+            result.resize = ev.data.resize;
+            return result;
+
+        default:
+            result.type = EVENT_ERROR;
+            return result;
+    }
+
+    int timeout = ttimeoutlen.int_value;
+
+    // CONSOLE_EVENT_KEY
+    if (c == '\x1b') {  // ESC
+        result.type = EVENT_KEY;
+        result.key.value = KEYVAL(KEY_ESC);
+
+        char seq[16] = {0};
+        bool success = false;
+        if (readConsoleKey(&c, timeout) < 0) {
+            return result;
+        }
+        seq[0] = (char)c;
+
+        if (seq[0] != '[') {
+            // TODO: This is not always ALT
+            result.key.value = KEYVAL(KEY_MOD_ALT, KEY_CHAR, seq[0]);
+            return result;
+        }
+
+        for (size_t i = 1; i < sizeof(seq) - 1; i++) {
+            if (readConsoleKey(&c, timeout) < 0) {
+                return result;
+            }
+            seq[i] = (char)c;
+            if (isUpper(seq[i]) || seq[i] == 'm' || seq[i] == '~') {
+                success = true;
+                break;
+            }
+        }
+
+        if (!success) {
+            return result;
+        }
+
+        if (strcmp(seq, "[I") == 0) {
+            result.type = EVENT_FOCUS_GAINED;
+            return result;
+        }
+
+        if (strcmp(seq, "[O") == 0) {
+            result.type = EVENT_FOCUS_LOST;
+            return result;
+        }
+
+        // Bracketed paste
+        if (strcmp(seq, "[200~") == 0) {
+            Str content = {0};
+            while (true) {
+                if (readConsoleKey(&c, timeout) < 0) {
+                    strFree(&content);
+                    return result;
+                }
+
+                if (c == '\x1b') {  // ESC
+                    uint32_t end_seq[5];
+                    const char expected[5] = {'[', '2', '0', '1', '~'};
+                    int expected_len = sizeof(end_seq) / sizeof(end_seq[0]);
+
+                    int index;
+                    for (index = 0; index < expected_len; index++) {
+                        if (readConsoleKey(&end_seq[index], timeout) < 0) {
+                            strFree(&content);
+                            return result;
+                        }
+
+                        if (end_seq[index] != (uint32_t)expected[index]) {
+                            break;
+                        }
+                    }
+
+                    if (index == expected_len) {
+                        result.type = EVENT_PASTE;
+                        result.paste = pasteEventCreate(svFromStr(content));
+                        strFree(&content);
+                        return result;
+                    }
+
+                    // paste the escape sequence so far in
+                    strAppendN(&content, expected, index);
+                    // let the rest of the logic handle the last input
+                    c = end_seq[index];
+                }
+
+                char utf8[4];
+                int bytes = encodeUTF8(c, utf8);
+                if (bytes == -1)
+                    continue;
+                strAppendN(&content, utf8, bytes);
+            }
+        }
+
+        // Mouse input
+        if (seq[1] == '<') {
+            // SGR: ESC [ < Cb ; Cx ; Cy (M|m)
+            int Cb, Cx, Cy;
+            char fin;
+            if (!parseMouseSGR(&seq[1], &Cb, &Cx, &Cy, &fin)) {
+                return result;
+            }
+
+            MouseEvent mouse_event = {
+                .x = Cx - 1,
+                .y = Cy - 1,
+            };
+
+            int btn = Cb & 0x03;  // 0=L, 1=M, 2=R
+            bool motion = (Cb & 0x20) != 0;
+            bool wheel = (Cb & 0x40) != 0;
+            bool press = (fin == 'M');
+            bool rel = (fin == 'm');
+
+            if (wheel) {
+                if ((Cb & 0x41) == 0x40) {
+                    mouse_event.type = MWHEEL_UP;
+                } else if ((Cb & 0x41) == 0x41) {
+                    mouse_event.type = MWHEEL_DOWN;
+                } else {
+                    return result;
+                }
+            } else if (motion) {
+                switch (btn) {
+                    case 0:
+                        mouse_event.type = MOUSE1_DRAG;
+                        break;
+                    case 1:
+                        mouse_event.type = MOUSE3_DRAG;
+                        break;
+                    case 2:
+                        mouse_event.type = MOUSE2_DRAG;
+                        break;
+                    default:
+                        return result;
+                }
+            } else if (press) {
+                switch (btn) {
+                    case 0:
+                        mouse_event.type = MOUSE1_PRESSED;
+                        break;
+                    case 1:
+                        mouse_event.type = MOUSE3_PRESSED;
+                        break;
+                    case 2:
+                        mouse_event.type = MOUSE2_PRESSED;
+                        break;
+                    default:
+                        return result;
+                }
+            } else if (rel) {
+                switch (btn) {
+                    case 0:
+                        mouse_event.type = MOUSE1_RELEASED;
+                        break;
+                    case 1:
+                        mouse_event.type = MOUSE3_RELEASED;
+                        break;
+                    case 2:
+                        mouse_event.type = MOUSE2_RELEASED;
+                        break;
+                    default:
+                        return result;
+                }
+            }
+
+            result.type = EVENT_MOUSE;
+            result.mouse = mouse_event;
+            return result;
+        }
+
+        for (size_t i = 0;
+             i < sizeof(sequence_lookup) / sizeof(sequence_lookup[0]); i++) {
+            if (strcmp(sequence_lookup[i].str, seq) == 0) {
+                result.type = EVENT_KEY;
+                result.key.value = sequence_lookup[i].value;
+                return result;
+            }
+        }
+        return result;
+    }
+
+    result.type = EVENT_KEY;
+
+    if (c == '\r') {
+        result.key.value = KEYVAL(KEY_ENTER);
+        return result;
+    }
+
+    if (c == '\t') {
+        result.key.value = KEYVAL(KEY_TAB);
+        return result;
+    }
+
+    if (c == 127) {
+        result.key.value = KEYVAL(KEY_BACKSPACE);
+        return result;
+    }
+
+    if (c < 32) {
+        result.key.value = KEYVAL(KEY_MOD_CTRL, KEY_CHAR, c + 0x40);
+        return result;
+    }
+
+    result.key.value = KEYVAL(KEY_TEXT);
+    result.key.unicode = c;
+    return result;
+}
+
+void terminalProcessInput(void) {
+    Event event = terminalEventPoll(READ_WAIT_INFINITE);
+    uint64_t curr_time = getTimeMs();
+
+    int frame_time = fps_max.int_value ? 1000 / fps_max.int_value : 0;
+    uint64_t next_frame = curr_time + frame_time;
+
+    editorProcessEvent(event, curr_time);
+    if (event.type == EVENT_PASTE) {
+        pasteEventFree(&event.paste);
+    }
+
+    while (curr_time < next_frame) {
+        int remain_time = next_frame - curr_time;
+
+        event = terminalEventPoll(remain_time);
+        curr_time = getTimeMs();
+
+        editorProcessEvent(event, curr_time);
+        if (event.type == EVENT_PASTE) {
+            pasteEventFree(&event.paste);
+        }
+    }
+}

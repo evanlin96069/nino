@@ -1,8 +1,8 @@
-#include "ui/compositor.h"
+#include "compositor.h"
 
-#include "ui/layout.h"
-#include "ui/panel.h"
-#include "ui/surface.h"
+#include "layout.h"
+#include "panel.h"
+#include "surface.h"
 
 void uiFree(UI* ui) {
     layoutFree(ui->root);

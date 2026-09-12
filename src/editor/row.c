@@ -1,0 +1,262 @@
+#include "row.h"
+
+#include "editor.h"
+
+#include "utils/unicode.h"
+#include "utils/utils.h"
+
+static inline bool ensureCapacity(size_t capacity,
+                                  size_t size,
+                                  size_t* new_capacity) {
+    if (capacity >= size)
+        return false;
+
+    *new_capacity = capacity ? capacity : 8;
+    while (*new_capacity < size) {
+        if (*new_capacity < 1024) {
+            (*new_capacity) *= 2;
+        } else {
+            (*new_capacity) += (*new_capacity) / 2;
+        }
+    }
+    return true;
+}
+
+void editorRowEnsureCapacity(EditorRow* row, size_t size) {
+    size_t new_capacity;
+    if (!ensureCapacity(row->capacity, size, &new_capacity))
+        return;
+
+    row->data = realloc_s(row->data, new_capacity);
+    row->capacity = new_capacity;
+}
+
+void editorUpdateRow(EditorFile* file, EditorRow* row) {
+    row->rsize = editorRowCxToRx(row, row->size);
+    if (file) {
+        // When doing prompt editing, file can be NULL.
+        editorUpdateSyntax(file, row, HL_UPDATE_LAZY);
+    }
+}
+
+void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
+    if (at < 0 || at > file->num_rows)
+        return;
+
+    size_t new_capacity;
+    if (ensureCapacity(file->row_capacity, file->num_rows + 1, &new_capacity)) {
+        file->row = realloc_s(file->row, sizeof(EditorRow) * new_capacity);
+    }
+
+    memmove(&file->row[at + 1], &file->row[at],
+            sizeof(EditorRow) * (file->num_rows - at));
+    memset(&file->row[at], 0, sizeof(EditorRow));
+
+    file->num_rows++;
+    file->lineno_width = getDigit(file->num_rows) + 2;
+
+    editorRowAppendString(file, &file->row[at], s, len);
+}
+
+void editorFreeRow(EditorRow* row) {
+    free(row->data);
+    vector_free(&row->hl_spans);
+}
+
+void editorDelRow(EditorFile* file, int at) {
+    if (at < 0 || at >= file->num_rows)
+        return;
+    editorFreeRow(&file->row[at]);
+    memmove(&file->row[at], &file->row[at + 1],
+            sizeof(EditorRow) * (file->num_rows - at - 1));
+
+    file->num_rows--;
+    file->lineno_width = getDigit(file->num_rows) + 2;
+
+    if (at < file->num_rows) {
+        editorUpdateRow(file, &file->row[at]);
+    }
+}
+
+void editorRowInsertChar(EditorFile* file, EditorRow* row, int at, int c) {
+    if (at < 0 || at > row->size)
+        return;
+    editorRowEnsureCapacity(row, row->size + 1);
+    memmove(&row->data[at + 1], &row->data[at], row->size - at);
+    row->size++;
+    row->data[at] = c;
+    editorUpdateRow(file, row);
+}
+
+void editorRowDelChar(EditorFile* file, EditorRow* row, int at) {
+    if (at < 0 || at >= row->size)
+        return;
+    memmove(&row->data[at], &row->data[at + 1], row->size - at - 1);
+    row->size--;
+    editorUpdateRow(file, row);
+}
+
+void editorRowDeleteRange(EditorFile* file, EditorRow* row, int from, int to) {
+    if (from < 0)
+        from = 0;
+    if (to > row->size)
+        to = row->size;
+    if (from >= to)
+        return;
+    int len = to - from;
+    memmove(&row->data[from], &row->data[to], row->size - to);
+    row->size -= len;
+    editorUpdateRow(file, row);
+}
+
+void editorRowAppendString(EditorFile* file,
+                           EditorRow* row,
+                           const char* s,
+                           size_t len) {
+    editorRowEnsureCapacity(row, row->size + len);
+    if (len > 0)
+        memcpy(&row->data[row->size], s, len);
+    row->size += len;
+    editorUpdateRow(file, row);
+}
+
+void editorRowInsertString(EditorFile* file,
+                           EditorRow* row,
+                           int at,
+                           const char* s,
+                           size_t len) {
+    if (at < 0 || at > row->size)
+        return;
+
+    editorRowEnsureCapacity(row, row->size + len);
+    if (row->size - at > 0)
+        memmove(&row->data[at + len], &row->data[at], row->size - at);
+    if (len > 0)
+        memcpy(&row->data[at], s, len);
+    row->size += len;
+    editorUpdateRow(file, row);
+}
+
+void editorRowEnsureNull(EditorRow* row) {
+    if (row->capacity <= (size_t)row->size || row->data[row->size] != '\0') {
+        editorRowEnsureCapacity(row, row->size + 1);
+        row->data[row->size] = '\0';
+    }
+}
+
+int editorRowNextUTF8(const EditorRow* row, int cx) {
+    if (cx < 0)
+        return 0;
+
+    if (cx >= row->size)
+        return row->size;
+
+    const char* s = &row->data[cx];
+    size_t byte_size;
+    decodeUTF8(s, row->size - cx, &byte_size);
+    return cx + byte_size;
+}
+
+int editorRowPreviousUTF8(const EditorRow* row, int cx) {
+    if (cx <= 0)
+        return 0;
+
+    if (cx > row->size)
+        return row->size;
+
+    int i = 0;
+    size_t byte_size = 0;
+    while (i < cx) {
+        decodeUTF8(&row->data[i], row->size - i, &byte_size);
+        i += byte_size;
+    }
+    return i - byte_size;
+}
+
+int editorRowCxToRx(const EditorRow* row, int cx) {
+    int rx = 0;
+    int i = 0;
+    while (i < cx) {
+        size_t byte_size;
+        uint32_t unicode = decodeUTF8(&row->data[i], row->size - i, &byte_size);
+        if (byte_size == 0)
+            break;
+
+        if (unicode == '\t') {
+            int tab_size = tabsize.int_value;
+            rx += (tab_size - 1) - (rx % tab_size) + 1;
+        } else {
+            int width = unicodeWidth(unicode);
+            if (width < 0)
+                width = 1;
+            rx += width;
+        }
+        i += byte_size;
+    }
+    return rx;
+}
+
+int editorRowRxToCx(const EditorRow* row, int rx) {
+    int cur_rx = 0;
+    int cx = 0;
+    while (cx < row->size) {
+        size_t byte_size;
+        uint32_t unicode =
+            decodeUTF8(&row->data[cx], row->size - cx, &byte_size);
+        if (byte_size == 0)
+            break;
+
+        if (unicode == '\t') {
+            int tab_size = tabsize.int_value;
+            cur_rx += (tab_size - 1) - (cur_rx % tab_size) + 1;
+        } else {
+            int width = unicodeWidth(unicode);
+            if (width < 0)
+                width = 1;
+            cur_rx += width;
+        }
+        if (cur_rx > rx)
+            return cx;
+        cx += byte_size;
+    }
+    return cx;
+}
+
+int editorRowNextCharIndex(const EditorRow* row,
+                           int index,
+                           IsCharFunc is_char) {
+    while (index < row->size && !is_char(row->data[index])) {
+        index++;
+    }
+    return index;
+}
+
+int editorRowPrevCharIndex(const EditorRow* row,
+                           int index,
+                           IsCharFunc is_char) {
+    while (index > 0 && !is_char(row->data[index - 1])) {
+        index--;
+    }
+    return index;
+}
+
+int editorRowWordRight(const EditorRow* row, int cx) {
+    cx = editorRowNextCharIndex(row, cx, isIdentifierChar);
+    cx = editorRowNextCharIndex(row, cx, isNonIdentifierChar);
+    return cx;
+}
+
+int editorRowWordLeft(const EditorRow* row, int cx) {
+    cx = editorRowPrevCharIndex(row, cx, isIdentifierChar);
+    cx = editorRowPrevCharIndex(row, cx, isNonIdentifierChar);
+    return cx;
+}
+
+void editorRowSelectWord(const EditorRow* row,
+                         int cx,
+                         IsCharFunc is_char,
+                         int* select_start,
+                         int* select_end) {
+    *select_start = editorRowPrevCharIndex(row, cx, is_char);
+    *select_end = editorRowNextCharIndex(row, cx, is_char);
+}

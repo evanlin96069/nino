@@ -1,10 +1,10 @@
 #ifndef UI_PANEL_H
 #define UI_PANEL_H
 
-#include "terminal.h"
+#include "compositor.h"
+#include "surface.h"
 
-#include "ui/compositor.h"
-#include "ui/surface.h"
+#include "backend/shared/event.h"
 
 typedef struct LayoutNode LayoutNode;
 typedef struct Panel Panel;

@@ -19,7 +19,6 @@ SCRIPT_DIR=$(
 )
 PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
 RESOURCE_DIR="$PROJECT_ROOT/resources"
-SRC_DIR="$PROJECT_ROOT/src"
 BUILD_DIR="$PROJECT_ROOT/build"
 
 # Add include directories
@@ -43,22 +42,42 @@ fi
 
 "$BUILD_DIR/bundler" "$RESOURCE_DIR/bundle.h" $SYNTAX_FILES
 
-SOURCES=""
-for f in "$SRC_DIR"/**/*.c "$SRC_DIR"/*.c ; do
-    [ -f "$f" ] || continue
-    case "$(basename "$f")" in
-    os_win32.c) continue ;;
-    esac
-    SOURCES="$SOURCES $f"
-
-done
+SOURCES="\
+    src/editor/action.c
+    src/editor/buildnum.c
+    src/editor/config.c
+    src/editor/console.c
+    src/editor/editor.c
+    src/editor/file_io.c
+    src/editor/highlight.c
+    src/editor/row.c
+    src/editor/search.c
+    src/editor/select.c
+    src/editor/panels/edit.c
+    src/editor/panels/explorer.c
+    src/editor/panels/prompt.c
+    src/editor/panels/welcome.c
+    src/ui/compositor.c
+    src/ui/layout.c
+    src/ui/surface.c
+    src/utils/json.c
+    src/utils/unicode.c
+    src/utils/utils.c
+    src/backend/shared/event.c
+    src/backend/shared/frame_differ.c
+    src/backend/terminal/main.c
+    src/backend/terminal/input.c
+    src/backend/terminal/output.c
+    src/backend/terminal/terminal.c
+    src/utils/os_unix.c
+    src/backend/terminal/os_unix.c"
 
 printf '%s\n' "[3/3] Building $OUTPUT..."
 $CC $CFLAGS \
-    -include "$SRC_DIR/common.h" \
+    -include "$PROJECT_ROOT/src/common.h" \
     -DEDITOR_NAME="\"$EDITOR_NAME\"" \
     -DEDITOR_VERSION="\"$EDITOR_VERSION\"" \
-    $SOURCES \
+    `for s in $SOURCES; do echo "$PROJECT_ROOT/$s"; done` \
     -o "$BUILD_DIR/$OUTPUT"
 
 printf '%s\n' "Done: $BUILD_DIR/$OUTPUT"

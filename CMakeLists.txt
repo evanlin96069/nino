@@ -39,14 +39,38 @@ else()
 endif()
 
 set (CORE_SOURCES
-    src/panels/edit.c
-    src/panels/edit.h
-    src/panels/explorer.c
-    src/panels/explorer.h
-    src/panels/prompt.c
-    src/panels/prompt.h
-    src/panels/welcome.c
-    src/panels/welcome.h
+    src/common.h
+
+    src/editor/action.c
+    src/editor/action.h
+    src/editor/buildnum.c
+    src/editor/buildnum.h
+    src/editor/config.c
+    src/editor/config.h
+    src/editor/console.c
+    src/editor/console.h
+    src/editor/editor.c
+    src/editor/editor.h
+    src/editor/file_io.c
+    src/editor/file_io.h
+    src/editor/highlight.c
+    src/editor/highlight.h
+    src/editor/row.c
+    src/editor/row.h
+    src/editor/search.c
+    src/editor/search.h
+    src/editor/select.c
+    src/editor/select.h
+
+    src/editor/panels/edit.c
+    src/editor/panels/edit.h
+    src/editor/panels/explorer.c
+    src/editor/panels/explorer.h
+    src/editor/panels/prompt.c
+    src/editor/panels/prompt.h
+    src/editor/panels/welcome.c
+    src/editor/panels/welcome.h
+
     src/ui/compositor.c
     src/ui/compositor.h
     src/ui/layout.c
@@ -55,53 +79,41 @@ set (CORE_SOURCES
     src/ui/rect.h
     src/ui/surface.c
     src/ui/surface.h
-    src/action.c
-    src/action.h
-    src/buildnum.c
-    src/buildnum.h
-    src/config.c
-    src/config.h
-    src/console.c
-    src/console.h
-    src/common.h
-    src/editor.c
-    src/editor.h
-    src/file_io.c
-    src/file_io.h
-    src/highlight.c
-    src/highlight.h
-    src/input.c
-    src/input.h
-    src/json.c
-    src/json.h
-    src/nino.c
-    src/opt.h
-    src/os.h
-    src/output.c
-    src/output.h
-    src/row.c
-    src/row.h
-    src/search.c
-    src/search.h
-    src/select.c
-    src/select.h
-    src/terminal.c
-    src/terminal.h
-    src/unicode.c
-    src/unicode.h
-    src/utils.c
-    src/utils.h
+
+    src/utils/json.c
+    src/utils/json.h
+    src/utils/opt.h
+    src/utils/os.h
+    src/utils/unicode.c
+    src/utils/unicode.h
+    src/utils/utils.c
+    src/utils/utils.h
+
+    src/backend/platform.h
+    src/backend/shared/event.c
+    src/backend/shared/event.h
+    src/backend/shared/frame_differ.c
+    src/backend/shared/frame_differ.h
+    src/backend/terminal/main.c
+    src/backend/terminal/input.c
+    src/backend/terminal/output.c
+    src/backend/terminal/terminal.c
+    src/backend/terminal/terminal.h
 )
 
 if (WIN32)
   list(APPEND CORE_SOURCES
-        src/os_win32.c
-        src/os_win32.h
+        src/utils/os_win32.c
+        src/utils/os_win32.h
+
+        src/backend/terminal/os_win32.c
     )
 else()
   list(APPEND CORE_SOURCES
-        src/os_unix.c
-        src/os_unix.h
+        src/utils/os_unix.c
+        src/utils/os_unix.h
+
+        src/backend/terminal/os_unix.c
     )
 endif()
 
@@ -110,7 +122,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/sr
 
 add_custom_target(file_toucher
     COMMAND ${CMAKE_COMMAND} -E touch_nocreate
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/buildnum.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/editor/buildnum.c
 )
 
 add_dependencies(${PROJECT_NAME} file_toucher)

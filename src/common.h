@@ -15,8 +15,8 @@
 #define UNUSED(x) (void)(x)
 
 // Panic
-#define PANIC(s) panic(__FILE__, __LINE__, s)
-void panic(const char* file, int line, const char* s);
+#define PANIC(s) platformPanic(__FILE__, __LINE__, s)
+extern void platformPanic(const char* file, int line, const char* s);
 
 // Allocate
 #define malloc_s(size) _malloc_s(__FILE__, __LINE__, size)
