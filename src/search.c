@@ -310,6 +310,7 @@ static void findCallback(PromptEvent event, void* user_data) {
     tab->cursor.is_selected = false;
     tab->cursor.select_x = tab->cursor.x;
     tab->cursor.select_y = tab->cursor.y;
+    editorUpdateSx(tab);
     editorScrollToCursorCenter(gEditor.active_edit_panel);
 
     tab->has_match = true;
@@ -371,6 +372,7 @@ static void gotoCallback(PromptEvent event, void* user_data) {
         tab->cursor.is_selected = false;
         tab->cursor.select_x = tab->cursor.x;
         tab->cursor.select_y = tab->cursor.y;
+        editorUpdateSx(tab);
         editorScrollToCursorCenter(split);
     } else {
         editorMsg("Type a line number between 1 to %d (negative too).",
