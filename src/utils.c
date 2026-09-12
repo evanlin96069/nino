@@ -287,8 +287,9 @@ char* getBaseName(char* path) {
 char* getDirName(char* path) {
     char* name = getBaseName(path);
     if (name == path) {
-        name = path;
-        *name = '.';
+        if (!isPathSeparator(*name)) {
+            *name = '.';
+        }
         name++;
     } else {
         path--;
