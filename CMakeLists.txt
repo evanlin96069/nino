@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(nino VERSION 0.2.0 LANGUAGES C)
+project(nino VERSION 0.2.1 LANGUAGES C)
 
 include(GNUInstallDirs)
 
