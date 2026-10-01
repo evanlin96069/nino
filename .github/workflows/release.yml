@@ -21,7 +21,7 @@ jobs:
       - name: Upload Linux x86_64 Binary
         uses: actions/upload-artifact@v7
         with:
-          name: nino-linux-x86_64
+          name: nino-x86_64-linux
           path: build/nino
 
   release-linux-x86:
@@ -41,7 +41,7 @@ jobs:
       - name: Upload Linux x86 Binary
         uses: actions/upload-artifact@v7
         with:
-          name: nino-linux-x86
+          name: nino-x86-linux
           path: build/nino
 
   release-linux-aarch64:
@@ -67,7 +67,7 @@ jobs:
       - name: Upload Linux aarch64 Binary
         uses: actions/upload-artifact@v7
         with:
-          name: nino-linux-aarch64
+          name: nino-aarch64-linux
           path: build/nino
 
   release-windows:
@@ -85,5 +85,5 @@ jobs:
       - name: Upload Windows Binary
         uses: actions/upload-artifact@v7
         with:
-          name: nino-windows-x86_64
+          name: nino-x86_64-windows
           path: build/Release/nino.exe
