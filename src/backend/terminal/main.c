@@ -138,10 +138,6 @@ int main(int argc, char* argv[]) {
     argsFree(argc_utf8, argv_utf8);
 
     // Setup panel states
-    if (gEditor.explorer_panel->node) {
-        uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.explorer_panel, true);
-    }
-
     if (gEditor.file_count == 0) {
         if (start_new_file.int_value && !gEditor.explorer_panel->node) {
             editorNewUntitledFile(&file);

@@ -1,0 +1,57 @@
+:root {
+    color-scheme: dark;
+    --editor-bg: #171a1f;
+    --editor-fg: #d9dee7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--editor-bg);
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    color: var(--editor-fg);
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+#editor-container {
+    position: relative;
+}
+
+#editor {
+    display: block;
+}
+
+#cursor {
+    position: absolute;
+    pointer-events: none;
+
+    background: white;
+
+    animation: cursor-blink 1s steps(1, end) infinite;
+}
+
+@keyframes cursor-blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+#keyboard {
+    position: fixed;
+    left: -1000px;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}

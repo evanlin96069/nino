@@ -953,6 +953,7 @@ static void keyEvent(Panel* self, KeyEvent event) {
         } break;
 
         // Split top bottom
+        case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, '0'):  // For web backend
         case KEYVAL(KEY_MOD_CTRL, KEY_CHAR, '_'): {
             EditPanel* new_split = editorAddSplit(p, false);
             editorAddTab(new_split, editorSplitGetTab(p)->file_index);

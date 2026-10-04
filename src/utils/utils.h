@@ -158,7 +158,7 @@ static inline Str strCopy(StrView sv) {
 
 // Color
 
-typedef enum ANSI16Color {
+typedef enum ColorANSI16 {
     ANSI16_BLACK = 0,
     ANSI16_RED,
     ANSI16_GREEN,
@@ -177,7 +177,7 @@ typedef enum ANSI16Color {
     ANSI16_BRIGHT_WHITE,
 
     ANSI16_COUNT,
-} ANSI16Color;
+} ColorANSI16;
 
 typedef struct {
     const char* name;
@@ -185,6 +185,13 @@ typedef struct {
 } ColorStrIntPair;
 
 extern const ColorStrIntPair str_color_map[ANSI16_COUNT];
+
+typedef union ColorRGBA {
+    struct {
+        uint8_t r, g, b, a;
+    };
+    uint32_t value;
+} ColorRGBA;
 
 typedef enum ColorKind {
     COLOR_DEFAULT,
@@ -221,6 +228,7 @@ static inline bool colorEql(Color a, Color b) {
 
 bool strToColor(const char* s, Color* out);
 int colorToStr(Color color, char buf[16]);
+ColorRGBA colorToRGBA(Color color);
 
 // File
 char* getBaseName(char* path);

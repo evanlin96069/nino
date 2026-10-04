@@ -84,12 +84,6 @@ static void updateStyle(Str* s,
     }
 }
 
-static Grapheme grapheme_space = {
-    .cluster = {[0] = ' '},
-    .size = 1,
-    .width = 1,
-};
-
 static void drawCallback(void* ctx,
                          int x,
                          int y,
@@ -104,9 +98,8 @@ static void drawCallback(void* ctx,
 
     gotoXY(s, y + 1, x + 1);
 
-    int index = 0;
-    while (index < length) {
-        const ScreenCell* cell = &cells[index];
+    for (int i = 0; i < length; i++) {
+        const ScreenCell* cell = &cells[i];
         Grapheme grapheme = cell->grapheme;
 
         updateStyle(s, old_style, &cell->style);
@@ -115,7 +108,8 @@ static void drawCallback(void* ctx,
         if (cell->continuation || grapheme.size == 0 || grapheme.width == 0) {
             // These are not supposed to happen
             // Default to white space
-            grapheme = grapheme_space;
+            strPush(s, ' ');
+            continue;
         }
 
         char output[4];
@@ -132,15 +126,14 @@ static void drawCallback(void* ctx,
         bool canDraw = true;
         int offset = 1;
         while (offset < grapheme.width) {
-            if (index + offset >= length ||
-                !cells[index + offset].continuation) {
+            if (i + offset >= length || !cells[i + offset].continuation) {
                 canDraw = false;
                 break;
             }
             offset++;
         }
 
-        index += offset;
+        i += offset - 1;
 
         if (!canDraw) {
             // Draw spaces until filling the character width we can draw
@@ -149,8 +142,8 @@ static void drawCallback(void* ctx,
             }
         } else {
             strAppendN(s, output, (size_t)utf8_len);
-            for (int i = 1; i < grapheme.size; i++) {
-                utf8_len = encodeUTF8(grapheme.cluster[i], output);
+            for (int j = 1; j < grapheme.size; i++) {
+                utf8_len = encodeUTF8(grapheme.cluster[j], output);
                 if (utf8_len != -1) {
                     strAppendN(s, output, (size_t)utf8_len);
                 }

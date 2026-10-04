@@ -176,6 +176,55 @@ int colorToStr(Color color, char buf[16]) {
     return 0;
 }
 
+ColorRGBA colorToRGBA(Color color) {
+    const uint32_t ansi16[ANSI16_COUNT] = {
+        [ANSI16_BLACK] = 0x000000ff,
+        [ANSI16_RED] = 0xcd3131ff,
+        [ANSI16_GREEN] = 0x0dbc79ff,
+        [ANSI16_YELLOW] = 0xe5e510ff,
+        [ANSI16_BLUE] = 0x2472c8ff,
+        [ANSI16_MAGENTA] = 0xbc3fbcff,
+        [ANSI16_CYAN] = 0x11a8cdff,
+        [ANSI16_WHITE] = 0xe5e5e5ff,
+        [ANSI16_GRAY] = 0x666666ff,
+        [ANSI16_BRIGHT_RED] = 0xf14c4cff,
+        [ANSI16_BRIGHT_GREEN] = 0x23d18bff,
+        [ANSI16_BRIGHT_YELLOW] = 0xf5f543ff,
+        [ANSI16_BRIGHT_BLUE] = 0x3b8eeaff,
+        [ANSI16_BRIGHT_MAGENTA] = 0xd670d6ff,
+        [ANSI16_BRIGHT_CYAN] = 0x29b8dbff,
+        [ANSI16_BRIGHT_WHITE] = 0xffffffff,
+    };
+
+    switch (color.kind) {
+        case COLOR_ANSI16:
+        case COLOR_256:
+            if (color.index < ANSI16_COUNT)
+                return (ColorRGBA){.value = ansi16[color.index]};
+            if (color.index < 232) {
+                // 6x6x6 cube
+                int value = color.index - ANSI16_COUNT;
+                const int levels[6] = {0, 95, 135, 175, 215, 255};
+                return (ColorRGBA){
+                    .r = levels[value / 36],
+                    .g = levels[(value / 6) % 6],
+                    .b = levels[value % 6],
+                    .a = 255,
+                };
+            } else {
+                // grayscale
+                int gray = 8 + (color.index - 232) * 10;
+                return (ColorRGBA){.r = gray, .g = gray, .b = gray, .a = 255};
+            }
+        case COLOR_RGB:
+            return (ColorRGBA){
+                .r = color.r, .g = color.g, .b = color.b, .a = 255};
+        default:
+            // transparent
+            return (ColorRGBA){.value = 0};
+    }
+}
+
 char* getBaseName(char* path) {
     char* file = path + strlen(path);
     while (file > path) {

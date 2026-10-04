@@ -259,6 +259,8 @@ void uiClosePanel(UI* ui, Panel* panel) {
 void uiPanelSetEnabled(UI* ui, Panel* panel, bool enabled) {
     if (!panel || !panel->layout)
         return;
+    if (panel->layout->enabled == enabled)
+        return;
     panel->layout->enabled = enabled;
     layoutUpdate(ui->root);
 }

@@ -3,6 +3,8 @@
 #include "editor/console.h"
 #include "editor/editor.h"
 
+#include "utils/os.h"
+
 #include "edit.h"
 
 #define EXPLORER_SCROLL_STEP 3
@@ -336,6 +338,9 @@ void editorExplorerOpenDir(const char* path) {
 
     p->offset = 0;
     p->selected_index = 0;
+
+    uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.explorer_panel, true);
+    changeDir(path);
 }
 
 // Insert in dictionary order

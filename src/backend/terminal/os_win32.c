@@ -231,7 +231,7 @@ int getWindowSize(int* rows, int* cols) {
 }
 
 void platformSuspend(void) {
-    // Not supported on Windows
+    editorMsg("Suspend is unavailable on Windows.");
 }
 
 void platformRunShell(const char* shell_hint, const char* cmd) {

@@ -130,7 +130,6 @@ EditorOpenStatus editorLoadFile(EditorFile* file,
 
         case FT_DIR:
             editorExplorerOpenDir(path);
-            changeDir(path);
             return OPEN_DIR;
 
         case FT_ACCESS_DENIED:
@@ -435,9 +434,6 @@ static void fileOpenCallback(PromptEvent event, void* user_data) {
         } else if (result == OPEN_OPENED) {
             // TODO: focus the tab that has the file opened
         } else if (result == OPEN_DIR) {
-            if (!panelIsEnabled((Panel*)gEditor.explorer_panel))
-                uiPanelSetEnabled(&gEditor.ui, (Panel*)gEditor.explorer_panel,
-                                  true);
             uiPanelSetFocused(&gEditor.ui, (Panel*)gEditor.explorer_panel);
         }
         editorHelpRestoreMsg();

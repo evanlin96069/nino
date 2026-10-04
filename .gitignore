@@ -3,6 +3,7 @@ resources/bundle.h
 
 # Common build directories
 /build*/
+/dist/
 
 # MacOS Finder files.
 .DS_Store
