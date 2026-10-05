@@ -11,42 +11,52 @@ const LINE_HEIGHT = 20;
 const FONT = `${FONT_SIZE}px monospace`;
 
 ctx.font = FONT;
-ctx.textBaseline = "top";
+ctx.textBaseline = "alphabetic";
 
-const cellWidth = ctx.measureText("M").width;
+const cellWidth = Math.round(ctx.measureText("M").width * (window.devicePixelRatio || 1)) / (window.devicePixelRatio || 1);
 const cellHeight = LINE_HEIGHT;
+
+const metrics = ctx.measureText("M");
+const fontAscent = metrics.fontBoundingBoxAscent ?? FONT_SIZE * 0.8;
+const fontDescent = metrics.fontBoundingBoxDescent ?? FONT_SIZE * 0.2;
+const baselineOffset = Math.round(
+    (cellHeight - (fontAscent + fontDescent)) / 2 + fontAscent
+);
 
 function resizeCanvas(columns, rows) {
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(columns * cellWidth * dpr);
-    canvas.height = Math.floor(rows * cellHeight * dpr);
-    canvas.style.width = `${columns * cellWidth}px`;
-    canvas.style.height = `${rows * cellHeight}px`;
+    canvas.width = Math.round(columns * cellWidth * dpr);
+    canvas.height = Math.round(rows * cellHeight * dpr);
+    canvas.style.width = `${canvas.width / dpr}px`;
+    canvas.style.height = `${canvas.height / dpr}px`;
     canvas.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
 
     ctx.font = FONT;
-    ctx.textBaseline = "top";
+    ctx.textBaseline = "alphabetic";
+}
+
+function snap(v) {
+    const dpr = window.devicePixelRatio || 1;
+    return Math.round(v * dpr) / dpr;
 }
 
 function drawBackground(x, y, width, r, g, b, a) {
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-    ctx.fillRect(
-        x * cellWidth,
-        y * cellHeight,
-        width * cellWidth,
-        cellHeight
-    );
+    const left = snap(x * cellWidth);
+    const right = snap((x + width) * cellWidth);
+    const top = snap(y * cellHeight);
+    const bottom = snap((y + 1) * cellHeight);
+
+    ctx.fillRect(left, top, right - left, bottom - top);
 }
 
-function drawText(x, y, text, r, g, b, a) {
+function drawGrapheme(x, y, grapheme, r, g, b, a) {
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-    ctx.fillText(
-        text,
-        x * cellWidth,
-        y * cellHeight
-    );
+    const canvasY = y * cellHeight + baselineOffset;
+    const canvasX = x * cellWidth;
+    ctx.fillText(grapheme, canvasX, canvasY);
 }
 
 const cursor = document.getElementById("cursor");

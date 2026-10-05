@@ -12,9 +12,9 @@
 // clang-format off
 
 EM_JS(void,
-      webDrawText,
-      (int x, int y, const char* text, int r, int g, int b, int a), {
-    drawText(x, y, UTF8ToString(text), r, g, b, a);
+      webDrawGrapheme,
+      (int x, int y, const char* grapheme, int r, int g, int b, int a), {
+    drawGrapheme(x, y, UTF8ToString(grapheme), r, g, b, a);
 })
 
 EM_JS(void,
@@ -56,27 +56,14 @@ static void drawCallback(void* ctx,
                       curr_color.g, curr_color.b, curr_color.a);
 
     // Draw text
-    curr_color = colorToRGBA(cells[0].style.fg);
-    curr_start_i = 0;
-    Str text_buf = {0};
     for (int i = 0; i < length; i++) {
         ColorRGBA fg = colorToRGBA(cells[i].style.fg);
-        if (i > 0 && fg.value != curr_color.value) {
-            strPush(&text_buf, '\0');
-            webDrawText(x + curr_start_i, y, text_buf.data, curr_color.r,
-                        curr_color.g, curr_color.b, curr_color.a);
-            curr_color = fg;
-            curr_start_i = i;
-            strClear(&text_buf);
-        }
-
         const ScreenCell* cell = &cells[i];
         Grapheme grapheme = cell->grapheme;
 
         if (cell->continuation || grapheme.size == 0 || grapheme.width == 0) {
             // These are not supposed to happen
-            // Default to white space
-            strPush(&text_buf, ' ');
+            // Leave the cells blank (background only)
             continue;
         }
 
@@ -101,27 +88,25 @@ static void drawCallback(void* ctx,
             offset++;
         }
 
+        int start = i;
         i += offset - 1;
 
-        if (!canDraw) {
-            // Draw spaces until filling the character width we can draw
-            for (int j = 0; j < offset; j++) {
-                strPush(&text_buf, ' ');
-            }
-        } else {
-            strAppendN(&text_buf, output, (size_t)utf8_len);
+        // If it doesn't fit, leave the cells blank (background only)
+        if (canDraw) {
+            Str grapheme_str = {0};
+            strAppendN(&grapheme_str, output, (size_t)utf8_len);
             for (int j = 1; j < grapheme.size; j++) {
                 utf8_len = encodeUTF8(grapheme.cluster[j], output);
                 if (utf8_len != -1) {
-                    strAppendN(&text_buf, output, (size_t)utf8_len);
+                    strAppendN(&grapheme_str, output, (size_t)utf8_len);
                 }
             }
+            strPush(&grapheme_str, '\0');
+            webDrawGrapheme(x + start, y, grapheme_str.data, fg.r, fg.g, fg.b,
+                            fg.a);
+            strFree(&grapheme_str);
         }
     }
-    strPush(&text_buf, '\0');
-    webDrawText(x + curr_start_i, y, text_buf.data, curr_color.r, curr_color.g,
-                curr_color.b, curr_color.a);
-    strFree(&text_buf);
 }
 
 static FrameDiffer frame_differ;
