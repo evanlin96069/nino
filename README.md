@@ -4,7 +4,10 @@
 
 ![screenshot](docs/img/nino_v0.2.0.png)
 
+>ℹ️ Try the [web demo](https://evanl.in/nino-editor)
+
 My personal text editor.
+
 
 Inspired by [kilo](https://github.com/antirez/kilo)
 and [snaptoken's Build Your Own Text Editor tutorial](https://viewsourcecode.org/snaptoken/kilo/).
