@@ -542,9 +542,8 @@ CON_COMMAND(run, "Run a shell command.") {
             strPush(&cmd, ' ');
         strAppend(&cmd, svFromCStr(args.argv[i]));
     }
-    strPush(&cmd, '\0');
 
-    platformRunShell(shell.string_value, cmd.data);
+    platformRunShell(shell.string_value, strGetCStr(&cmd));
 
     strFree(&cmd);
 }

@@ -156,6 +156,12 @@ static inline Str strCopy(StrView sv) {
     return s;
 }
 
+static inline const char* strGetCStr(Str* s) {
+    _vector_make_room((_Vector*)s, 1, sizeof(char));
+    s->data[s->size] = '\0';
+    return s->data;
+}
+
 // Color
 
 typedef enum ColorANSI16 {
