@@ -378,7 +378,7 @@ static void layoutRemoveEx(LayoutNode** root, LayoutNode* node, bool detach) {
     }
 
     // If parent has only one child left, promote the child
-    if (parent->children.size == 1) {
+    if (!detach && parent->children.size == 1) {
         LayoutNode* child = parent->children.data[0];
         child->parent = parent->parent;
         if (!parent->parent) {
