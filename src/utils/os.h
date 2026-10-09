@@ -1,6 +1,8 @@
 #ifndef OS_H
 #define OS_H
 
+#include "utils/utils.h"
+
 // Terminal
 #define READ_WAIT_INFINITE (-1)
 #define READ_GRACE_MS 10
@@ -58,8 +60,7 @@ int64_t getTimeMs(void);
 const char* getEnv(const char* name);
 
 // Command line
-void argsInit(int* argc, char*** argv);
-void argsFree(int argc, char** argv);
+VecStr getUTF8Args(int argc, char** argv);
 
 // Error
 void formatOsError(OsError err, char* buf, size_t len);

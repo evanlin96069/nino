@@ -115,6 +115,7 @@ static inline void _vector_make_room(_Vector* vec, size_t n, size_t item_size) {
 
 // Str
 typedef VECTOR(char) Str;
+typedef VECTOR(Str) VecStr;
 
 typedef struct StrView {
     size_t size;
@@ -128,11 +129,23 @@ static inline StrView svFromCStr(const char* c_str) {
     };
 }
 
-static inline StrView svFromStr(const Str s) {
+static inline StrView svFromStr(Str s) {
     return (StrView){
         .size = s.size,
         .data = s.data,
     };
+}
+
+static inline bool svEql(StrView s1, StrView s2) {
+    if (s1.size != s2.size)
+        return false;
+    if (s1.data == s2.data)
+        return true;
+    for (size_t i = 0; i < s1.size; i++) {
+        if (s1.data[i] != s2.data[i])
+            return false;
+    }
+    return true;
 }
 
 #define strReserve vector_reserve
@@ -154,6 +167,15 @@ static inline Str strCopy(StrView sv) {
     Str s = {0};
     strAppend(&s, sv);
     return s;
+}
+
+static inline Str strFromOwnedCStr(char* c_str) {
+    size_t len = strlen(c_str);
+    return (Str){
+        .size = len,
+        .data = c_str,
+        .capacity = len + 1,
+    };
 }
 
 static inline const char* strGetCStr(Str* s) {

@@ -14,13 +14,6 @@
 #include "os.h"
 #include "terminal.h"
 
-static char* copyArg(const char* arg) {
-    size_t len = strlen(arg) + 1;
-    char* copy = malloc_s(len);
-    memcpy(copy, arg, len);
-    return copy;
-}
-
 static void usage(void) {
     printf("Usage: " EDITOR_NAME " [options] [file...]\n");
     printf("Options:\n");
@@ -31,47 +24,64 @@ static void usage(void) {
     printf("  -h           Print this help message and exit\n");
 }
 
+static void unknownArg(int flag) {
+    fprintf(stderr, EDITOR_NAME ": unknown argument: -%c\n", flag);
+    fprintf(stderr, "More info with: " EDITOR_NAME " -h\n");
+    exit(1);
+}
+
+static void missingArg(int flag) {
+    fprintf(stderr, EDITOR_NAME ": argument to '-%c' is missing\n", flag);
+    fprintf(stderr, "More info with: " EDITOR_NAME " -h\n");
+    exit(1);
+}
+
 int main(int argc, char* argv[]) {
     bool readonly_mode = false;
-    char* config_path = NULL;
-    // TODO: Change this to VECTOR(Str)
-    size_t startup_cmd_count = 0;
-    char** startup_cmds = NULL;
+    const char* config_path = NULL;
+    VECTOR(const char*) startup_cmds = {0};
 
-    int argc_utf8 = argc;
-    char** argv_utf8 = argv;
-    argsInit(&argc_utf8, &argv_utf8);
-    argc = argc_utf8;
-    argv = argv_utf8;
-    FOR_OPTS(argc, argv) {
-        case 'c': {
-            const char* command = OPTARG(argc, argv);
-            startup_cmds = realloc_s(startup_cmds,
-                                     sizeof(char*) * (startup_cmd_count + 1));
-            startup_cmds[startup_cmd_count++] = copyArg(command);
-        } break;
+    VecStr utf8_args = getUTF8Args(argc, argv);
+    OptParser parser = optInit(&utf8_args);
 
-        case 'u':
-            free(config_path);
-            config_path = copyArg(OPTARG(argc, argv));
-            break;
+    int flag;
+    while ((flag = optNext(&parser))) {
+        switch (flag) {
+            case 'c': {
+                const char* cmd = optArg(&parser);
+                if (!cmd)
+                    missingArg(flag);
+                vector_push(&startup_cmds, cmd);
+            } break;
 
-        case 'R':
-            readonly_mode = true;
-            break;
+            case 'u':
+                config_path = optArg(&parser);
+                if (!config_path)
+                    missingArg(flag);
+                break;
 
-        // TODO: Free args
-        case 'v':
-            printf("Exe version %s (%s)\n", EDITOR_VERSION, EDITOR_NAME);
-            printf("Exe build: %s %s (%d)\n", editor_build_time,
-                   editor_build_date, editorGetBuildNumber());
-            return 0;
+            case 'R':
+                readonly_mode = true;
+                break;
 
-        case '?':
-        case 'h':
-            usage();
-            return 0;
+            case 'v':
+                printf("Exe version %s (%s)\n", EDITOR_VERSION, EDITOR_NAME);
+                printf("Exe build: %s %s (%d)\n", editor_build_time,
+                       editor_build_date, editorGetBuildNumber());
+                return 0;
+
+            case '?':
+            case 'h':
+                usage();
+                return 0;
+
+            default:
+                unknownArg(flag);
+        }
     }
+
+    size_t file_argc;
+    const Str* file_args = optRemaining(&parser, &file_argc);
 
     editorInit();
 
@@ -83,13 +93,11 @@ int main(int argc, char* argv[]) {
             editorMsg("Failed to load config: %s", config_path);
         }
     }
-    free(config_path);
 
-    for (size_t i = 0; i < startup_cmd_count; i++) {
-        editorCmd(startup_cmds[i]);
-        free(startup_cmds[i]);
+    for (size_t i = 0; i < startup_cmds.size; i++) {
+        editorCmd(startup_cmds.data[i]);
     }
-    free(startup_cmds);
+    vector_free(&startup_cmds);
 
     // Post-config setup
     if (readonly_mode) {
@@ -110,7 +118,8 @@ int main(int argc, char* argv[]) {
     EditorFile file;
     bool stdin_piped = false;
     bool is_tty = isStdinTty();
-    if ((argc == 0 && !is_tty) || (argc == 1 && strcmp(argv[0], "-") == 0)) {
+    if ((file_argc == 0 && !is_tty) ||
+        (file_argc == 1 && svEql(svFromStr(file_args[0]), svFromCStr("-")))) {
         stdin_piped = true;
         if (is_tty) {
             fprintf(stderr, "Reading data from keyboard...\n");
@@ -125,8 +134,12 @@ int main(int argc, char* argv[]) {
     terminalStart();
 
     if (!stdin_piped) {
-        for (int i = 0; i < argc; i++) {
-            EditorOpenStatus result = editorLoadFile(&file, argv[i], false);
+        for (size_t i = 0; i < file_argc; i++) {
+            // TODO: Current strGetCStr is not const and might invalidate data
+            // if re-allocate (this won't actually happen because getUTF8Args
+            // will return null-terminated)
+            EditorOpenStatus result =
+                editorLoadFile(&file, strGetCStr((Str*)&file_args[i]), false);
             if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
                 if (editorAddFileToActiveSplit(&file) == -1) {
                     break;
@@ -135,7 +148,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    argsFree(argc_utf8, argv_utf8);
+    for (size_t i = 0; i < utf8_args.size; i++) {
+        strFree(&utf8_args.data[i]);
+    }
+    vector_free(&utf8_args);
 
     // Setup panel states
     if (gEditor.file_count == 0) {

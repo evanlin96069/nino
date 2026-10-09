@@ -378,26 +378,27 @@ int64_t getTimeMs(void) {
     return GetTickCount64();
 }
 
-void argsInit(int* argc, char*** argv) {
-    LPWSTR* w_argv = CommandLineToArgvW(GetCommandLineW(), argc);
+VecStr getUTF8Args(int argc, char** argv) {
+    UNUSED(argc);
+    UNUSED(argv);
+
+    int w_argc;
+    LPWSTR* w_argv = CommandLineToArgvW(GetCommandLineW(), &w_argc);
+    // TODO: should probably return error instead of panic here
     if (!w_argv)
         PANIC("Failed to parse command line arguments");
 
-    *argv = malloc_s(*argc * sizeof(char*));
-    for (int i = 0; i < *argc; i++) {
+    VecStr args = {0};
+    for (int i = 0; i < w_argc; i++) {
         int size =
             WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, NULL, 0, NULL, NULL);
-        (*argv)[i] = malloc_s(size);
-        WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, (*argv)[i], size, NULL,
-                            NULL);
+        char* buf = malloc_s(size);
+        WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, buf, size, NULL, NULL);
+        vector_push(&args, strFromOwnedCStr(buf));
     }
-}
 
-void argsFree(int argc, char** argv) {
-    for (int i = 0; i < argc; i++) {
-        free(argv[i]);
-    }
-    free(argv);
+    LocalFree(w_argv);
+    return args;
 }
 
 const char* getEnv(const char* name) {

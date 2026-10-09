@@ -82,6 +82,7 @@ set (CORE_SOURCES
 
     src/utils/json.c
     src/utils/json.h
+    src/utils/opt.c
     src/utils/opt.h
     src/utils/os.h
     src/utils/unicode.c
