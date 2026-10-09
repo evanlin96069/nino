@@ -2,7 +2,7 @@
 #define EVENT_H
 
 #include "editor/select.h"
-#include "utils/utils.h"
+#include "utils/str.h"
 
 typedef enum EventType {
     EVENT_ERROR = -2,

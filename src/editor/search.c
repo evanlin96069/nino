@@ -5,6 +5,7 @@
 
 #include "panels/edit.h"
 #include "panels/prompt.h"
+#include "utils/vec.h"
 
 // Find
 
@@ -16,7 +17,7 @@ typedef struct FindPos {
     int row, col;
 } FindPos;
 
-typedef VECTOR(FindPos) VecFindPos;
+typedef Vec(FindPos) VecFindPos;
 
 typedef struct FindCacheEntry {
     char* query;
@@ -37,7 +38,7 @@ typedef struct FindState {
 
 static void findCacheFree(FindCacheEntry* entry) {
     free(entry->query);
-    vector_free(&entry->matches);
+    vecFree(&entry->matches);
 }
 
 static inline bool findStateIsEmpty(FindState* state) {
@@ -212,7 +213,7 @@ static void findCallback(PromptEvent event, void* user_data) {
                             break;
 
                         col = (size_t)match_idx;
-                        vector_push(&cache.matches, (FindPos){
+                        vecPush(&cache.matches, (FindPos){
                                                         .row = i,
                                                         .col = col,
                                                     });
@@ -239,7 +240,7 @@ static void findCallback(PromptEvent event, void* user_data) {
                                 file->row[match.row].data + match.col, query,
                                 ignore_case))
                             continue;
-                        vector_push(&cache.matches, matches->data[i]);
+                        vecPush(&cache.matches, matches->data[i]);
                     }
                 } else {
                     // Same-mode: only verify the suffix after the prefix
@@ -258,7 +259,7 @@ static void findCallback(PromptEvent event, void* user_data) {
                                 search_start, ignore_case))
                             continue;
                         // Push the original pos
-                        vector_push(&cache.matches, matches->data[i]);
+                        vecPush(&cache.matches, matches->data[i]);
                     }
                 }
             }

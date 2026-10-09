@@ -3,12 +3,13 @@
 #include "layout.h"
 #include "panel.h"
 #include "surface.h"
+#include "utils/vec.h"
 
 void uiFree(UI* ui) {
     layoutFree(ui->root);
     ui->root = NULL;
     ui->focused_panel = NULL;
-    vector_free(&ui->separators);
+    vecFree(&ui->separators);
 }
 
 void uiComposite(UI* ui, Surface s, ScreenStyle sep_style) {
@@ -21,7 +22,7 @@ void uiComposite(UI* ui, Surface s, ScreenStyle sep_style) {
         .w = s.w,
         .h = s.h,
     };
-    vector_clear(&ui->separators);
+    vecClear(&ui->separators);
     layoutCompute(ui->root, available, &ui->separators);
     layoutRender(ui->root, s);
 

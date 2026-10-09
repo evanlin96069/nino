@@ -1,7 +1,7 @@
 #ifndef HIGHLIGHT_H
 #define HIGHLIGHT_H
 
-#include "utils/utils.h"
+#include "utils/vec.h"
 
 typedef struct EditorFile EditorFile;
 typedef struct EditorRow EditorRow;
@@ -37,8 +37,8 @@ typedef struct EditorSyntax {
     const char* singleline_comment_start;
     const char* multiline_comment_start;
     const char* multiline_comment_end;
-    VECTOR(const char*) file_exts;
-    VECTOR(const char*) keywords[3];
+    Vec(const char*) file_exts;
+    Vec(const char*) keywords[3];
     uint32_t flags;
 
     struct JsonValue* value;

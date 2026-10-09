@@ -1,7 +1,7 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#include "utils/utils.h"
+#include "utils/str.h"
 
 void platformPanic(const char* file, int line, const char* s);
 

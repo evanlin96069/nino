@@ -3,7 +3,7 @@
 #include "editor/editor.h"
 
 #include "utils/os.h"
-#include "utils/utils.h"
+#include "utils/str.h"
 
 static bool mouse_enabled = true;
 

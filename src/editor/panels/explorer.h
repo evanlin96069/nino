@@ -2,12 +2,12 @@
 #define PANEL_EXPLORER_H
 
 #include "utils/os.h"
-#include "utils/utils.h"
+#include "utils/vec.h"
 
 #include "ui/panel.h"
 
 typedef struct EditorExplorerNode EditorExplorerNode;
-typedef VECTOR(EditorExplorerNode*) VecEditorExplorerNode;
+typedef Vec(EditorExplorerNode*) VecEditorExplorerNode;
 
 struct EditorExplorerNode {
     char* filename;
@@ -30,7 +30,7 @@ typedef struct ExplorerPanel {
     int selected_index;
 
     EditorExplorerNode* node;  // Root node of explorer tree
-    VECTOR(EditorExplorerNode*) flatten;
+    Vec(EditorExplorerNode*) flatten;
 } ExplorerPanel;
 
 ExplorerPanel* panelExplorerCreate(void);

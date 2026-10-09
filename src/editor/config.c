@@ -5,6 +5,7 @@
 #include "editor.h"
 
 #include "utils/os.h"
+#include "utils/str.h"
 
 #include "backend/platform.h"
 

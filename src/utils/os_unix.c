@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "utils/utils.h"
+#include "utils/str.h"
 
 #include "os.h"
 
@@ -283,7 +284,7 @@ int64_t getTimeMs(void) {
 VecStr getUTF8Args(int argc, char** argv) {
     VecStr args = {0};
     for (int i = 0; i < argc; i++) {
-        vector_push(&args, strCopy(svFromCStr(argv[i])));
+        vecPush(&args, strCopy(svFromCStr(argv[i])));
     }
     return args;
 }

@@ -7,6 +7,7 @@
 #include "utils/os.h"
 #include "utils/unicode.h"
 #include "utils/utils.h"
+#include "utils/str.h"
 
 #include "backend/platform.h"
 

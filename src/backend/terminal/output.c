@@ -4,6 +4,7 @@
 
 #include "utils/unicode.h"
 #include "utils/utils.h"
+#include "utils/str.h"
 
 #include "ui/compositor.h"
 #include "ui/surface.h"

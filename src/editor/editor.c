@@ -8,7 +8,7 @@
 
 #include "utils/os.h"
 #include "utils/unicode.h"
-#include "utils/utils.h"
+#include "utils/vec.h"
 
 #include "panels/edit.h"
 #include "panels/explorer.h"
@@ -86,7 +86,7 @@ void editorFree(void) {
     }
 #endif
 
-    vector_free(&gEditor.recent_splits);
+    vecFree(&gEditor.recent_splits);
     editorFreeClipboardContent(&gEditor.clipboard);
     editorFreeHLDB();
     editorUnregisterCommands();

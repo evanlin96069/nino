@@ -4,6 +4,7 @@
 #include "editor/editor.h"
 
 #include "utils/os.h"
+#include "utils/vec.h"
 
 #include "edit.h"
 
@@ -38,7 +39,7 @@ static void destroy(Panel* self) {
     ExplorerPanel* p = (ExplorerPanel*)self;
 
     editorExplorerFreeNode(p->node);
-    vector_free(&p->flatten);
+    vecFree(&p->flatten);
     p->node = NULL;
 }
 
@@ -302,7 +303,7 @@ static inline void editorExplorerFreeNodes(VecEditorExplorerNode* nodes) {
     for (size_t i = 0; i < nodes->size; i++) {
         editorExplorerFreeNode(nodes->data[i]);
     }
-    vector_free(nodes);
+    vecFree(nodes);
 }
 
 static void editorExplorerFreeNode(EditorExplorerNode* node) {
@@ -353,7 +354,7 @@ static void editorExplorerInsertNode(VecEditorExplorerNode* nodes,
         }
     }
 
-    vector_insert(nodes, i, child);
+    vecInsert(nodes, i, child);
 }
 
 static bool editorExplorerRescanNode(EditorExplorerNode* node, bool force) {
@@ -366,15 +367,15 @@ static bool editorExplorerRescanNode(EditorExplorerNode* node, bool force) {
             return true;
         }
     } else {
-        vector_clear(&node->dir_nodes);
-        vector_clear(&node->file_nodes);
+        vecClear(&node->dir_nodes);
+        vecClear(&node->file_nodes);
     }
 
     DirIter iter = dirFindFirst(node->filename);
     if (iter.error) {
         // Dir likely not exist anymore
-        vector_free(&node->dir_nodes);
-        vector_free(&node->file_nodes);
+        vecFree(&node->dir_nodes);
+        vecFree(&node->file_nodes);
         return false;
     }
 
@@ -407,7 +408,7 @@ static bool editorExplorerRescanNode(EditorExplorerNode* node, bool force) {
         for (size_t i = 0; i < old_nodes->size; i++) {
             EditorExplorerNode* curr_node = old_nodes->data[i];
             if (strcmp(curr_node->filename, entry_path) == 0) {
-                vector_erase(old_nodes, i);
+                vecErase(old_nodes, i);
                 child = curr_node;
                 break;
             }
@@ -441,7 +442,7 @@ static void editorExplorerFlattenNode(EditorExplorerNode* node,
         return;
 
     if (node != gEditor.explorer_panel->node)
-        vector_push(&gEditor.explorer_panel->flatten, node);
+        vecPush(&gEditor.explorer_panel->flatten, node);
 
     if (node->is_directory && node->is_open) {
         if (reload || !node->loaded) {
@@ -459,7 +460,7 @@ static void editorExplorerFlattenNode(EditorExplorerNode* node,
 }
 
 void editorExplorerRefresh(void) {
-    vector_clear(&gEditor.explorer_panel->flatten);
+    vecClear(&gEditor.explorer_panel->flatten);
     editorExplorerFlattenNode(gEditor.explorer_panel->node, false, false);
 }
 
@@ -474,7 +475,7 @@ void editorExplorerReload(bool force) {
                  p->flatten.data[p->selected_index]->filename);
     }
 
-    vector_clear(&gEditor.explorer_panel->flatten);
+    vecClear(&gEditor.explorer_panel->flatten);
     editorExplorerFlattenNode(gEditor.explorer_panel->node, true, force);
 
     int new_index = -1;

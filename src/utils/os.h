@@ -1,7 +1,7 @@
 #ifndef OS_H
 #define OS_H
 
-#include "utils/utils.h"
+#include "utils/str.h"
 
 // Terminal
 #define READ_WAIT_INFINITE (-1)

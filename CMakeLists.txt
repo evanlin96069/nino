@@ -85,10 +85,12 @@ set (CORE_SOURCES
     src/utils/opt.c
     src/utils/opt.h
     src/utils/os.h
+    src/utils/str.h
     src/utils/unicode.c
     src/utils/unicode.h
     src/utils/utils.c
     src/utils/utils.h
+    src/utils/vec.h
 
     src/backend/platform.h
     src/backend/shared/event.c

@@ -4,6 +4,7 @@
 
 #include "utils/unicode.h"
 #include "utils/utils.h"
+#include "utils/vec.h"
 
 static inline bool ensureCapacity(size_t capacity,
                                   size_t size,
@@ -60,7 +61,7 @@ void editorInsertRow(EditorFile* file, int at, const char* s, size_t len) {
 
 void editorFreeRow(EditorRow* row) {
     free(row->data);
-    vector_free(&row->hl_spans);
+    vecFree(&row->hl_spans);
 }
 
 void editorDelRow(EditorFile* file, int at) {

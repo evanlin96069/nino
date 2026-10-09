@@ -1,5 +1,7 @@
 #include "web.h"
 
+#include "utils/str.h"
+
 #include "editor/console.h"
 #include "editor/editor.h"
 #include "editor/panels/explorer.h"

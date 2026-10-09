@@ -4,6 +4,7 @@
 
 #include "editor/editor.h"
 #include "utils/unicode.h"
+#include "utils/str.h"
 
 static void destroy(Panel* self);
 static void render(Panel* self, Surface s);

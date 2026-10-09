@@ -5,6 +5,7 @@
 #include "os.h"
 
 #include "utils/utils.h"
+#include "utils/str.h"
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;
@@ -394,7 +395,7 @@ VecStr getUTF8Args(int argc, char** argv) {
             WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, NULL, 0, NULL, NULL);
         char* buf = malloc_s(size);
         WideCharToMultiByte(CP_UTF8, 0, w_argv[i], -1, buf, size, NULL, NULL);
-        vector_push(&args, strFromOwnedCStr(buf));
+        vecPush(&args, strFromOwnedCStr(buf));
     }
 
     LocalFree(w_argv);

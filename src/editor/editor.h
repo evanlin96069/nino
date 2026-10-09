@@ -12,6 +12,7 @@
 #include "backend/shared/event.h"
 
 #include "ui/compositor.h"
+#include "utils/vec.h"
 
 #define EDITOR_FILE_MAX_SLOT 32
 
@@ -91,7 +92,7 @@ typedef struct Editor {
     PromptPanel* prompt_panel;
     EditPanel* active_edit_panel;
     EditPanel* pending_edit_panel;     // EditWaitState
-    VECTOR(EditPanel*) recent_splits;  // from least to most recent
+    Vec(EditPanel*) recent_splits;  // from least to most recent
 
     // Editor mode
     EditorState state;

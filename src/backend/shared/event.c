@@ -1,7 +1,8 @@
 #include "event.h"
+#include "utils/str.h"
 
 PasteEvent pasteEventCreate(StrView content) {
-    VECTOR(Str) lines = {0};
+    Vec(Str) lines = {0};
 
     bool last_was_cr = false;
     StrView line = {0};
@@ -16,7 +17,7 @@ PasteEvent pasteEventCreate(StrView content) {
 
             last_was_cr = (c == '\r');
 
-            vector_push(&lines, strCopy(line));
+            vecPush(&lines, strCopy(line));
             line.size = 0;
             line.data = NULL;
         } else {
@@ -28,10 +29,10 @@ PasteEvent pasteEventCreate(StrView content) {
     }
 
     if (line.size > 0) {
-        vector_push(&lines, strCopy(line));
+        vecPush(&lines, strCopy(line));
     }
 
-    // TODO: Just make EditorClipboard VECTOR(Str)
+    // TODO: Just make EditorClipboard Vec(Str)
     return (EditorClipboard){
         .size = lines.size,
         .lines = lines.data,

@@ -1,7 +1,7 @@
 #ifndef OPT_H
 #define OPT_H
 
-#include "utils/utils.h"
+#include "utils/str.h"
 
 typedef struct OptParser {
     const VecStr* args;

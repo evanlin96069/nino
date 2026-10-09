@@ -3,7 +3,7 @@
 
 #include "surface.h"
 
-#include "utils/utils.h"
+#include "utils/vec.h"
 
 typedef struct Panel Panel;
 
@@ -36,7 +36,7 @@ struct LayoutNode {
 
     union {
         // LAYOUT_LEFTRIGHT/TOPBOTTOM
-        VECTOR(LayoutNode*) children;
+        Vec(LayoutNode*) children;
         // LAYOUT_LEAF
         Panel* panel;
     };
@@ -48,7 +48,7 @@ typedef struct Separator {
     Rect rect;
 } Separator;
 
-typedef VECTOR(Separator) VecSeparator;
+typedef Vec(Separator) VecSeparator;
 
 typedef enum LayoutDirection {
     LAYOUT_DIR_LEFT,

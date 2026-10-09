@@ -1,7 +1,7 @@
 #ifndef SELECT_H
 #define SELECT_H
 
-#include "utils/utils.h"
+#include "utils/str.h"
 
 typedef struct EditorFile EditorFile;
 typedef struct EditorCursor EditorCursor;

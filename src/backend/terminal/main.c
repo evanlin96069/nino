@@ -10,6 +10,8 @@
 
 #include "utils/opt.h"
 #include "utils/os.h"
+#include "utils/str.h"
+#include "utils/vec.h"
 
 #include "os.h"
 #include "terminal.h"
@@ -39,7 +41,7 @@ static void missingArg(int flag) {
 int main(int argc, char* argv[]) {
     bool readonly_mode = false;
     const char* config_path = NULL;
-    VECTOR(const char*) startup_cmds = {0};
+    Vec(const char*) startup_cmds = {0};
 
     VecStr utf8_args = getUTF8Args(argc, argv);
     OptParser parser = optInit(&utf8_args);
@@ -51,7 +53,7 @@ int main(int argc, char* argv[]) {
                 const char* cmd = optArg(&parser);
                 if (!cmd)
                     missingArg(flag);
-                vector_push(&startup_cmds, cmd);
+                vecPush(&startup_cmds, cmd);
             } break;
 
             case 'u':
@@ -97,7 +99,7 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < startup_cmds.size; i++) {
         editorCmd(startup_cmds.data[i]);
     }
-    vector_free(&startup_cmds);
+    vecFree(&startup_cmds);
 
     // Post-config setup
     if (readonly_mode) {
@@ -151,7 +153,7 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < utf8_args.size; i++) {
         strFree(&utf8_args.data[i]);
     }
-    vector_free(&utf8_args);
+    vecFree(&utf8_args);
 
     // Setup panel states
     if (gEditor.file_count == 0) {

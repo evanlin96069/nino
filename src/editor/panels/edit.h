@@ -6,7 +6,7 @@
 #include "editor/action.h"
 #include "editor/editor.h"
 #include "editor/row.h"
-#include "utils/utils.h"
+#include "utils/vec.h"
 
 typedef struct EditorTab {
     // File
@@ -57,7 +57,7 @@ typedef enum EditMouseMode {
 typedef struct EditPanel {
     Panel base;
 
-    VECTOR(EditorTab) tabs;
+    Vec(EditorTab) tabs;
     int tab_active_index;
     int tab_offset;
     int tab_displayed;

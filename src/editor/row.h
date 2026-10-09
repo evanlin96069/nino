@@ -3,10 +3,11 @@
 
 #include "highlight.h"
 #include "utils/utils.h"
+#include "utils/vec.h"
 
 typedef struct EditorFile EditorFile;
 
-typedef VECTOR(EditorHLSpan) EditorHLSpanVector;
+typedef Vec(EditorHLSpan) VecHLSpan;
 
 typedef struct EditorRow {
     int size;
@@ -15,7 +16,7 @@ typedef struct EditorRow {
     size_t capacity;
 
     // Highlighting attribute
-    EditorHLSpanVector hl_spans;
+    VecHLSpan hl_spans;
     uint32_t trailing_spaces;
     bool hl_open_comment;
     bool hl_updated;

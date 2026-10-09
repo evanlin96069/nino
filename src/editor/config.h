@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include "highlight.h"
+#include "utils/utils.h"
 
 #define EDITOR_CONFIG_EXT "." EDITOR_NAME
 #define EDITOR_RC_FILE EDITOR_NAME "rc"
