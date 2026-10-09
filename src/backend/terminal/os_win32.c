@@ -1,5 +1,7 @@
 #include "os.h"
 
+#include "editor/console.h"
+
 #include "terminal.h"
 
 #include "utils/os.h"
