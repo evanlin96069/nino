@@ -137,11 +137,8 @@ int main(int argc, char* argv[]) {
 
     if (!stdin_piped) {
         for (size_t i = 0; i < file_argc; i++) {
-            // TODO: Current strGetCStr is not const and might invalidate data
-            // if re-allocate (this won't actually happen because getUTF8Args
-            // will return null-terminated)
             EditorOpenStatus result =
-                editorLoadFile(&file, strGetCStr((Str*)&file_args[i]), false);
+                editorLoadFile(&file, strGetCStr(&file_args[i]), false);
             if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
                 if (editorAddFileToActiveSplit(&file) == -1) {
                     break;
