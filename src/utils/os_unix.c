@@ -4,8 +4,8 @@
 #include <fcntl.h>
 #include <time.h>
 
-#include "utils/utils.h"
 #include "utils/str.h"
+#include "utils/utils.h"
 
 #include "os.h"
 

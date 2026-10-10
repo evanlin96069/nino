@@ -90,10 +90,10 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                         i = row->size;
 
                     vecPush(&row->hl_spans, (EditorHLSpan){
-                                                    .start = start,
-                                                    .len = i - start,
-                                                    .type = HL_COMMENT,
-                                                });
+                                                .start = start,
+                                                .len = i - start,
+                                                .type = HL_COMMENT,
+                                            });
                     continue;
                 }
             }
@@ -109,10 +109,10 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                     strncmp(&row->data[i], scs, scs_len) == 0) {
                     // Mark entire line as comment
                     vecPush(&row->hl_spans, (EditorHLSpan){
-                                                    .start = i,
-                                                    .len = row->size - i,
-                                                    .type = HL_COMMENT,
-                                                });
+                                                .start = i,
+                                                .len = row->size - i,
+                                                .type = HL_COMMENT,
+                                            });
                     break;
                 }
             }
@@ -135,10 +135,10 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                         i = row->size;
 
                     vecPush(&row->hl_spans, (EditorHLSpan){
-                                                    .start = start,
-                                                    .len = i - start,
-                                                    .type = HL_STRING,
-                                                });
+                                                .start = start,
+                                                .len = i - start,
+                                                .type = HL_STRING,
+                                            });
                     prev_sep = true;
                     continue;
                 }
@@ -268,10 +268,10 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                         (i == row->size || isSeparator(row->data[i]) ||
                          isSpace(row->data[i]))) {
                         vecPush(&row->hl_spans, (EditorHLSpan){
-                                                        .start = start,
-                                                        .len = i - start,
-                                                        .type = HL_NUMBER,
-                                                    });
+                                                    .start = start,
+                                                    .len = i - start,
+                                                    .type = HL_NUMBER,
+                                                });
                     }
                     prev_sep = false;
                     continue;
@@ -291,12 +291,11 @@ int editorUpdateSyntax(EditorFile* file, EditorRow* r, int flags) {
                             (i + klen == row->size ||
                              isNonIdentifierChar(row->data[i + klen]))) {
                             found_keyword = true;
-                            vecPush(&row->hl_spans,
-                                        (EditorHLSpan){
-                                            .start = i,
-                                            .len = klen,
-                                            .type = keyword_type,
-                                        });
+                            vecPush(&row->hl_spans, (EditorHLSpan){
+                                                        .start = i,
+                                                        .len = klen,
+                                                        .type = keyword_type,
+                                                    });
                             i += klen;
                             break;
                         }
@@ -425,8 +424,7 @@ static void loadEditorConfigHLDB(void) {
     // Add commands
     ConCommandBase* curr = gEditor.cvars;
     while (curr) {
-        vecPush(&syntax_def->keywords[curr->is_command ? 0 : 1],
-                    curr->name);
+        vecPush(&syntax_def->keywords[curr->is_command ? 0 : 1], curr->name);
         curr = curr->next;
     }
 

@@ -4,8 +4,8 @@
 
 #include "os.h"
 
-#include "utils/utils.h"
 #include "utils/str.h"
+#include "utils/utils.h"
 
 FileInfo getFileInfo(const char* path) {
     FileInfo info;

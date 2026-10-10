@@ -214,9 +214,9 @@ static void findCallback(PromptEvent event, void* user_data) {
 
                         col = (size_t)match_idx;
                         vecPush(&cache.matches, (FindPos){
-                                                        .row = i,
-                                                        .col = col,
-                                                    });
+                                                    .row = i,
+                                                    .col = col,
+                                                });
                         col += query_len;
                     }
                 }

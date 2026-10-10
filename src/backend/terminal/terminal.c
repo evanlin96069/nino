@@ -6,8 +6,8 @@
 
 #include "editor/editor.h"
 
-#include "utils/utils.h"
 #include "utils/str.h"
+#include "utils/utils.h"
 
 void platformPanic(const char* file, int line, const char* s) {
     terminalExit();

@@ -91,7 +91,7 @@ typedef struct Editor {
     WelcomePanel* welcome_panel;
     PromptPanel* prompt_panel;
     EditPanel* active_edit_panel;
-    EditPanel* pending_edit_panel;     // EditWaitState
+    EditPanel* pending_edit_panel;  // EditWaitState
     Vec(EditPanel*) recent_splits;  // from least to most recent
 
     // Editor mode

@@ -3,8 +3,8 @@
 #include "editor/config.h"
 #include "editor/console.h"
 #include "editor/search.h"
-#include "utils/unicode.h"
 #include "utils/str.h"
+#include "utils/unicode.h"
 #include "utils/vec.h"
 
 #include "explorer.h"

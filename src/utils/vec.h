@@ -23,7 +23,7 @@ static inline void _vecReserve(_Vec* vec, size_t n, size_t item_size) {
 }
 
 static inline void _vecMakeRoom(_Vec* vec, size_t n, size_t item_size) {
-    if (item_size == 0)
+    if (n == 0 || item_size == 0)
         return;
 
     if (!vec->capacity) {
