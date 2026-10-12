@@ -265,6 +265,45 @@ void addDefaultExtension(char* path, const char* extension, int path_length) {
     strncat(path, extension, path_length);
 }
 
+FilenamePos parseFilenamePos(StrView str) {
+    FilenamePos result = {0};
+    result.filename = str;
+
+    size_t i = 0;
+    while (i < str.size && str.data[i] != ':') {
+        i++;
+    }
+
+    if (i == str.size) {
+        return result;
+    }
+
+    result.filename.size = i;
+
+    StrView x = {0};
+    x.data = str.data + i + 1;
+    x.size = str.size - i - 1;
+
+    i = 0;
+    while (i < x.size && x.data[i] != ':') {
+        i++;
+    }
+
+    StrView y = {0};
+    if (i < x.size) {
+        y.data = x.data + i + 1;
+        y.size = x.size - i - 1;
+        x.size = i;
+    }
+
+    if (!svToInt(x, &result.x) || (y.data && !svToInt(y, &result.y))) {
+        result.x = 0;
+        result.y = 0;
+    }
+
+    return result;
+}
+
 int64_t getLine(char** lineptr, size_t* n, FILE* stream) {
     char* buf = NULL;
     size_t capacity;
@@ -402,6 +441,7 @@ bool strStartsWith(const char* s, const char* value, bool ignore_case) {
     return true;
 }
 
+// TODO: Use svToInt instead
 bool strToInt(const char* str, int* out) {
     if (!str || !out) {
         return false;

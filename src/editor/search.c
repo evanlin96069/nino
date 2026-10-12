@@ -367,14 +367,7 @@ static void gotoCallback(PromptEvent event, void* user_data) {
     }
 
     if (line > 0 && line <= file->num_rows) {
-        tab->sx = 0;
-        tab->cursor.x = 0;
-        tab->cursor.y = line - 1;
-        tab->cursor.is_selected = false;
-        tab->cursor.select_x = tab->cursor.x;
-        tab->cursor.select_y = tab->cursor.y;
-        editorUpdateSx(tab);
-        editorScrollToCursorCenter(split);
+        editorScrollTo(split, 0, line - 1);
     } else {
         editorMsg("Type a line number between 1 to %d (negative too).",
                   file->num_rows);

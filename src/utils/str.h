@@ -33,39 +33,19 @@ static inline StrView svFromStr(Str s) {
     };
 }
 
-static inline bool svEql(StrView s1, StrView s2) {
-    if (s1.size != s2.size)
-        return false;
-    if (s1.data == s2.data)
-        return true;
-    for (size_t i = 0; i < s1.size; i++) {
-        if (s1.data[i] != s2.data[i])
-            return false;
-    }
-    return true;
-}
+StrView svStripLeft(StrView str);
+StrView svStripRight(StrView str);
+StrView svStrip(StrView str);
+bool svEql(StrView s1, StrView s2);
+bool svToInt(StrView str, int* out);
+
+void _strMakeRoom(Str* s, size_t n);
 
 static inline void strReserve(Str* s, size_t n) {
     if (s->capacity < n + 1) {
         s->capacity = n + 1;
         s->data = realloc_s(s->data, s->capacity);
         s->data[s->size] = '\0';
-    }
-}
-
-static inline void _strMakeRoom(Str* s, size_t n) {
-    if (n == 0)
-        return;
-
-    if (!s->capacity) {
-        s->data = malloc_s(STR_MIN_CAPACITY);
-        s->capacity = STR_MIN_CAPACITY;
-    }
-    size_t need = s->size + n + 1;
-    if (need > s->capacity) {
-        s->capacity = need;
-        s->capacity *= STR_EXTEND_RATE;
-        s->data = realloc_s(s->data, s->capacity * sizeof(char));
     }
 }
 

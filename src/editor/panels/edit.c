@@ -2312,9 +2312,6 @@ void editorScroll(EditPanel* split, int dist) {
 }
 
 void editorScrollToCursor(EditPanel* split) {
-    if (!split)
-        return;
-
     EditorTab* tab = editorSplitGetTab(split);
     const EditorFile* file = editorTabGetFile(tab);
     if (!file)
@@ -2346,9 +2343,6 @@ void editorScrollToCursor(EditPanel* split) {
 }
 
 void editorScrollToCursorCenter(EditPanel* split) {
-    if (!split)
-        return;
-
     EditorTab* tab = editorSplitGetTab(split);
     if (!tab)
         return;
@@ -2357,6 +2351,35 @@ void editorScrollToCursorCenter(EditPanel* split) {
     if (tab->row_offset < 0) {
         tab->row_offset = 0;
     }
+}
+
+void editorScrollTo(EditPanel* split, int rx, int y) {
+    EditorTab* tab = editorSplitGetTab(split);
+    const EditorFile* file = editorTabGetFile(tab);
+    if (!file)
+        return;
+
+    if (y < 0) {
+        y = 0;
+    } else if (y >= file->num_rows) {
+        y = file->num_rows - 1;
+    }
+
+    const EditorRow* row = &file->row[y];
+    if (rx < 0) {
+        rx = 0;
+    } else if (rx >= row->rsize) {
+        rx = row->rsize - 1;
+    }
+
+    tab->cursor.x = editorRowRxToCx(row, rx);
+    tab->cursor.y = y;
+    tab->cursor.is_selected = false;
+    tab->cursor.select_x = tab->cursor.x;
+    tab->cursor.select_y = tab->cursor.y;
+    editorUpdateSx(tab);
+
+    editorScrollToCursorCenter(split);
 }
 
 void editorCancelPendingWait(EditPanel* split) {

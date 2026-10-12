@@ -17,13 +17,18 @@
 #include "terminal.h"
 
 static void usage(void) {
-    printf("Usage: " EDITOR_NAME " [options] [file...]\n");
-    printf("Options:\n");
-    printf("  -c <cmd>     Execute <cmd> after config\n");
-    printf("  -u <file>    Use this config file\n");
-    printf("  -R           Readonly mode\n");
-    printf("  -v           Print version information and exit\n");
-    printf("  -h           Print this help message and exit\n");
+    // clang-format off
+    printf(
+        "Usage: " EDITOR_NAME " [options] [file...]\n"
+        "Options:\n"
+        "  -c <cmd>                      Execute <cmd> after config\n"
+        "  -u <file>                     Use this config file (\"NONE\" for no config)\n"
+        "  -g <file:line{:character}>    Open file at specific position\n"
+        "  -R                            Readonly mode\n"
+        "  -v                            Print version information and exit\n"
+        "  -h                            Print this help message and exit\n"
+    );
+    // clang-format on
 }
 
 static void unknownArg(int flag) {
@@ -42,6 +47,7 @@ int main(int argc, char* argv[]) {
     bool readonly_mode = false;
     const char* config_path = NULL;
     Vec(const char*) startup_cmds = {0};
+    Vec(const char*) goto_files = {0};
 
     VecStr utf8_args = getUTF8Args(argc, argv);
     OptParser parser = optInit(&utf8_args);
@@ -61,6 +67,13 @@ int main(int argc, char* argv[]) {
                 if (!config_path)
                     missingArg(flag);
                 break;
+
+            case 'g': {
+                const char* filename = optArg(&parser);
+                if (!filename)
+                    missingArg(flag);
+                vecPush(&goto_files, filename);
+            } break;
 
             case 'R':
                 readonly_mode = true;
@@ -92,7 +105,7 @@ int main(int argc, char* argv[]) {
         editorLoadInitConfig();
     } else if (strcmp(config_path, "NONE") != 0) {
         if (!editorLoadConfig(config_path)) {
-            editorMsg("Failed to load config: %s", config_path);
+            editorMsg("Failed to load config \"%s\".", config_path);
         }
     }
 
@@ -136,6 +149,34 @@ int main(int argc, char* argv[]) {
     terminalStart();
 
     if (!stdin_piped) {
+        // Goto files
+        Str temp_filename = {0};
+        for (size_t i = 0; i < goto_files.size; i++) {
+            strClear(&temp_filename);
+
+            FilenamePos filename_pos =
+                parseFilenamePos(svFromCStr(goto_files.data[i]));
+            strAppend(&temp_filename, filename_pos.filename);
+            const char* filename = strGetCStr(&temp_filename);
+
+            if (getFileType(filename) == FT_DIR) {
+                editorMsg("\"%s\" is a directory but used in -g flag.",
+                          filename);
+                continue;
+            }
+
+            EditorOpenStatus result = editorLoadFile(&file, filename, false);
+            if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
+                if (editorAddFileToActiveSplit(&file) == -1) {
+                    break;
+                }
+                editorScrollTo(gEditor.active_edit_panel, filename_pos.y - 1,
+                               filename_pos.x - 1);
+            }
+        }
+        strFree(&temp_filename);
+
+        // Remaining
         for (size_t i = 0; i < file_argc; i++) {
             EditorOpenStatus result =
                 editorLoadFile(&file, strGetCStr(&file_args[i]), false);
@@ -146,6 +187,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    vecFree(&goto_files);
 
     for (size_t i = 0; i < utf8_args.size; i++) {
         strFree(&utf8_args.data[i]);

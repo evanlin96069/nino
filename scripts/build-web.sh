@@ -63,6 +63,7 @@ SOURCES="\
     src/ui/layout.c
     src/ui/surface.c
     src/utils/json.c
+    src/utils/str.c
     src/utils/unicode.c
     src/utils/utils.c
     src/backend/shared/event.c

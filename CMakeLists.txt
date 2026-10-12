@@ -85,6 +85,7 @@ set (CORE_SOURCES
     src/utils/opt.c
     src/utils/opt.h
     src/utils/os.h
+    src/utils/str.c
     src/utils/str.h
     src/utils/unicode.c
     src/utils/unicode.h

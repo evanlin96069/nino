@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "str.h"
+
 // Macros
 #define _DO02(m, sep, x, y) m(x) sep m(y)
 #define _DO03(m, sep, x, y, z) \
@@ -92,6 +94,13 @@ ColorRGBA colorToRGBA(Color color);
 char* getBaseName(char* path);
 char* getDirName(char* path);
 void addDefaultExtension(char* path, const char* extension, int path_length);
+
+typedef struct FilenamePos {
+    // "filename:x{:y}"
+    int x, y;
+    StrView filename;
+} FilenamePos;
+FilenamePos parseFilenamePos(StrView str);
 
 // String
 int64_t getLine(char** lineptr, size_t* n, FILE* stream);
