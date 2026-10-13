@@ -379,7 +379,7 @@ void editorInitHLDB(void) {
     loadEditorConfigHLDB();
     editorLoadBundledHLDB();
 
-    const char* home_dir = getEnv(ENV_HOME);
+    const char* home_dir = getEnvHome();
     if (!home_dir)
         return;
 

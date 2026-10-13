@@ -225,6 +225,16 @@ ColorRGBA colorToRGBA(Color color) {
     }
 }
 
+const char* getEnvHome(void) {
+    static bool checked = false;
+    static const char* home_dir = NULL;
+    if (!checked) {
+        home_dir = getEnv(ENV_HOME);
+        checked = true;
+    }
+    return home_dir;
+}
+
 char* getBaseName(char* path) {
     char* file = path + strlen(path);
     while (file > path) {
@@ -252,17 +262,45 @@ char* getDirName(char* path) {
 }
 
 // if path doesn't have a .EXT, append extension
-void addDefaultExtension(char* path, const char* extension, int path_length) {
-    char* src = path + strlen(path) - 1;
-
-    while (!isPathSeparator(*src) && src > path) {
-        if (*src == '.') {
-            return;
-        }
-        src--;
+Str addDefaultExtension(StrView path, const char* extension) {
+    if (path.size == 0) {
+        // This is probably a error tbh
+        return strCopy(svFromCStr(extension));
     }
 
-    strncat(path, extension, path_length);
+    int i = (int)path.size - 1;
+    while (i >= 0 && !isPathSeparator(path.data[i])) {
+        if (path.data[i] == '.')
+            return strCopy(path);
+        i--;
+    }
+
+    Str result = {0};
+    strAppend(&result, path);
+    strAppend(&result, svFromCStr(extension));
+
+    return result;
+}
+
+// expand "~"
+Str expandHomePath(StrView path) {
+    if (path.size != 0 && path.data[0] == '~') {
+        Str result = {0};
+        if (path.size == 1 || isPathSeparator(path.data[1])) {
+            const char* home_dir = getEnvHome();
+            if (home_dir) {
+                path.data++;
+                path.size--;
+                strAppend(&result, svFromCStr(home_dir));
+            }
+            strAppend(&result, path);
+            return result;
+        }
+
+        // TODO: expand ~user on Unix
+    }
+
+    return strCopy(path);
 }
 
 FilenamePos parseFilenamePos(StrView str) {

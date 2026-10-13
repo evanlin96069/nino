@@ -224,27 +224,33 @@ CON_COMMAND(exec, "Execute a config file.") {
         return;
     }
 
-    char filename[EDITOR_PATH_MAX] = {0};
-    snprintf(filename, sizeof(filename), "%s", args.argv[1]);
-    addDefaultExtension(filename, EDITOR_CONFIG_EXT, sizeof(filename));
+    Str file_ext =
+        addDefaultExtension(svFromCStr(args.argv[1]), EDITOR_CONFIG_EXT);
+    Str path = expandHomePath(svFromStr(file_ext));
 
-    if (!editorLoadConfig(filename)) {
+    bool loaded = editorLoadConfig(strGetCStr(&path));
+    if (!loaded) {
         // Try config directory
-        const char* home_dir = getEnv(ENV_HOME);
-        if (!home_dir) {
-            editorMsg("exec: Failed to exec \"%s\"", args.argv[1]);
-            return;
-        }
+        const char* home_dir = getEnvHome();
+        if (home_dir) {
+            Str config_path = {0};
+            strAppend(&config_path, svFromCStr(home_dir));
+            strAppend(&config_path, svFromCStr(DIR_SEP));
+            strAppend(&config_path, svFromCStr(CONF_DIR));
+            strAppend(&config_path, svFromCStr(DIR_SEP));
+            strAppend(&config_path, svFromStr(file_ext));
 
-        char config_path[EDITOR_PATH_MAX];
-        int len = snprintf(config_path, sizeof(config_path),
-                           PATH_CAT("%s", CONF_DIR, "%s"), home_dir, filename);
+            loaded = editorLoadConfig(strGetCStr(&config_path));
 
-        if (len < 0 || !editorLoadConfig(config_path)) {
-            editorMsg("exec: Failed to exec \"%s\"", args.argv[1]);
-            return;
+            strFree(&config_path);
         }
     }
+
+    if (!loaded)
+        editorMsg("exec: Failed to exec \"%s\"", args.argv[1]);
+
+    strFree(&file_ext);
+    strFree(&path);
 }
 
 CON_COMMAND(lang, "Set the syntax highlighting language of the current file.") {
@@ -293,29 +299,38 @@ CON_COMMAND(hldb_load, "Load a syntax highlighting JSON file.") {
         return;
     }
 
-    char filename[EDITOR_PATH_MAX] = {0};
-    snprintf(filename, sizeof(filename), "%s", args.argv[1]);
-    addDefaultExtension(filename, ".json", sizeof(filename));
+    Str file_ext =
+        addDefaultExtension(svFromCStr(args.argv[1]), EDITOR_CONFIG_EXT);
+    Str path = expandHomePath(svFromStr(file_ext));
 
-    if (!editorLoadHLDB(filename)) {
+    bool loaded = editorLoadHLDB(strGetCStr(&path));
+    if (!loaded) {
         // Try config directory
-        const char* home_dir = getEnv(ENV_HOME);
-        if (!home_dir) {
-            editorMsg("hldb_load: Failed to load \"%s\"", args.argv[1]);
-            return;
-        }
+        const char* home_dir = getEnvHome();
+        if (home_dir) {
+            Str config_path = {0};
+            strAppend(&config_path, svFromCStr(home_dir));
+            strAppend(&config_path, svFromCStr(DIR_SEP));
+            strAppend(&config_path, svFromCStr(CONF_DIR));
+            strAppend(&config_path, svFromCStr(DIR_SEP));
+            strAppend(&config_path, svFromCStr("sytax"));
+            strAppend(&config_path, svFromCStr(DIR_SEP));
+            strAppend(&config_path, svFromStr(file_ext));
 
-        char config_path[EDITOR_PATH_MAX];
-        int len = snprintf(config_path, sizeof(config_path),
-                           PATH_CAT("%s", CONF_DIR, "%s"), home_dir, filename);
+            loaded = editorLoadHLDB(strGetCStr(&config_path));
 
-        if (len < 0 || !editorLoadHLDB(config_path)) {
-            editorMsg("hldb_load: Failed to load \"%s\"", args.argv[1]);
-            return;
+            strFree(&config_path);
         }
     }
 
-    reloadSyntax();
+    if (!loaded) {
+        editorMsg("hldb_load: Failed to exec \"%s\"", args.argv[1]);
+    } else {
+        reloadSyntax();
+    }
+
+    strFree(&file_ext);
+    strFree(&path);
 }
 
 CON_COMMAND(hldb_reload_all, "Reload syntax highlighting database.") {
@@ -1067,7 +1082,7 @@ bool editorLoadConfig(const char* path) {
 
 void editorLoadInitConfig(void) {
     char path[EDITOR_PATH_MAX] = {0};
-    const char* home_dir = getEnv(ENV_HOME);
+    const char* home_dir = getEnvHome();
     if (!home_dir)
         return;
 

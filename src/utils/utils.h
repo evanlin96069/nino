@@ -91,9 +91,12 @@ int colorToStr(Color color, char buf[16]);
 ColorRGBA colorToRGBA(Color color);
 
 // File
+const char* getEnvHome(void);
 char* getBaseName(char* path);
 char* getDirName(char* path);
-void addDefaultExtension(char* path, const char* extension, int path_length);
+
+Str addDefaultExtension(StrView path, const char* extension);
+Str expandHomePath(StrView path);
 
 typedef struct FilenamePos {
     // "filename:x{:y}"

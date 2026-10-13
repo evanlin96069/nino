@@ -242,19 +242,21 @@ static void saveAsCallback(PromptEvent event, void* user_data) {
     UNUSED(user_data);
     if (event.type == PROMPT_EVENT_SUBMIT) {
         EditorFile* file = (EditorFile*)user_data;
-        const char* path = event.query;
+        Str path = expandHomePath(svFromCStr(event.query));
+        const char* filename = strGetCStr(&path);
 
         // Check path is valid
-        FILE* fp = openFile(path, "wb");
+        FILE* fp = openFile(filename, "wb");
         if (!fp) {
             editorMsg("Can't save \"%s\"! %s", path, strerror(errno));
+            strFree(&path);
             return;
         }
         fclose(fp);
 
         // TODO: Check if save overwrites existing file
 
-        const char* full_path = getFullPath(path);
+        const char* full_path = getFullPath(filename);
         size_t path_len = strlen(full_path) + 1;
         free(file->filename);
         file->filename = malloc_s(path_len);
@@ -263,6 +265,7 @@ static void saveAsCallback(PromptEvent event, void* user_data) {
         editorSelectSyntaxHighlight(file);
 
         editorSave(file, file->filename);
+        strFree(&path);
         editorHelpRestoreMsg();
     } else if (event.type == PROMPT_EVENT_CANCEL) {
         editorMsg("Save canceled.");
@@ -426,7 +429,10 @@ static void fileOpenCallback(PromptEvent event, void* user_data) {
     UNUSED(user_data);
     if (event.type == PROMPT_EVENT_SUBMIT) {
         EditorFile file;
-        EditorOpenStatus result = editorLoadFile(&file, event.query, false);
+        Str path = expandHomePath(svFromCStr(event.query));
+        EditorOpenStatus result =
+            editorLoadFile(&file, strGetCStr(&path), false);
+        strFree(&path);
         if (result == OPEN_FILE || result == OPEN_FILE_NEW) {
             if (editorAddFileToActiveSplit(&file) != -1) {
                 // TODO: focus the tab that has the file opened
