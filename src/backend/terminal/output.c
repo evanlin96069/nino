@@ -143,7 +143,7 @@ static void drawCallback(void* ctx,
             }
         } else {
             strAppendN(s, output, (size_t)utf8_len);
-            for (int j = 1; j < grapheme.size; i++) {
+            for (int j = 1; j < grapheme.size; j++) {
                 utf8_len = encodeUTF8(grapheme.cluster[j], output);
                 if (utf8_len != -1) {
                     strAppendN(s, output, (size_t)utf8_len);
